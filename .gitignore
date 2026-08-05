@@ -1,0 +1,20 @@
+# ---- Python (elou_avt_twin) ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.log
+.DS_Store
+
+# ---- Secrets & local config ----
+opencode1.json
+*.env
+.env
+config/local_config.json

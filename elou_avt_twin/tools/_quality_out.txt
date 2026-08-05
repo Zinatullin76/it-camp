@@ -1,0 +1,94 @@
+2026-08-02 23:21:16,171 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-02 23:21:16,176 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-02 23:21:16,177 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-02 23:21:16,177 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-02 23:21:16,178 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-02 23:22:57,809 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on furnace_P1 = 1.5
+2026-08-02 23:22:57,809 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on furnace_P1 = 1.5
+2026-08-02 23:23:03,412 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on furnace_P1 = 0.1
+2026-08-02 23:23:03,412 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on furnace_P1 = 0.1
+2026-08-02 23:23:08,472 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 0.05
+2026-08-02 23:23:08,472 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 0.05
+2026-08-02 23:23:12,019 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 0.8
+2026-08-02 23:23:12,019 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 0.8
+2026-08-02 23:23:15,471 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 1.0
+2026-08-02 23:23:15,471 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 1.0
+2026-08-02 23:23:18,766 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 0.3
+2026-08-02 23:23:18,766 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 0.3
+2026-08-02 23:23:22,128 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 0.8
+2026-08-02 23:23:22,128 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 0.8
+2026-08-02 23:23:25,493 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pump_H2 = None
+2026-08-02 23:23:25,493 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pump_H2 = None
+2026-08-02 23:23:28,048 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_ON on pump_H2 = None
+2026-08-02 23:23:28,048 [INFO] elou_avt.engine: Operator action: ActionType.TURN_ON on pump_H2 = None
+2026-08-02 23:23:34,836 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-02 23:23:34,837 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-02 23:23:34,838 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-02 23:23:34,838 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-02 23:23:34,838 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-02 23:23:52,249 [WARNING] elou_avt.engine: Failure injected: furnace_P1 -> MECHANICAL_FAILURE
+2026-08-02 23:24:02,769 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-02 23:24:02,769 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-02 23:24:02,770 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-02 23:24:02,770 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-02 23:24:02,770 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-02 23:24:19,625 [WARNING] elou_avt.engine: Failure injected: pump_H2 -> MECHANICAL_FAILURE
+2026-08-02 23:24:22,133 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-02 23:24:22,134 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-02 23:24:22,134 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-02 23:24:22,135 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-02 23:24:22,135 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-02 23:24:38,722 [WARNING] elou_avt.engine: Failure injected: valve_FV13 -> MECHANICAL_FAILURE
+2026-08-02 23:24:41,403 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on valve_FV13 = 0.9
+2026-08-02 23:24:41,404 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on valve_FV13 = 0.9
+========================================================================
+QUALITY CHECK: calculation core + operator reaction
+========================================================================
+  [PASS] baseline 300 steps no crash  51.6s total, 171.9 ms/step
+  [PASS] no false HIGH/CRITICAL alarms  0 alarms
+  [PASS] all columns converged  
+  [PASS] no NaN in outputs  nan nodes: []
+  [PASS] hydrocarbon mass balance  HC in=128.00 products=128.56 rel_err=0.437%
+  [PASS] levels bounded  25 levels, outliers: []
+      level column         =   1.50 m
+      level column_K1      =   2.50 m
+      level column_K10     =   2.00 m
+      level column_K12     =   1.50 m
+      level column_K2      =   2.50 m
+      level column_K31     =   2.00 m
+      level column_K32     =   2.00 m
+      level column_K33     =   2.00 m
+      level column_K4      =   2.00 m
+      level column_K7      =   1.50 m
+      level column_K9      =   2.00 m
+      level elou           =   4.00 m
+      level elou_1         =   4.00 m
+      level elou_2         =   4.00 m
+      level reactor_K124   =   2.00 m
+      level sep_C1K        =   1.50 m
+      level sep_E1         =   1.50 m
+      level sep_E15        =   2.50 m
+      level sep_E16        =   1.50 m
+      level sep_E17        =   1.50 m
+      level sep_E18        =   1.50 m
+      level sep_E2         =   1.50 m
+      level sep_E3         =   1.50 m
+      level tank_R11       =   2.50 m
+      level tank_R13       =   2.00 m
+  [PASS] feed T override 25 -> 60 C raises P-1 outlet  P-1 out 247.4 -> 272.7 C
+  [PASS] feed flow override 100 -> 150 raises throughput  valve_FV1 out=150.00 kg/s (was 104.96), tank_R11 level 2.50 -> 2.50 m
+  [PASS] fuel+ raises P-1 outlet T  247.4 -> 295.5 C
+  [PASS] fuel- lowers P-1 outlet T  295.5 -> 227.8 C
+  [PASS] furnace duty follows fuel  duty after reduction = 23.28 MW
+  [PASS] closing FV-13 lowers its flow  18.839 -> 1.239 kg/s
+  [PASS] closing FV-13 to 0.3 cuts flow  19.63 -> 7.43 kg/s
+  [PASS] closing FV-13 raises throttling drop  P_out 2.942 -> 1.692 bar (dP no longer fixed 0.1)
+  [PASS] H-2 OFF starves P-1 feed  furnace_P1 inlet after pump trip = 0.000 kg/s
+  [PASS] failure P-1 cuts duty  duty 27.20 -> 0.00 MW (heater ignores failed state)
+  [PASS] failure P-1 recorded active  active_failures=['furnace_P1:MECHANICAL_FAILURE']
+  [PASS] failure H-2 stops flow  pump flow 66.17 -> 0.00 kg/s
+  [PASS] failure H-2 recorded active  
+  [PASS] failure FV-13 sticks valve (action ignored)  position 0.80 -> 0.80
+  [PASS] system stable after all actions  alarms now: []
+========================================================================
+RESULT: 21/21 passed

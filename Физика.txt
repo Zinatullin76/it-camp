@@ -1,0 +1,671 @@
+# Задача: глубокая доработка и верификация физической модели проекта Digital Twin
+
+Ты работаешь как Senior Process Engineer, специалист по термодинамике, моделированию технологических процессов, численным методам и Python software architecture.
+
+Тебе передан полный исходный код проекта Digital Twin технологического процесса.
+
+Твоя задача — НЕ просто улучшить код и НЕ переписывать проект с нуля. Твоя задача — провести глубокую ревизию существующей физической модели и постепенно довести её до физически согласованного, численно устойчивого и тестируемого состояния.
+
+## Главный принцип
+
+Нельзя молча придумывать физические зависимости, коэффициенты или свойства веществ.
+
+Для каждой физической модели необходимо:
+
+1. Определить используемое физическое уравнение.
+2. Указать его физический смысл.
+3. Указать единицы всех входов и выходов.
+4. Указать область применимости.
+5. Проверить размерностную согласованность.
+6. Проверить граничные случаи.
+7. Проверить сохранение массы.
+8. Проверить сохранение энергии там, где это применимо.
+9. Проверить физические ограничения.
+10. Добавить автоматические тесты.
+
+Если для точной реализации не хватает данных или спецификации — НЕ выдумывай их. Явно укажи, какие данные отсутствуют и предложи несколько вариантов модели с указанием компромиссов.
+
+---
+
+# ЭТАП 1. Полный аудит физической модели
+
+Сначала НЕ меняй код.
+
+Изучи весь проект и составь карту физической модели:
+
+* Stream
+* Composition
+* Units
+* Thermodynamics
+* Material properties
+* VLE
+* Enthalpy
+* Density
+* Heat capacity
+* Hydraulics
+* Pumps
+* Valves
+* Heaters
+* Heat exchangers
+* Distillation
+* ELOU
+* Material balances
+* Energy balances
+* Dynamic simulation
+* Safety limits
+* Calculation Core
+* Legacy physics layer
+
+Найди все места, где выполняются физические расчёты.
+
+Для каждого расчёта создай таблицу:
+
+| Компонент | Файл | Функция | Формула | Входы | Выходы | Единицы | Физическая модель | Проблема | Критичность |
+| --------- | ---- | ------- | ------- | ----- | ------ | ------- | ----------------- | -------- | ----------- |
+
+Критичность классифицируй:
+
+* P0 — критическая физическая ошибка
+* P1 — существенная ошибка
+* P2 — упрощение модели
+* P3 — улучшение/рефакторинг
+
+---
+
+# ЭТАП 2. Единицы измерения
+
+Проведи полный аудит единиц.
+
+Для каждого физического параметра зафиксируй canonical unit.
+
+Минимально:
+
+* Temperature → K внутри calculation core
+* Pressure → Pa
+* Mass flow → kg/s
+* Molar flow → mol/s
+* Volumetric flow → m³/s
+* Enthalpy → J/kg
+* Heat duty → W
+* Density → kg/m³
+* Heat capacity → J/(kg·K)
+* Molecular weight → kg/mol
+
+Проверь ВСЕ преобразования.
+
+Особенно проверь:
+
+* mass fraction ↔ mole fraction
+* mass flow ↔ molar flow
+* molar flow ↔ mass flow
+* volumetric flow ↔ mass flow
+* pressure units
+* temperature units
+* energy units
+* time units
+
+Добавь единый слой unit conversion.
+
+Не допускай смешивания единиц внутри Calculation Core.
+
+---
+
+# ЭТАП 3. Stream как физический контракт
+
+Stream должен стать строгим физическим объектом.
+
+Проверь и доработай:
+
+* temperature
+* pressure
+* mass_flow
+* molar_flow
+* volumetric_flow
+* composition
+* phase
+* enthalpy
+* density
+* viscosity
+
+Установи строгую семантику:
+
+composition = mass fractions
+
+Добавь явные функции:
+
+mass_to_mole_fractions()
+mole_to_mass_fractions()
+
+Запрети silent normalization неправильного состава.
+
+Если сумма fractions отличается от 1 больше допустимой погрешности — выбрасывай ValidationError.
+
+Проверь физическую согласованность:
+
+mass_flow
+↔ molar_flow
+↔ molecular_weight
+↔ density
+↔ volumetric_flow
+
+Если одновременно заданы несколько величин, проверяй их согласованность.
+
+Не позволяй неизвестным компонентам автоматически получать fake/default physical properties.
+
+Если компонент неизвестен — выдавай понятную ошибку.
+
+---
+
+# ЭТАП 4. Thermodynamics
+
+Проведи ревизию thermodynamics.
+
+Минимально проверь:
+
+* Cp(T)
+* Enthalpy(T)
+* Density(T,P,composition,phase)
+* Viscosity
+* VLE
+* K-values
+* Bubble point
+* Dew point
+* Flash calculation
+
+Особое внимание удели зависимости:
+
+Cp = f(T)
+
+Если Cp зависит от температуры, энтальпия должна быть термодинамически согласована с интегралом Cp:
+
+H(T) = H(Tref) + integral(Cp(T)dT)
+
+Не используй:
+
+H = Cp(T) * (T - Tref)
+
+если Cp является функцией температуры, если только это не явно заявленная аппроксимация.
+
+Для каждой корреляции укажи:
+
+* источник/название корреляции;
+* область применимости;
+* ограничения;
+* единицы;
+* точность.
+
+Если используется IdealThermodynamics — явно отдели это от rigorous thermodynamics.
+
+---
+
+# ЭТАП 5. VLE и K-values
+
+Проверь текущую реализацию VLE.
+
+Особенно:
+
+* K-values
+* Wilson
+* Antoine
+* Peng-Robinson
+* fugacity coefficients
+* activity coefficients
+* phase equilibrium
+
+Чётко раздели:
+
+1. Ideal VLE
+2. Wilson correlation
+3. Cubic EOS
+4. Rigorous VLE
+
+Не называй модель Peng-Robinson, если фактически используются только Wilson K-values.
+
+Если текущая модель является упрощённой — сохрани её как отдельную модель:
+
+IdealVLE
+WilsonVLE
+PengRobinsonVLE
+
+Сделай общий интерфейс:
+
+ThermodynamicModel
+get_k_values()
+get_enthalpy()
+get_density()
+get_vapor_fraction()
+bubble_point()
+dew_point()
+
+Добавь возможность заменить модель без изменения solver.
+
+---
+
+# ЭТАП 6. Material Balance
+
+Для каждого оборудования проверь материальный баланс.
+
+Минимально:
+
+Input = Output + Accumulation
+
+Для steady-state:
+
+Input = Output
+
+Для каждого компонента:
+
+Input_i = Output_i + Accumulation_i
+
+Проверить:
+
+* Mixer
+* Splitter
+* Pump
+* Valve
+* Heater
+* Heat exchanger
+* Distillation column
+* ELOU
+
+Добавить residual:
+
+mass_balance_residual
+component_balance_residual
+
+и тесты:
+
+abs(residual) < tolerance
+
+---
+
+# ЭТАП 7. Energy Balance
+
+Проверить:
+
+Input enthalpy
+
+* Heat
+* Work
+  =
+  Output enthalpy
+* Accumulation
+
+Для каждого оборудования определить:
+
+* Q
+* W
+* ΔH
+* losses
+
+Особенно проверить:
+
+* Pump
+* Heater
+* Heat exchanger
+* Furnace
+* Distillation column
+
+Не допускай скрытых энергетических источников.
+
+Добавь:
+
+energy_balance_residual
+
+В каждом тесте проверяй не только convergence, но и физический residual.
+
+---
+
+# ЭТАП 8. Distillation / MESH Solver
+
+Это критический участок.
+
+Проведи отдельный глубокий аудит.
+
+Проверь:
+
+* Material balance
+* Component balance
+* Phase equilibrium
+* Summation equations
+* Energy balance
+
+Проверь:
+
+sum(x_i) = 1
+sum(y_i) = 1
+
+x_i >= 0
+y_i >= 0
+
+K_i = y_i / x_i
+
+Проверь:
+
+* feed stage
+* feed thermal condition q
+* condenser
+* reboiler
+* total condenser
+* partial condenser
+* reflux
+* distillate
+* bottoms
+
+Особенно проверь, действительно ли feed thermal condition q влияет на расчёт, а не только вычисляется и возвращается в output.
+
+Проверь корректность:
+
+distillate composition
+bottoms composition
+
+Не используй автоматически x[0] как distillate composition без доказательства физической корректности.
+
+Проверь индексацию стадий.
+
+Явно определить:
+
+stage 0
+stage 1
+...
+stage N
+
+Проверь профили:
+
+L_profile
+V_profile
+
+Массовые потоки должны использовать локальную среднюю молярную массу соответствующей фазы:
+
+MW_liquid = sum(x_i * MW_i)
+MW_vapor = sum(y_i * MW_i)
+
+Не использовать глобальное среднее MW для всех стадий.
+
+Добавить тесты:
+
+overall mass balance
+component mass balance
+energy balance
+phase equilibrium
+composition normalization
+non-negative flows
+convergence residuals
+
+---
+
+# ЭТАП 9. Numerical Solver
+
+Проверь:
+
+* convergence criteria
+* residuals
+* tolerance
+* max iterations
+* damping
+* relaxation
+* Wegstein
+* Newton
+* fixed point
+* initial guesses
+
+Не скрывай слишком мягкие tolerance.
+
+Если пользователь задаёт:
+
+tol = 1e-6
+
+эффективный tolerance не должен автоматически становиться 0.3.
+
+Все convergence criteria должны быть явно документированы.
+
+Результат solver должен содержать:
+
+converged
+iterations
+mass_balance_residual
+component_balance_residual
+energy_balance_residual
+phase_equilibrium_residual
+max_residual
+
+Если solver не сошёлся — это должно быть явно видно.
+
+Нельзя возвращать физически недостоверный результат как успешный.
+
+---
+
+# ЭТАП 10. Physical Validation
+
+Создай единый validation layer.
+
+Проверять:
+
+* T > 0
+* P > 0
+* mass_flow >= 0
+* density > 0
+* viscosity > 0
+* fractions >= 0
+* sum(fractions) = 1
+* enthalpy finite
+* no NaN
+* no Inf
+
+Для оборудования:
+
+* pressure limits
+* temperature limits
+* flow limits
+* equipment operating range
+
+---
+
+# ЭТАП 11. Tests
+
+Не ограничивайся unit tests.
+
+Создай:
+
+1. Unit tests
+2. Integration tests
+3. Physical invariant tests
+4. Regression tests
+5. Solver convergence tests
+6. Failure tests
+7. Property-based tests
+
+Добавь проверки:
+
+Mass conservation
+Energy conservation
+Composition conservation
+Phase equilibrium
+Physical bounds
+
+Для каждого исправленного бага обязательно добавь regression test.
+
+Используй reference cases с заранее известным результатом.
+
+Если точных reference data нет — создай synthetic analytical cases, где точное решение известно.
+
+---
+
+# ЭТАП 12. Архитектура
+
+В проекте есть legacy physics layer и новый calculation_core.
+
+Проведи анализ зависимостей.
+
+Целевая архитектура:
+
+Equipment
+↓
+Calculation Core
+↓
+Thermodynamics
+↓
+Solver
+↓
+Validation
+
+Не должно быть двух независимых физических движков, которые дают разные результаты.
+
+Сначала перенеси все расчёты на Calculation Core.
+
+После миграции legacy physics можно удалить или оставить только как compatibility layer.
+
+Не переписывай всё сразу.
+
+Делай миграцию постепенно.
+
+---
+
+# ЭТАП 13. Правила внесения изменений
+
+Очень важно:
+
+НЕ переписывай проект полностью.
+
+НЕ меняй API без необходимости.
+
+НЕ меняй публичные интерфейсы без обратной совместимости.
+
+НЕ добавляй сложную физику только ради сложности.
+
+Сначала исправляй существующие физические ошибки.
+
+Каждое изменение должно:
+
+1. Иметь физическое обоснование.
+2. Иметь тест.
+3. Не ломать существующие тесты без причины.
+4. Иметь комментарий о единицах.
+5. Иметь документацию по области применимости.
+
+---
+
+# ЭТАП 14. Формат работы
+
+Работай строго поэтапно.
+
+Сначала:
+
+### PHASE 1 — AUDIT
+
+Не меняй код.
+
+Выведи:
+
+* найденные физические модели;
+* найденные ошибки;
+* P0/P1/P2/P3;
+* карту зависимостей;
+* список файлов, которые необходимо изменить.
+
+После этого:
+
+### PHASE 2 — PHYSICS CONTRACT
+
+Зафиксируй:
+
+* units;
+* Stream semantics;
+* composition semantics;
+* thermodynamic conventions;
+* balance conventions.
+
+После этого:
+
+### PHASE 3 — FIX CORE PHYSICS
+
+Исправляй:
+
+1. Units
+2. Stream validation
+3. Composition
+4. Enthalpy
+5. Density
+6. Thermodynamics
+7. VLE
+
+После каждого этапа запускай тесты.
+
+После этого:
+
+### PHASE 4 — SOLVER
+
+Исправь и проверь MESH solver.
+
+После этого:
+
+### PHASE 5 — EQUIPMENT
+
+Переведи equipment на единый Calculation Core.
+
+После этого:
+
+### PHASE 6 — VALIDATION
+
+Добавь mass/energy/component balance residuals.
+
+После этого:
+
+### PHASE 7 — REGRESSION
+
+Запусти полный test suite.
+
+---
+
+# Критическое требование
+
+Никогда не говори "модель физически корректна" только потому, что unit tests проходят.
+
+Разделяй:
+
+* code correctness;
+* numerical convergence;
+* physical correctness.
+
+Физическая корректность должна подтверждаться:
+
+1. Теоретическими уравнениями.
+2. Размерностным анализом.
+3. Conservation laws.
+4. Reference cases.
+5. Literature correlations, если применимо.
+6. Regression tests.
+
+---
+
+# Итоговый отчёт
+
+После завершения работы сформируй:
+
+## 1. Physics Audit Report
+
+## 2. Fixed Issues
+
+| Issue | File | Old | New | Reason |
+
+## 3. Remaining Limitations
+
+## 4. Assumptions
+
+## 5. Units
+
+## 6. Thermodynamic Models
+
+## 7. MESH Solver Validation
+
+## 8. Mass Balance Validation
+
+## 9. Energy Balance Validation
+
+## 10. Test Results
+
+## 11. Known Risks
+
+## 12. Recommended Next Steps
+
+Главная цель — получить не просто "код, который запускается", а физически согласованный Calculation Core, где каждый результат можно объяснить через конкретную физическую модель, уравнение, единицы измерения и conservation law.

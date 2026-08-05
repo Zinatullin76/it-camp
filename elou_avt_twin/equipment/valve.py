@@ -1,0 +1,121 @@
+"""
+valve.py
+========
+Rigorous control valve model with pressure drop and Stream interface.
+"""
+
+from typing import Dict, Any, Optional
+from .base_equipment import BaseEquipment, EquipmentState
+from models.stream import Stream
+from calculation_core.hydraulics.pressure_drop import calculate_valve_flow
+
+class Valve(BaseEquipment):
+    """
+    Control valve with pressure drop calculation.
+    """
+
+    def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
+        super().__init__(equipment_id, params or {})
+        init_pos = self.params.get("initial_position")
+        self.position = 0.0
+        self._position = 0.0
+        self.target_position = 0.0
+        if init_pos is not None:
+            self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))
+        self._apply_params()
+
+    def _apply_params(self) -> None:
+        self.cv = self.params.get("cv", 0.01)
+        self.response_rate = self.params.get("response_rate", 0.2)
+
+    def step(self, dt: float, **inputs) -> Dict[str, Any]:
+        inlet: Stream = inputs.get("inlet_stream")
+        if self.state.failed:
+            return {"outlet_stream": inlet, "position": self.position, "flow_out": inlet.mass_flow if inlet else 0.0, "failed": True}
+        diff = self.target_position - self.position
+        move = self.response_rate * dt
+        if abs(diff) <= move: self.position = self.target_position
+        else: self.position += move * (1 if diff > 0 else -1)
+        self.position = max(0.0, min(1.0, self.position))
+        self._position = self.position
+        if inlet is None:
+            # Standalone testing: use the SAME SI Cv formula as the live branch
+            # (Q = Cv * x * sqrt(dP/rho), rho defaulting to the oil density).
+            delta_p = max(0.0, inputs.get("delta_p", 1e4))
+            flow_out = calculate_valve_flow(self.cv, self.position, delta_p, 850.0)
+            return {"outlet_stream": None, "position": self.position, "flow_out": flow_out}
+        design_dp = self.params.get("design_delta_p", 2e5)
+        # Restriction grows as the valve closes below its normal opening. At
+        # the normal position there is no extra pressure loss (nominal dP);
+        # closing all the way imposes the full design drop (dead-heading).
+        nominal = max(0.0, self.params.get("initial_position", 1.0) or 0.0)
+        if nominal > 1e-6:
+            restriction = min(1.0, max(0.0, (nominal - self.position) / nominal))
+        else:
+            restriction = 0.0
+        if self.params.get("flow_controller"):
+            # Flow-control valve: passes the incoming feed, throttled only
+            # by its full-open capacity (operator feed change propagates).
+            cap_mass = calculate_valve_flow(self.cv, 1.0, design_dp, inlet.density) * inlet.density
+        else:
+            cap_mass = calculate_valve_flow(self.cv, self.position, design_dp, inlet.density) * inlet.density
+        mass_flow = min(cap_mass, inlet.mass_flow)
+        # A flowing control valve always throttles at least a small base
+        # drop (seat/piping restriction); closing it grows the drop up to
+        # the design value.
+        base_dp = 0.05 * design_dp
+        dp = base_dp + design_dp * restriction
+        # Back-pressure: a restricting valve dead-heads the line upstream, so
+        # the pressure on its inlet rises (up to the design drop when closed).
+        p_in_eff = inlet.pressure + design_dp * restriction
+        out_pressure = max(1000.0, p_in_eff - dp)
+        outlet = inlet.copy_with(pressure=out_pressure, mass_flow=mass_flow)
+        return {
+            "outlet_stream": outlet,
+            "position": self.position,
+            "flow_out": mass_flow,
+            "inlet_pressure": p_in_eff,
+            "outlet_pressure": out_pressure,
+            "dp": dp,
+            "throttle": restriction,
+            "blocked": self.position <= 1e-6 and mass_flow <= 1e-9,
+        }
+
+    def current_capacity(self, density: float = 850.0) -> float:
+        """Mass-flow capacity at the current opening for the design drop.
+
+        Used to dead-head the upstream line: the capacity follows the valve's
+        live position, so closing throttles/isolates the line and reopening
+        restores it (no dependence on the previous step's throughput).
+        """
+        if self.position <= 1e-6:
+            return 0.0
+        design_dp = self.params.get("design_delta_p", 2e5)
+        opening = 1.0 if self.params.get("flow_controller") else self.position
+        return calculate_valve_flow(self.cv, opening, design_dp, density) * density
+
+    def get_state(self) -> EquipmentState:
+        self.state.extra["position"] = self.position
+        return self.state
+
+    def apply_action(self, action_type: str, value: Optional[float] = None) -> None:
+        if action_type == "SET_VALUE" and value is not None:
+            v = max(0.0, min(1.0, value))
+            self.target_position = v
+            if not self.state.failed:
+                self.position = self._position = v
+        elif action_type == "TURN_OFF":
+            self.target_position = 0.0
+            if not self.state.failed:
+                self.position = self._position = 0.0
+        elif action_type == "TURN_ON":
+            self.target_position = 1.0
+            if not self.state.failed:
+                self.position = self._position = 1.0
+
+    def reset(self) -> None:
+        super().reset()
+        init_pos = self.params.get("initial_position")
+        self.position = self._position = self.target_position = 0.0
+        if init_pos is not None:
+            self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))

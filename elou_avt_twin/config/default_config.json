@@ -1,0 +1,62 @@
+{
+  "_comment": "ELOU-AVT Digital Twin — Default Configuration [DEMO/MVP values]",
+  "dt": 1.0,
+  "random_seed": 42,
+  "nominal_pressure": 101325.0,
+  "nominal_temperature": 293.15,
+  "nominal_flow": 0.1,
+  "equipment_parameters": {
+    "pump_P101": {
+      "nominal_flow": 0.1,
+      "nominal_head": 50.0,
+      "nominal_power": 50000.0,
+      "efficiency_nominal": 0.75,
+      "degradation_rate": 0.0
+    },
+    "pump_P102": {
+      "nominal_flow": 0.1,
+      "nominal_head": 50.0,
+      "nominal_power": 50000.0,
+      "efficiency_nominal": 0.75,
+      "degradation_rate": 0.0
+    },
+    "valve_FV101": {
+      "cv": 0.012,
+      "response_rate": 0.2
+    },
+    "valve_PV201": {
+      "cv": 0.008,
+      "response_rate": 0.15
+    },
+    "elou_E001": {
+      "wash_water_ratio": 0.05,
+      "efficiency": 0.95,
+      "vessel_area": 30.0,
+      "max_level": 5.0
+    },
+    "hx_E101": {
+      "u": 300.0,
+      "area": 200.0,
+      "fouling_rate": 0.0
+    },
+    "furnace_F101": {
+      "max_heat_duty": 50000000.0,
+      "nominal_fuel_flow": 1.0,
+      "efficiency": 0.85,
+      "heating_value": 40000000.0,
+      "thermal_mass": 500000.0,
+      "max_temperature": 773.15,
+      "response_tau": 60.0
+    },
+    "column_C101": {
+      "nominal_pressure": 101325.0,
+      "nominal_temperature": 623.15,
+      "volume": 500.0,
+      "sump_area": 20.0,
+      "separation_efficiency": 0.85,
+      "max_pressure": 300000.0,
+      "min_pressure": 50000.0,
+      "thermal_mass": 1000000.0
+    }
+  }
+}
