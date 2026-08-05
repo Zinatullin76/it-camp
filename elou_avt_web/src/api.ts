@@ -31,6 +31,13 @@ export const api = {
       body: JSON.stringify({ nodes, edges }),
     }),
 
+  createScheme: (name: string) =>
+    json<ApiState>('/scheme/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    }),
+
   action: (equipmentId: string, actionType: string, value?: number | null) =>
     json<ApiState>('/action', {
       method: 'POST',

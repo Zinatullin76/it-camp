@@ -6,6 +6,7 @@ import threading
 import time
 import logging
 import traceback
+import re
 from pathlib import Path
 
 from models.base import SimulationConfig, OperatorAction, ActionType
@@ -175,9 +176,15 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
             p["pressure_bar"] = round(s.pressure / 1e5, 3) if s else None
         elif ntype == "sink":
-            s_in = streams.get(f"{nid}:in")
-            p["flow_kg_s"] = round(s.mass_flow, 3) if s else None
-            p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
+            for edge in scheme_store.edges:
+                if edge.target == nid:
+                    s_in = streams.get(f"{edge.source}:{edge.source_port}")
+                    if s_in is not None:
+                        break
+            else:
+                s_in = None
+            p["flow_kg_s"] = round(s_in.mass_flow, 3) if s_in else None
+            p["temperature_c"] = round(s_in.temperature - 273.15, 2) if s_in else None
 
         telemetry[nid] = item
 
@@ -509,7 +516,7 @@ def _reconfigure(new_scheme: ProcessScheme) -> None:
     twin._engine.set_feed_override(inputs)
     twin.load_scenario("NORMAL_OPERATION")
     twin.start()
-    for _ in range(30):
+    for _ in range(5):
         _safe_step()
 
 
@@ -524,6 +531,27 @@ def load_scheme_endpoint(req: SchemeLoadRequest):
             new_scheme = load_scheme(path)
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"Invalid scheme: {e}")
+        _reconfigure(new_scheme)
+        return _serialize_state()
+
+class SchemeCreateRequest(BaseModel):
+    name: str
+
+@app.post("/scheme/new")
+def create_scheme_endpoint(req: SchemeCreateRequest):
+    """Create an empty P&ID scheme by name and switch the engine to it."""
+    with lock:
+        name = req.name.strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid scheme name (use latin letters, digits, '_' or '-')",
+            )
+        path = SCHEME_DIR / f"{name}.json"
+        if path.exists():
+            raise HTTPException(status_code=409, detail=f"Scheme '{name}' already exists")
+        new_scheme = ProcessScheme(id=name, name=f"Схема «{name}»", nodes=[], edges=[])
+        save_scheme(new_scheme, path)
         _reconfigure(new_scheme)
         return _serialize_state()
 

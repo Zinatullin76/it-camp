@@ -45,7 +45,7 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
         },
         "nominal_flow": {
             "label": "Номинальный расход", "unit": "кг/с", "scale": 1.0,
-            "min": 0.1, "max": 500.0, "step": 1.0, "default": 0.1,
+            "min": 0.1, "max": 500.0, "step": 1.0, "default": 100.0,
         },
         "nominal_head": {
             "label": "Номинальный напор", "unit": "м", "scale": 1.0,

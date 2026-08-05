@@ -313,6 +313,26 @@ function AppInner() {
     [currentScheme, applyTelemetry, setNodes, setEdges, notify],
   );
 
+  const onCreateScheme = useCallback(async () => {
+    const name = window.prompt('Имя новой схемы (латиница, цифры, _ или -):');
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      await api.createScheme(trimmed);
+      const r = await api.listSchemes();
+      setSchemes(r.schemes);
+      setCurrentScheme(r.current);
+      const scheme = await api.getScheme();
+      setNodes(toRfNodes(scheme));
+      setEdges(toRfEdges(scheme));
+      setSelectedId(null);
+      notify(`Схема «${trimmed}» создана`);
+    } catch (err) {
+      notify(`Ошибка создания схемы: ${String(err)}`);
+    }
+  }, [setNodes, setEdges, notify]);
+
   const onAction = useCallback(
     async (equipmentId: string, actionType: string, value?: number | null) => {
       try {
@@ -446,6 +466,7 @@ function AppInner() {
             <Panel position="top-left">
               <div className="toolbar">
                 <button className="btn btn-ghost" onClick={saveScheme}>💾 Сохранить схему</button>
+                <button className="btn btn-ghost" onClick={onCreateScheme}>＋ Новая схема</button>
                 <button className="btn btn-ghost" onClick={loadDefault}>⟳ Загрузить с бека</button>
                 <button className="btn btn-ghost" onClick={reLayout}>🗜 Раскладка</button>
                 <button className="btn btn-ghost" onClick={() => api.resetScenario().then(applyTelemetry)}>⏮ Сброс</button>
@@ -479,6 +500,8 @@ function AppInner() {
           <Inspector
             nodeId={selectedId ?? ''}
             nodeName={selectedNode?.data.name ?? ''}
+            nodeType={selectedNode?.data.nodeType ?? ''}
+            schemeParams={selectedNode?.data.schemeParams ?? {}}
             telemetry={selectedTelemetry}
             onAction={onAction}
             onFailure={onFailure}

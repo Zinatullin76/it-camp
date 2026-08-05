@@ -583,7 +583,7 @@
           "frac_62_105",
           "water"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "limits": {
           "pressure_low": 98066.5,
           "pressure_low_low": 78453.2,
@@ -613,7 +613,7 @@
         "top_cut": [
           "frac_105_180"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 19613.3,
@@ -644,7 +644,7 @@
         "top_cut": [
           "frac_180_240"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 147099.75,
@@ -674,7 +674,7 @@
         "top_cut": [
           "frac_240_300"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 147099.75,
@@ -704,7 +704,7 @@
         "top_cut": [
           "frac_300_350"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 147099.75,
@@ -734,7 +734,7 @@
         "top_cut": [
           "frac_nk62"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 588399.0,
@@ -765,7 +765,7 @@
         "top_cut": [
           "frac_nk62"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 98066.5,
@@ -796,7 +796,7 @@
         "top_cut": [
           "frac_nk62"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 98066.5,
@@ -827,7 +827,7 @@
         "top_cut": [
           "frac_62_105"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 19613.3,
@@ -858,7 +858,7 @@
         "top_cut": [
           "frac_180_240"
         ],
-        "solver_n_iter": 80,
+        "solver_n_iter": 25,
         "solver_tol": 0.003,
         "limits": {
           "pressure_low": 294199.5,

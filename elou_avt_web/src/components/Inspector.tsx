@@ -6,6 +6,8 @@ import { api } from '../api';
 interface Props {
   nodeId: string;
   nodeName: string;
+  nodeType: string;
+  schemeParams: Record<string, unknown>;
   telemetry: NodeTelemetry | null;
   onAction: (equipmentId: string, actionType: string, value?: number | null) => Promise<void>;
   onFailure: (equipmentId: string) => Promise<void>;
@@ -43,7 +45,7 @@ const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
   converged: { label: 'Сходимость', unit: '' },
 };
 
-export default function Inspector({ nodeId, nodeName, telemetry, onAction, onFailure, onRename, onDelete, onUpdateParams }: Props) {
+export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, onAction, onFailure, onRename, onDelete, onUpdateParams }: Props) {
   const [valvePos, setValvePos] = useState(0.6);
   const [fuel, setFuel] = useState(0.8);
   const [reflux, setReflux] = useState(2.0);
@@ -99,8 +101,47 @@ export default function Inspector({ nodeId, nodeName, telemetry, onAction, onFai
     if (trimmed !== nodeName) onRename(nodeId, trimmed);
   };
 
-  if (!nodeId || !telemetry) {
+  if (!nodeId) {
     return <div className="inspector-empty">Выберите объект на схеме, чтобы увидеть параметры и управление.</div>;
+  }
+
+  // Объект есть в схеме, но пока нет телеметрии с бэкенда (новая схема,
+  // ещё не сохранена / не создана в движке). Показываем редактор по params схемы.
+  if (!telemetry) {
+    return (
+      <div>
+        <div className="inspector-header" style={{ borderLeft: `3px solid ${TYPE_COLORS[nodeType] ?? '#38bdf8'}` }}>
+          <input
+            className="rename-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            spellCheck={false}
+          />
+          <div style={{ fontSize: 10, color: '#7f93a6' }}>{nodeId} • {nodeType}</div>
+        </div>
+        <div style={{ color: '#e8b93a', fontSize: 11, fontWeight: 700, margin: '4px 0 10px' }}>
+          ● НА СХЕМЕ · ТЕЛЕМЕТРИИ НЕТ
+        </div>
+        <div className="param-list">
+          {Object.entries(schemeParams).map(([k, v]) => (
+            <div className="param-row" key={k}>
+              <span>{PARAM_LABELS[k]?.label ?? k}</span>
+              <span>{typeof v === 'number' ? fmtValue(v, PARAM_LABELS[k]?.unit ?? '') : String(v)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="inspector-hint">
+          Объект ещё не создан в расчётном движке. Нажмите «Сохранить схему», чтобы запустить симуляцию и получить телеметрию.
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button className="btn btn-danger" onClick={() => onDelete(nodeId)}>🗑 Удалить объект</button>
+        </div>
+      </div>
+    );
   }
 
   const color = TYPE_COLORS[telemetry.type] ?? '#38bdf8';

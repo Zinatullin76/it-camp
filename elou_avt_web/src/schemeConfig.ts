@@ -18,7 +18,7 @@ export const TYPE_COLORS: Record<string, string> = Object.fromEntries(PALETTE.ma
 export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   source: { flow_kg_s: 100, temperature_c: 25, pressure_bar: 1.01325 },
   sink: {},
-  pump: { nominal_flow: 0.1, efficiency_nominal: 0.75 },
+  pump: { nominal_flow: 100.0, efficiency_nominal: 0.75 },
   valve: { cv: 0.01, response_rate: 0.2 },
   elou: { vessel_area: 30.0 },
   heat_exchanger: { u: 300.0, area: 200.0 },

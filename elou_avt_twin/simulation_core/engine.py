@@ -223,6 +223,7 @@ class SimulationEngine:
         # flow boundary and is never clamped; restrictions make the equipment
         # upstream hold back flow (levels/pressures respond instead).
         flow_limits = self._compute_flow_limits(self._last_outputs)
+        hyd = self._solve_line_hydraulics()
 
         for nid in self._topo_order:
             node = self._node_map.get(nid)
@@ -238,9 +239,13 @@ class SimulationEngine:
                 # flow follow the FV-1 control valve instead of being a fixed
                 # manual boundary condition.
                 src = self._make_source_stream(node)
-                cap = flow_limits.get(nid)
-                if cap is not None and src.mass_flow > cap:
-                    src = src.copy_with(mass_flow=max(0.0, cap))
+                h = hyd.get(nid)
+                if h is not None:
+                    src = src.copy_with(mass_flow=max(0.0, h["flow"]), pressure=h["p_out"])
+                else:
+                    cap = flow_limits.get(nid)
+                    if cap is not None and src.mass_flow > cap:
+                        src = src.copy_with(mass_flow=max(0.0, cap))
                 streams[f"{nid}:out"] = src
                 continue
             if ntype == "sink":
@@ -324,13 +329,35 @@ class SimulationEngine:
 
             if not out:
                 continue
+            # Serial-line hydraulics override: equipment in a line takes the
+            # physically consistent flow and pressure from the line solver
+            # (one shared mass flow, pressure dropping along the chain).
+            h = hyd.get(nid)
+            if h is not None:
+                os_ = out.get("outlet_stream")
+                if os_ is not None:
+                    out["outlet_stream"] = os_.copy_with(
+                        mass_flow=max(0.0, h["flow"]), pressure=h["p_out"]
+                    )
+                out["flow_out"] = h["flow"]
+                if ntype == "valve":
+                    out["inlet_pressure"] = h["p_in"]
+                    out["outlet_pressure"] = h["p_out"]
+                    out["dp"] = max(0.0, h["p_in"] - h["p_out"])
+                    out["blocked"] = h["flow"] <= 1e-9
+                elif ntype == "pump":
+                    inlet = self._merge_streams(incoming.get("in"))
+                    dp_hyd = max(0.0, h["p_out"] - (inlet.pressure if inlet else 0.0))
+                    if inlet is not None:
+                        out["power"] = (h["flow"] / max(inlet.density, 1e-6)) * dp_hyd / max(eq.efficiency, 1e-6)
+                        eq.power = out["power"]
             # Restriction clamp: a downstream valve caps the flow this node may
             # deliver (dead-headed line). Applied AFTER step so level-bearing
             # equipment still reflects the hold-back through max_out above;
             # pass-through nodes (pump, heater, ...) simply carry no more than
             # the tightest downstream valve.
             cap = flow_limits.get(nid)
-            if cap is not None:
+            if cap is not None and nid not in hyd:
                 os_ = out.get("outlet_stream")
                 if os_ is not None and os_.mass_flow > cap:
                     out["outlet_stream"] = os_.copy_with(mass_flow=max(0.0, cap))
@@ -347,6 +374,8 @@ class SimulationEngine:
             node = self._node_map.get(nid)
             if node is None or node.type != "valve":
                 continue
+            if nid in hyd:
+                continue  # pressures already set by the line hydraulic solver
             p_in = out.get("inlet_pressure")
             if p_in is None:
                 continue
@@ -359,15 +388,18 @@ class SimulationEngine:
                 for edge in self._edges:
                     if edge.target != target_nid:
                         continue
-                    key = f"{edge.source}:{edge.source_port}"
+                    up = edge.source
+                    up_node = self._node_map.get(up)
+                    # Sources and pumps set their own discharge pressure, so a
+                    # throttling valve's back-pressure must not overwrite them;
+                    # they are the upstream boundary of the dead-headed line.
+                    if up_node is not None and up_node.type in ("source", "pump"):
+                        continue
+                    key = f"{up}:{edge.source_port}"
                     s = streams.get(key)
                     if s is not None:
                         s.pressure = max(s.pressure, float(p_in))
-                    up = edge.source
                     if up in visited:
-                        continue
-                    up_node = self._node_map.get(up)
-                    if up_node is not None and up_node.type == "source":
                         continue
                     raise_upstream(up)
 
@@ -526,7 +558,17 @@ class SimulationEngine:
             if node is None or node.type == "sink":
                 res: Optional[float] = None
             elif node.type == "valve":
-                res = valve_cap.get(nid)
+                own = valve_cap.get(nid)
+                out_edges = [e for e in self._edges if e.source == nid]
+                child_caps = [cap_of(e.target) for e in out_edges]
+                valid = [c for c in child_caps if c is not None]
+                downstream = min(valid) if valid else None
+                if downstream is None:
+                    res = own
+                elif own is None:
+                    res = downstream
+                else:
+                    res = min(own, downstream)
             elif node.type == "pump":
                 # A stopped / failed pump isolates its line (dead-heads), so
                 # upstream equipment holds back and levels respond.  A running
@@ -555,6 +597,114 @@ class SimulationEngine:
             return res
 
         return {nid: cap_of(nid) for nid in self._node_map}
+
+    # ------------------------------------------------------------------
+    # Serial-line hydraulics
+    # ------------------------------------------------------------------
+
+    _COMPLEX_NODE_TYPES = ("heat_exchanger", "column", "elou")
+
+    def _build_serial_lines(self) -> List[List[str]]:
+        """Split the scheme into simple serial chains source -> ... -> sink.
+
+        A chain is followed forward from a 'source' while every node has
+        exactly one feed and one output and is not a complex multi-stream
+        device (heat exchanger, column, ELOU).  Such devices break the line.
+        """
+        indeg: Dict[str, int] = {nid: 0 for nid in self._node_map}
+        for edge in self._edges:
+            indeg[edge.target] = indeg.get(edge.target, 0) + 1
+        lines: List[List[str]] = []
+        used: set = set()
+        for nid, node in self._node_map.items():
+            if node.type != "source" or nid in used:
+                continue
+            line = [nid]
+            cur = nid
+            while True:
+                outs = [e for e in self._edges if e.source == cur]
+                if len(outs) != 1:
+                    break
+                nxt = outs[0].target
+                if nxt in used or nxt not in self._node_map:
+                    break
+                if self._node_map[nxt].type in self._COMPLEX_NODE_TYPES:
+                    break
+                if indeg.get(nxt, 0) != 1:
+                    break
+                line.append(nxt)
+                if self._node_map[nxt].type == "sink":
+                    break
+                cur = nxt
+            if len(line) >= 2 and self._node_map[line[-1]].type == "sink":
+                lines.append(line)
+                used.update(line)
+        return lines
+
+    def _solve_line_hydraulics(self) -> Dict[str, Dict[str, float]]:
+        """Steady-state hydraulic solution for every serial line.
+
+        Returns per-node data {flow, p_in, p_out} for the nodes of each line,
+        so equipment steps can be overwritten with the physically consistent
+        mass flow and pressure cascade (dead-head pressure in front of a
+        throttling valve, one shared flow through the whole chain).
+        """
+        from calculation_core.hydraulics.line_hydraulics import solve_serial_line, valve_resistance
+        result: Dict[str, Dict[str, float]] = {}
+        density = 850.0
+        for line in self._build_serial_lines():
+            src_id, sink_id = line[0], line[-1]
+            p_src = float(self._node_map[src_id].params.get("pressure_bar", 1.01325)) * 1e5
+            p_sink = float(self._node_map[sink_id].params.get("pressure_bar", 1.01325)) * 1e5
+            q_src_limit = self._node_map[src_id].params.get("flow_kg_s")
+            valves: List[tuple] = []
+            pump: Optional[str] = None
+            for nid in line[1:-1]:
+                node = self._node_map[nid]
+                if node.type == "valve":
+                    eq = self._equipment.get(nid)
+                    if eq is None:
+                        continue
+                    valves.append((nid, valve_resistance(density, eq.cv, eq.position)))
+                elif node.type == "pump":
+                    pump = nid
+
+            def pump_head(q: float, _pump: Optional[str] = pump) -> float:
+                if _pump is None:
+                    return 0.0
+                eq = self._equipment.get(_pump)
+                node = self._node_map.get(_pump)
+                if eq is None or node is None or not (eq.state.running and not eq.state.failed):
+                    return 0.0
+                h_max = float(node.params.get("delta_p", 5e5)) * eq.speed_ratio * eq.speed_ratio
+                q_ref = eq.current_capacity()
+                if q_ref <= 1e-9:
+                    return 0.0
+                return h_max * max(0.0, 1.0 - (q / q_ref) ** 2)
+
+            q_ref = 1.0
+            if pump is not None:
+                eq = self._equipment.get(pump)
+                q_ref = eq.current_capacity() if eq is not None else 1.0
+            q, dP = solve_serial_line(
+                p_src, p_sink, density, valves, pump_head, q_ref, q_src_limit
+            )
+            P = p_src
+            result[src_id] = {"flow": q, "p_in": p_src, "p_out": p_src}
+            for nid in line[1:-1]:
+                node = self._node_map[nid]
+                if node.type == "pump":
+                    dp = pump_head(q)
+                    result[nid] = {"flow": q, "p_in": P, "p_out": P + dp}
+                    P += dp
+                elif node.type == "valve":
+                    dp = dP.get(nid, 0.0)
+                    result[nid] = {"flow": q, "p_in": P, "p_out": P - dp}
+                    P -= dp
+                else:
+                    result[nid] = {"flow": q, "p_in": P, "p_out": P}
+            result[sink_id] = {"flow": q, "p_in": P, "p_out": p_sink}
+        return result
 
     @staticmethod
     def _merge_streams(streams: Optional[List["Stream"]]) -> Optional["Stream"]:

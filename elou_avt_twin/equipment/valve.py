@@ -65,16 +65,16 @@ class Valve(BaseEquipment):
         # the design value.
         base_dp = 0.05 * design_dp
         dp = base_dp + design_dp * restriction
-        # Back-pressure: a restricting valve dead-heads the line upstream, so
-        # the pressure on its inlet rises (up to the design drop when closed).
-        p_in_eff = inlet.pressure + design_dp * restriction
-        out_pressure = max(1000.0, p_in_eff - dp)
+        # Continuous-line model: the valve passes the incoming pressure through
+        # and drops it by its throttling loss, so the outlet pressure of one
+        # node matches the inlet pressure of the next one downstream.
+        out_pressure = max(1000.0, inlet.pressure - dp)
         outlet = inlet.copy_with(pressure=out_pressure, mass_flow=mass_flow)
         return {
             "outlet_stream": outlet,
             "position": self.position,
             "flow_out": mass_flow,
-            "inlet_pressure": p_in_eff,
+            "inlet_pressure": inlet.pressure,
             "outlet_pressure": out_pressure,
             "dp": dp,
             "throttle": restriction,

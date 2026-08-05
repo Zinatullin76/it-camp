@@ -1,0 +1,112 @@
+{
+  "id": "default",
+  "name": "ЭЛОУ-АВТ / default",
+  "nodes": [
+    {
+      "id": "source_1",
+      "type": "source",
+      "name": "Источник сырья",
+      "x": -72.0,
+      "y": -18.0,
+      "params": {
+        "flow_kg_s": 53.0,
+        "temperature_c": 40.0,
+        "pressure_bar": 1.0132
+      }
+    },
+    {
+      "id": "pum_2",
+      "type": "pump",
+      "name": "Насос",
+      "x": 150.0,
+      "y": 0.0,
+      "params": {
+        "nominal_flow": 100,
+        "efficiency_nominal": 0.75
+      }
+    },
+    {
+      "id": "val_1",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 360.0,
+      "y": -13.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "val_2",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 498.0,
+      "y": -20.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "val_3",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 663.0,
+      "y": -20.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "sink_4",
+      "type": "sink",
+      "name": "Продукт / отбор",
+      "x": 813.0,
+      "y": -38.0,
+      "params": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "source_1-pum_2-1785962365121",
+      "source": "source_1",
+      "target": "pum_2",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "pum_2-val_1-1785963355760",
+      "source": "pum_2",
+      "target": "val_1",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "val_1-val_2-1785963357934",
+      "source": "val_1",
+      "target": "val_2",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "val_2-val_3-1785963360125",
+      "source": "val_2",
+      "target": "val_3",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "val_3-sink_4-1785963365350",
+      "source": "val_3",
+      "target": "sink_4",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    }
+  ]
+}

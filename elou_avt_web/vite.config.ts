@@ -11,6 +11,7 @@ export default defineConfig({
       '/state': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/history': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/scheme': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/equipment': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/action': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/input': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/scenario': { target: 'http://127.0.0.1:8000', changeOrigin: true },

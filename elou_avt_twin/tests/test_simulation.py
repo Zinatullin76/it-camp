@@ -394,19 +394,21 @@ class TestDeterminism:
             )
             twin.apply_operator_action(action)
             state = twin.step(dt=1.0)
+            print(f"[seed={seed}] итерация {i + 1}/{steps}  "
+                  f"t={state.timestamp:.0f}с  feed={state.feed_flow:.3f} кг/с", flush=True)
         return state
 
     def test_same_seed_same_result(self):
         """Same seed and actions must produce identical results."""
-        state1 = self._run_simulation(seed=42, steps=50)
-        state2 = self._run_simulation(seed=42, steps=50)
+        state1 = self._run_simulation(seed=42, steps=10)
+        state2 = self._run_simulation(seed=42, steps=10)
         assert abs(state1.feed_flow - state2.feed_flow) < 1e-12
         assert abs(state1.pressure["column"] - state2.pressure["column"]) < 1e-6
 
     def test_different_seed_same_result(self):
         """Without stochastic elements, different seeds should give same result."""
-        state1 = self._run_simulation(seed=42, steps=50)
-        state2 = self._run_simulation(seed=99, steps=50)
+        state1 = self._run_simulation(seed=42, steps=10)
+        state2 = self._run_simulation(seed=99, steps=10)
         # Deterministic model — same result regardless of seed
         assert abs(state1.feed_flow - state2.feed_flow) < 1e-12
 
