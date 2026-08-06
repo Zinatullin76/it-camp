@@ -7,8 +7,32 @@
 - `elou_avt_twin/run_backend.bat` — запуск backend отдельно.
 
 ## Быстрый запуск
-Требуется Windows 10/11, Python 3.11+ и Node.js 18+.
+Требуется Windows 10/11, Python 3.11+ и Node.js 18+ (npm).
 
+### Установка с нуля (после клонирования)
+```bat
+REM 1. Установка Python-зависимостей бэкенда
+cd elou_avt_twin
+py -3 -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+cd ..
+
+REM 2. Установка зависимостей фронтенда
+cd elou_avt_web
+npm install
+cd ..
+
+REM 3. Запуск обоих сервисов
+START_ALL.bat
+```
+
+Либо просто запусти `START_ALL.bat` — он сам создаст venv, поставит зависимости
+и запустит backend + web. Обрати внимание: `node_modules/`, `.venv/` и `dist/`
+не хранятся в git, поэтому после клонирования **обязательно** выполнить
+`pip install -r requirements.txt` и `npm install` (это делает `START_ALL.bat`).
+
+### Запуск
 1. Запусти `START_ALL.bat`.
 2. Backend будет доступен на `http://127.0.0.1:8000/docs`.
 3. Web-интерфейс откроется на `http://localhost:5173`.

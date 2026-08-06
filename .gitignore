@@ -18,3 +18,11 @@ opencode1.json
 *.env
 .env
 config/local_config.json
+
+# ---- Frontend (elou_avt_web) ----
+node_modules/
+elou_avt_web/node_modules/
+elou_avt_web/dist/
+dist/
+*.tsbuildinfo
+*.tsbuildinfo.json
