@@ -185,6 +185,7 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
                 s_in = None
             p["flow_kg_s"] = round(s_in.mass_flow, 3) if s_in else None
             p["temperature_c"] = round(s_in.temperature - 273.15, 2) if s_in else None
+            p["pressure_bar"] = round(s_in.pressure / 1e5, 3) if s_in else None
 
         telemetry[nid] = item
 

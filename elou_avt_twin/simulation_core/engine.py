@@ -14,7 +14,7 @@ Responsibilities:
 
 import copy
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Callable, Dict, List, Optional, Any
 
 from models.base import (
     SimulationState,
@@ -269,9 +269,16 @@ class SimulationEngine:
                     base = streams[key]
                     n_cons = consumers.get(key, 1)
                     if n_cons > 1:
+                        branch_flow = base.mass_flow / n_cons
+                        # Use the hydraulic branch flow when available so a fork
+                        # splits according to each branch's resistance instead
+                        # of dividing the incoming stream evenly.
+                        h_br = hyd.get(edge.target)
+                        if h_br is not None:
+                            branch_flow = max(0.0, h_br["flow"])
                         branch = base.copy_with(
                             name=f"{base.name}:{edge.target}",
-                            mass_flow=base.mass_flow / n_cons,
+                            mass_flow=branch_flow,
                         )
                     else:
                         branch = base
@@ -599,111 +606,131 @@ class SimulationEngine:
         return {nid: cap_of(nid) for nid in self._node_map}
 
     # ------------------------------------------------------------------
-    # Serial-line hydraulics
+    # Branched-line hydraulics
     # ------------------------------------------------------------------
 
     _COMPLEX_NODE_TYPES = ("heat_exchanger", "column", "elou")
 
-    def _build_serial_lines(self) -> List[List[str]]:
-        """Split the scheme into simple serial chains source -> ... -> sink.
+    def _build_line_trees(self) -> List[Dict[str, Any]]:
+        """Split the scheme into branched hydraulic trees source -> ... -> sinks.
 
-        A chain is followed forward from a 'source' while every node has
-        exactly one feed and one output and is not a complex multi-stream
-        device (heat exchanger, column, ELOU).  Such devices break the line.
+        A tree starts at a 'source' and fans out through simple elements (pump,
+        valve, pass-through).  Complex multi-stream devices (heat exchanger,
+        column, ELOU) and merge points (in-degree > 1) break the tree.  A tree
+        is usable only when it reaches at least one sink through at least one
+        element; a branch with no resistance has no definable flow and is left
+        to the legacy stream propagation.
         """
+        from calculation_core.hydraulics.line_hydraulics import valve_resistance, _K_EPS
         indeg: Dict[str, int] = {nid: 0 for nid in self._node_map}
         for edge in self._edges:
             indeg[edge.target] = indeg.get(edge.target, 0) + 1
-        lines: List[List[str]] = []
-        used: set = set()
+        density = 850.0
+        trees: List[Dict[str, Any]] = []
+        claimed: set = set()
         for nid, node in self._node_map.items():
-            if node.type != "source" or nid in used:
+            if node.type != "source" or nid in claimed:
                 continue
-            line = [nid]
-            cur = nid
-            while True:
-                outs = [e for e in self._edges if e.source == cur]
-                if len(outs) != 1:
-                    break
-                nxt = outs[0].target
-                if nxt in used or nxt not in self._node_map:
-                    break
-                if self._node_map[nxt].type in self._COMPLEX_NODE_TYPES:
-                    break
-                if indeg.get(nxt, 0) != 1:
-                    break
-                line.append(nxt)
-                if self._node_map[nxt].type == "sink":
-                    break
-                cur = nxt
-            if len(line) >= 2 and self._node_map[line[-1]].type == "sink":
-                lines.append(line)
-                used.update(line)
-        return lines
+            tree_nodes: Dict[str, Dict[str, Any]] = {nid: {"type": "source"}}
+            children: Dict[str, List[str]] = {}
+            sink_ids: List[str] = []
+            element_count = 0
+
+            def visit(cur: str, seen: set) -> None:
+                nonlocal element_count
+                for edge in self._edges:
+                    if edge.source != cur:
+                        continue
+                    nxt = edge.target
+                    if nxt in seen or nxt not in self._node_map or nxt in claimed:
+                        continue
+                    if indeg.get(nxt, 0) > 1:
+                        continue  # merge point breaks the tree
+                    nxt_node = self._node_map[nxt]
+                    if nxt_node.type in self._COMPLEX_NODE_TYPES:
+                        continue
+                    if nxt_node.type == "sink":
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {
+                            "type": "sink",
+                            "sink_p": float(nxt_node.params.get("pressure_bar", 1.01325)) * 1e5,
+                        }
+                        sink_ids.append(nxt)
+                        continue
+                    if nxt_node.type == "valve":
+                        eq = self._equipment.get(nxt)
+                        if eq is None:
+                            continue
+                        k = valve_resistance(density, eq.cv, eq.position)
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {
+                            "type": "valve",
+                            "k": _K_EPS if k <= 0.0 else k,
+                            "closed": eq.position <= 1e-6,
+                        }
+                    elif nxt_node.type == "pump":
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {"type": "pump", "head": self._make_pump_head(nxt)}
+                    else:
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {"type": "pass"}
+                    element_count += 1
+                    visit(nxt, seen | {nxt})
+
+            visit(nid, {nid})
+            if not sink_ids or element_count == 0:
+                continue
+            claimed.update(tree_nodes)
+            trees.append({
+                "root": nid,
+                "p_src": float(node.params.get("pressure_bar", 1.01325)) * 1e5,
+                "q_src_limit": node.params.get("flow_kg_s"),
+                "nodes": tree_nodes,
+                "children": children,
+            })
+        return trees
+
+    def _make_pump_head(self, nid: str) -> Callable[[float], float]:
+        """Pump discharge head characteristic H(Q) for a scheme pump node."""
+        def pump_head(q: float) -> float:
+            eq = self._equipment.get(nid)
+            node = self._node_map.get(nid)
+            if eq is None or node is None or not (eq.state.running and not eq.state.failed):
+                return 0.0
+            h_max = float(node.params.get("delta_p", 5e5)) * eq.speed_ratio * eq.speed_ratio
+            q_ref = eq.current_capacity()
+            if q_ref <= 1e-9:
+                return 0.0
+            return h_max * max(0.0, 1.0 - (q / q_ref) ** 2)
+        return pump_head
 
     def _solve_line_hydraulics(self) -> Dict[str, Dict[str, float]]:
-        """Steady-state hydraulic solution for every serial line.
+        """Steady-state hydraulic solution for every branched line.
 
-        Returns per-node data {flow, p_in, p_out} for the nodes of each line,
-        so equipment steps can be overwritten with the physically consistent
-        mass flow and pressure cascade (dead-head pressure in front of a
-        throttling valve, one shared flow through the whole chain).
+        Returns per-node data {flow, p_in, p_out} for the nodes of each tree, so
+        equipment steps can be overwritten with the physically consistent mass
+        flow and pressure cascade: one shared flow through serial chains, flow
+        split between fork branches in proportion to their resistance, the sink
+        pressure treated as a hard boundary and dead-head pressure in front of a
+        throttling or closed valve.
         """
-        from calculation_core.hydraulics.line_hydraulics import solve_serial_line, valve_resistance
+        from calculation_core.hydraulics.line_hydraulics import solve_branched_network
         result: Dict[str, Dict[str, float]] = {}
-        density = 850.0
-        for line in self._build_serial_lines():
-            src_id, sink_id = line[0], line[-1]
-            p_src = float(self._node_map[src_id].params.get("pressure_bar", 1.01325)) * 1e5
-            p_sink = float(self._node_map[sink_id].params.get("pressure_bar", 1.01325)) * 1e5
-            q_src_limit = self._node_map[src_id].params.get("flow_kg_s")
-            valves: List[tuple] = []
-            pump: Optional[str] = None
-            for nid in line[1:-1]:
-                node = self._node_map[nid]
-                if node.type == "valve":
-                    eq = self._equipment.get(nid)
-                    if eq is None:
-                        continue
-                    valves.append((nid, valve_resistance(density, eq.cv, eq.position)))
-                elif node.type == "pump":
-                    pump = nid
-
-            def pump_head(q: float, _pump: Optional[str] = pump) -> float:
-                if _pump is None:
-                    return 0.0
-                eq = self._equipment.get(_pump)
-                node = self._node_map.get(_pump)
-                if eq is None or node is None or not (eq.state.running and not eq.state.failed):
-                    return 0.0
-                h_max = float(node.params.get("delta_p", 5e5)) * eq.speed_ratio * eq.speed_ratio
-                q_ref = eq.current_capacity()
-                if q_ref <= 1e-9:
-                    return 0.0
-                return h_max * max(0.0, 1.0 - (q / q_ref) ** 2)
-
-            q_ref = 1.0
-            if pump is not None:
-                eq = self._equipment.get(pump)
-                q_ref = eq.current_capacity() if eq is not None else 1.0
-            q, dP = solve_serial_line(
-                p_src, p_sink, density, valves, pump_head, q_ref, q_src_limit
-            )
-            P = p_src
-            result[src_id] = {"flow": q, "p_in": p_src, "p_out": p_src}
-            for nid in line[1:-1]:
-                node = self._node_map[nid]
-                if node.type == "pump":
-                    dp = pump_head(q)
-                    result[nid] = {"flow": q, "p_in": P, "p_out": P + dp}
-                    P += dp
-                elif node.type == "valve":
-                    dp = dP.get(nid, 0.0)
-                    result[nid] = {"flow": q, "p_in": P, "p_out": P - dp}
-                    P -= dp
-                else:
-                    result[nid] = {"flow": q, "p_in": P, "p_out": P}
-            result[sink_id] = {"flow": q, "p_in": P, "p_out": p_sink}
+        for tree in self._build_line_trees():
+            try:
+                solved = solve_branched_network(
+                    tree["p_src"],
+                    tree["q_src_limit"],
+                    tree["nodes"],
+                    tree["children"],
+                    tree["root"],
+                )
+            except Exception:
+                logger.exception(
+                    "Branch hydraulics failed for source '%s'; skipping.", tree["root"]
+                )
+                continue
+            result.update(solved)
         return result
 
     @staticmethod

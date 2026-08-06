@@ -6,11 +6,11 @@
       "id": "source_1",
       "type": "source",
       "name": "Источник сырья",
-      "x": -72.0,
-      "y": -18.0,
+      "x": 0.0,
+      "y": 0.0,
       "params": {
-        "flow_kg_s": 53.0,
-        "temperature_c": 40.0,
+        "flow_kg_s": 82,
+        "temperature_c": 40,
         "pressure_bar": 1.0132
       }
     },
@@ -18,8 +18,8 @@
       "id": "pum_2",
       "type": "pump",
       "name": "Насос",
-      "x": 150.0,
-      "y": 0.0,
+      "x": 235.0,
+      "y": 6.0,
       "params": {
         "nominal_flow": 100,
         "efficiency_nominal": 0.75
@@ -29,8 +29,8 @@
       "id": "val_1",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 360.0,
-      "y": -13.0,
+      "x": 413.0,
+      "y": 12.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
@@ -40,8 +40,8 @@
       "id": "val_2",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 498.0,
-      "y": -20.0,
+      "x": 551.0,
+      "y": -79.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
@@ -51,20 +51,43 @@
       "id": "val_3",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 663.0,
-      "y": -20.0,
+      "x": 706.0,
+      "y": -89.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
       }
     },
     {
-      "id": "sink_4",
+      "id": "val_4",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 538.0,
+      "y": 72.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "sink_5",
       "type": "sink",
       "name": "Продукт / отбор",
-      "x": 813.0,
-      "y": -38.0,
-      "params": {}
+      "x": 849.0,
+      "y": 71.0,
+      "params": {
+        "pressure_bar": 2.0
+      }
+    },
+    {
+      "id": "sink_6",
+      "type": "sink",
+      "name": "Продукт / отбор",
+      "x": 854.0,
+      "y": -101.0,
+      "params": {
+        "pressure_bar": 1.0132
+      }
     }
   ],
   "edges": [
@@ -77,7 +100,7 @@
       "kind": "process"
     },
     {
-      "id": "pum_2-val_1-1785963355760",
+      "id": "pum_2-val_1-1785998713288",
       "source": "pum_2",
       "target": "val_1",
       "source_port": "out",
@@ -85,7 +108,7 @@
       "kind": "process"
     },
     {
-      "id": "val_1-val_2-1785963357934",
+      "id": "val_1-val_2-1785998714731",
       "source": "val_1",
       "target": "val_2",
       "source_port": "out",
@@ -93,7 +116,7 @@
       "kind": "process"
     },
     {
-      "id": "val_2-val_3-1785963360125",
+      "id": "val_2-val_3-1785998715929",
       "source": "val_2",
       "target": "val_3",
       "source_port": "out",
@@ -101,9 +124,25 @@
       "kind": "process"
     },
     {
-      "id": "val_3-sink_4-1785963365350",
+      "id": "val_1-val_4-1785998718176",
+      "source": "val_1",
+      "target": "val_4",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "val_4-sink_5-1785998719521",
+      "source": "val_4",
+      "target": "sink_5",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "process"
+    },
+    {
+      "id": "val_3-sink_6-1785998720974",
       "source": "val_3",
-      "target": "sink_4",
+      "target": "sink_6",
       "source_port": "out",
       "target_port": "in",
       "kind": "process"

@@ -202,10 +202,16 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
             "min": 0.5, "max": 30.0, "step": 0.1, "default": 101325.0,
         },
     },
+    "sink": {
+        "pressure_bar": {
+            "label": "Давление на стоке", "unit": "бар", "scale": 1.0,
+            "min": 0.1, "max": 50.0, "step": 0.1, "default": 1.01325,
+        },
+    },
 }
 
 # Types that have no adjustable physical properties yet.
-NON_EDITABLE_TYPES = ("sink",)
+NON_EDITABLE_TYPES = ()
 
 
 def spec_for(node_type: str) -> Dict[str, Dict[str, Any]]:
