@@ -97,6 +97,21 @@ class Pump(BaseEquipment):
         z_suction = -self.suction_lift_m  # lift reduces the static head
         return max(0.0, suction_pressure_pa + density * G * z_suction - self.vapor_pressure_pa)
 
+    def inject_failure(self, failure_mode: str) -> None:
+        """Inject a failure.
+
+        CAVITATION (ТЗ section 32) is NOT a hard failure: it puts the pump into
+        the documented degraded regime with a CAVITATION_WARNING, so the machine
+        stays online but loses head/flow.  Everything else is a real trip
+        (failed -> no flow).
+        """
+        if failure_mode == "CAVITATION":
+            self.state.failed = False
+            self.state.failure_mode = failure_mode
+            self.state.degradation = 1.0
+            return
+        super().inject_failure(failure_mode)
+
     # -- stepping ------------------------------------------------------------
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
@@ -120,11 +135,42 @@ class Pump(BaseEquipment):
                 "running": False, "failed": failed,
             }
 
+        # Cavitation (ТЗ section 32): NPSH-driven on a live inlet, or an
+        # injected CAVITATION degradation.  Both emit CAVITATION_WARNING and
+        # enter the documented degraded regime (flow collapses toward the NPSH
+        # limit).  The cavitation factor is applied in BOTH paths so the
+        # standalone model degrades identically to the network model.
+        if inlet is not None:
+            suction_p = inlet.pressure if inlet else 101325.0
+            self.npsha_pa = self.compute_npsh(suction_p, density)
+            self.npshr_pa = float(self.npshr_pa)
+            self.cavitating = self.npsha_pa < self.npshr_pa
+        else:
+            self.cavitating = self.state.failure_mode == "CAVITATION"
+        if self.cavitating:
+            if self.npsha_pa is not None and self.npshr_pa is not None:
+                cav_factor = min(1.0, self.npsha_pa / max(self.npshr_pa, 1.0))
+            else:
+                cav_factor = 1.0 - self.state.degradation * 0.5
+            cav_factor = max(0.0, cav_factor) * CAVITATION_FLOW_FACTOR
+            self.diagnostics.append(pump_diagnostic(
+                code="PUMP_CAVITATION", component=self.equipment_id,
+                message=(f"NPSHA {self.npsha_pa if self.npsha_pa is not None else 0:.0f} Pa < "
+                         f"NPSHR {self.npshr_pa if self.npshr_pa is not None else 0:.0f} Pa — "
+                         f"cavitation, degraded regime."),
+                severity="warning",
+                value=self.npsha_pa, limit=self.npshr_pa,
+            ))
+        else:
+            cav_factor = 1.0
+
         # Standalone mode (no inlet stream): operate at the design point.
         if inlet is None:
             q_m3_s = self.curve.design_flow_at_speed(sr)
-            flow_mass = q_m3_s * density * max(0.0, self.efficiency)
+            flow_mass = q_m3_s * density * max(0.0, self.efficiency) * cav_factor
+            q_m3_s = flow_mass / max(density, 1e-6)
             dp = self.curve.pressure_rise(q_m3_s, sr)
+            self.pressure_rise_pa = dp
             self.power = (q_m3_s * dp) / max(self.efficiency, 1e-6)
             return {
                 "outlet_stream": None,
@@ -133,33 +179,16 @@ class Pump(BaseEquipment):
                 "volumetric_flow_m3_s": q_m3_s,
                 "pressure_rise_pa": dp,
                 "power": self.power, "running": True, "failed": False,
+                "cavitating": self.cavitating,
+                "diagnostics": list(self.diagnostics),
             }
 
         # Live path: apply the curve at the flow imposed by the hydraulic solve.
         flow = max(0.0, float(flow_kg_s)) if flow_kg_s is not None else inlet.mass_flow
+        flow *= cav_factor
         q_m3_s = flow / max(density, 1e-6)
         dp = self.curve.pressure_rise(q_m3_s, sr)
         self.pressure_rise_pa = dp
-
-        # NPSH check (ТЗ section 32).
-        suction_p = inlet.pressure if inlet else 101325.0
-        self.npsha_pa = self.compute_npsh(suction_p, density)
-        self.npshr_pa = float(self.npshr_pa)
-        self.cavitating = self.npsha_pa < self.npshr_pa
-        if self.cavitating:
-            self.diagnostics.append(pump_diagnostic(
-                code="PUMP_CAVITATION", component=self.equipment_id,
-                message=(f"NPSHA {self.npsha_pa:.0f} Pa < NPSHR "
-                         f"{self.npshr_pa:.0f} Pa — cavitation, degraded regime."),
-                severity="warning", value=self.npsha_pa, limit=self.npshr_pa,
-            ))
-            # Documented degraded regime: flow collapses toward the NPSH limit.
-            cav_factor = min(1.0, self.npsha_pa / max(self.npshr_pa, 1.0))
-            cav_factor = max(0.0, cav_factor) * CAVITATION_FLOW_FACTOR
-            flow *= cav_factor
-            q_m3_s = flow / max(density, 1e-6)
-            dp = self.curve.pressure_rise(q_m3_s, sr)
-            self.pressure_rise_pa = dp
 
         self.power = (q_m3_s * dp) / max(self.efficiency, 1e-6)
         work_per_mass = self.power / max(flow, 1e-9)

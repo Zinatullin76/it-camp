@@ -29,6 +29,9 @@ class DistillationColumn(BaseEquipment):
         self._warm_L = None
         self._warm_V = None
         self._warm_x = None
+        self._last_sig = None
+        self._solve_count = 0
+        self._cached = None
 
     def _apply_params(self) -> None:
         self.num_stages = self.params.get("num_stages", 20)
@@ -48,6 +51,26 @@ class DistillationColumn(BaseEquipment):
         
         if not feed or not thermo:
             return {"distillate": None, "bottoms": None}
+
+        # The MESH solve is the most expensive step in the train.  When the
+        # driving inputs are unchanged, re-solving every 1 s tick only
+        # re-converges to the same profile, so reuse the last result for up
+        # to `solve_interval` consecutive identical ticks (default 3).
+        interval = max(int(self.params.get("solve_interval", 3)), 1)
+        sig = (
+            round(float(feed.mass_flow), 3),
+            round(float(feed.temperature), 2),
+            round(float(feed.pressure), 0),
+            tuple(sorted((c, round(float(v), 4)) for c, v in feed.composition.items())),
+            round(float(self.reflux_ratio), 3),
+            round(float(self.boilup_ratio), 3),
+        )
+        if (interval > 1 and self._cached is not None
+                and self._last_sig == sig and self._solve_count < interval):
+            self._solve_count += 1
+            return self._rebuild_cached(feed)
+        self._last_sig = sig
+        self._solve_count = 1
 
         solver = DistillationSolver(
             self.num_stages,
@@ -145,6 +168,12 @@ class DistillationColumn(BaseEquipment):
                 name="Bottoms", temperature=t_fb_bot, pressure=self.pressure,
                 mass_flow=bottoms_mass, composition=comp_b, phase=Phase.LIQUID,
             )
+            self._cached = {
+                "t_top": t_fb, "t_bottom": t_fb_bot,
+                "d_mass": distillate_mass, "b_mass": bottoms_mass,
+                "comp_dist": comp_d, "comp_bott": comp_b,
+                "converged": result.get("converged", False),
+            }
             return {
                 "distillate": distillate,
                 "bottoms": bottoms,
@@ -186,11 +215,35 @@ class DistillationColumn(BaseEquipment):
             composition=comp_bott,
             phase=Phase.LIQUID,
         )
+        self._cached = {
+            "t_top": t_top, "t_bottom": t_bottom,
+            "d_mass": distillate_mass, "b_mass": bottoms_mass,
+            "comp_dist": comp_dist, "comp_bott": comp_bott,
+            "converged": True,
+        }
         return {
             "distillate": distillate,
             "bottoms": bottoms,
             "t_profile": self.t_profile.tolist(),
             "converged": result.get("converged", False),
+        }
+
+    def _rebuild_cached(self, feed: Stream) -> Dict[str, Any]:
+        """Re-emit the last solved products from fresh stream copies."""
+        c = self._cached
+        distillate = feed.copy_with(
+            name="Distillate", temperature=c["t_top"], pressure=self.pressure,
+            mass_flow=c["d_mass"], composition=c["comp_dist"], phase=Phase.VAPOR,
+        )
+        bottoms = feed.copy_with(
+            name="Bottoms", temperature=c["t_bottom"], pressure=self.pressure,
+            mass_flow=c["b_mass"], composition=c["comp_bott"], phase=Phase.LIQUID,
+        )
+        return {
+            "distillate": distillate,
+            "bottoms": bottoms,
+            "t_profile": self.t_profile.tolist(),
+            "converged": c["converged"],
         }
 
     def get_state(self) -> EquipmentState:
@@ -210,3 +263,6 @@ class DistillationColumn(BaseEquipment):
         self._warm_L = None
         self._warm_V = None
         self._warm_x = None
+        self._last_sig = None
+        self._solve_count = 0
+        self._cached = None

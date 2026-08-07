@@ -3,32 +3,43 @@
   "name": "ЭЛОУ-АВТ / default",
   "nodes": [
     {
-      "id": "gat_1",
-      "type": "gate_valve",
-      "name": "Задвижка",
-      "x": 239.0,
-      "y": 182.0,
-      "params": {
-        "initial_open": 1
-      }
-    },
-    {
       "id": "val_2",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 141.0,
-      "y": 189.0,
+      "x": 118.0,
+      "y": -47.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
       }
     },
     {
-      "id": "source_1",
+      "id": "gat_3",
+      "type": "gate_valve",
+      "name": "Задвижка",
+      "x": 249.0,
+      "y": -44.0,
+      "params": {
+        "initial_open": 1
+      }
+    },
+    {
+      "id": "pum_5",
+      "type": "pump",
+      "name": "Насос",
+      "x": -61.0,
+      "y": -56.0,
+      "params": {
+        "nominal_flow": 100,
+        "efficiency_nominal": 0.75
+      }
+    },
+    {
+      "id": "source_6",
       "type": "source",
       "name": "Источник сырья",
-      "x": -43.0,
-      "y": 188.0,
+      "x": -310.0,
+      "y": -28.0,
       "params": {
         "flow_kg_s": 100,
         "temperature_c": 25,
@@ -36,35 +47,102 @@
       }
     },
     {
-      "id": "sink_2",
+      "id": "col_7",
+      "type": "column",
+      "name": "Колонна ректификации",
+      "x": 352.0,
+      "y": -80.0,
+      "params": {
+        "num_stages": 20,
+        "feed_stage": 10
+      }
+    },
+    {
+      "id": "sink_8",
       "type": "sink",
       "name": "Продукт / отбор",
-      "x": 355.0,
-      "y": 197.0,
+      "x": 467.0,
+      "y": -140.0,
+      "params": {}
+    },
+    {
+      "id": "sink_9",
+      "type": "sink",
+      "name": "Продукт / отбор",
+      "x": 503.0,
+      "y": -4.0,
+      "params": {}
+    },
+    {
+      "id": "sep_1",
+      "type": "separator",
+      "name": "Сепаратор",
+      "x": -223.0,
+      "y": -210.0,
       "params": {}
     }
   ],
   "edges": [
     {
-      "id": "source_1-val_2-1786104867392",
-      "source": "source_1",
+      "id": "val_2-gat_3-1786112578724",
+      "source": "val_2",
+      "target": "gat_3",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "oil"
+    },
+    {
+      "id": "source_6-pum_5-1786112637802",
+      "source": "source_6",
+      "target": "pum_5",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "oil"
+    },
+    {
+      "id": "pum_5-val_2-1786112639847",
+      "source": "pum_5",
       "target": "val_2",
       "source_port": "out",
       "target_port": "in",
       "kind": "oil"
     },
     {
-      "id": "val_2-gat_1-1786104875162",
-      "source": "val_2",
-      "target": "gat_1",
+      "id": "gat_3-col_7-1786112815161",
+      "source": "gat_3",
+      "target": "col_7",
       "source_port": "out",
       "target_port": "in",
       "kind": "oil"
     },
     {
-      "id": "gat_1-sink_2-1786104876583",
-      "source": "gat_1",
-      "target": "sink_2",
+      "id": "col_7-sink_8-1786112823983",
+      "source": "col_7",
+      "target": "sink_8",
+      "source_port": "distillate",
+      "target_port": "in",
+      "kind": "oil"
+    },
+    {
+      "id": "col_7-sink_9-1786112828671",
+      "source": "col_7",
+      "target": "sink_9",
+      "source_port": "bottoms",
+      "target_port": "in",
+      "kind": "oil"
+    },
+    {
+      "id": "source_6-sep_1-1786114793237",
+      "source": "source_6",
+      "target": "sep_1",
+      "source_port": "out",
+      "target_port": "in",
+      "kind": "oil"
+    },
+    {
+      "id": "sep_1-pum_5-1786114796104",
+      "source": "sep_1",
+      "target": "pum_5",
       "source_port": "out",
       "target_port": "in",
       "kind": "oil"

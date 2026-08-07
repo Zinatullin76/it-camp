@@ -72,7 +72,7 @@ export const NODE_SIZES: Record<string, { w: number; h: number }> = {
   heat_exchanger: { w: 132, h: 70 },
   heater: { w: 118, h: 88 },
   column: { w: 52, h: 128 },
-  separator: { w: 48, h: 96 },
+  separator: { w: 140, h: 70 },
 };
 
 export function nodeSize(type: string) {

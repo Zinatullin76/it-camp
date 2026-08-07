@@ -59,7 +59,7 @@ const SYMBOL: Record<string, Partial<MnemoItem>> = {
   heat_exchanger: { t: 'hx', w: 132, h: 40 },
   heater: { t: 'fur', w: 118, h: 66 },
   column: { t: 'col', w: 46, h: 118, tr: 10, sump: 24, lv: 'lv' },
-  separator: { t: 'vves', w: 40, h: 88, lv: 'lv', lvw: 'lvw' },
+  separator: { t: 'vves', w: 132, h: 56, lv: 'lv', lvw: 'lvw' },
 };
 
 const NOMINAL_LEVEL_H = 4;
@@ -162,6 +162,10 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
   const critical = !failed && nodeAlarms.some((a) => a.severity === 'CRITICAL');
   const warning = !failed && !critical && nodeAlarms.some((a) => a.severity !== 'CRITICAL');
   const state = failed ? 'fault' : critical ? 'alarm' : warning ? 'warning' : 'normal';
+
+  // Состояние и мигание рамки шкалы уровня (использует символ 'vves').
+  item.state = state;
+  item.unacked = !failed && (critical || warning);
 
   const renameNode = () => {
     const n = window.prompt('Название узла:', name);

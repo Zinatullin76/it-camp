@@ -26,6 +26,10 @@ export interface MnemoItem {
   sump?: number;
   blind?: number;
   marks?: number[];
+  /** Состояние параметра для рамки шкалы: normal | warning | alarm | fault. */
+  state?: string;
+  /** Событие не квитировано — рамка мигает до квитирования. */
+  unacked?: boolean;
 }
 
 export interface MnemoPipe {

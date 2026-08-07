@@ -387,9 +387,11 @@ class DistillationSolver:
                 x_new = np.clip(x_new, 1e-30, None)
             x = x_new
 
-            # 4) Bubble-point temperatures -> T (damped update).
+            # 4) Bubble-point temperatures -> T (damped update).  The current
+            #    damped profile is a warm start for Newton (see
+            #    PengRobinsonThermodynamics.bubble_temperature_vec).
             T_new = thermo.bubble_temperature_vec(
-                np.full(n, self.pressure), self.names, x
+                np.full(n, self.pressure), self.names, x, T_guess=T
             )
             delta_raw = float(np.max(np.abs(T_new - T)))
             if getattr(self, '_trace', False):

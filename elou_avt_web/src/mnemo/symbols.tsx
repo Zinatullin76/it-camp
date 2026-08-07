@@ -130,6 +130,26 @@ function LvlRect(props: {
   );
 }
 
+/* ---- Горизонтальная ёмкость / сепаратор ----
+   Цвета — приказ № 251-П, приложение № 1, табл. 12–13
+   (эталон визуала: visual/separator/hmi-vessel.html). */
+const VES_GAS = '#d7d7d7';    // газовая подушка / корпус (--c-normal)
+const VES_OIL = '#000000';    // нефть и нефтепродукты (--c-med-oil)
+const VES_WATER = '#5b9bd4';  // неопасные жидкости (--c-blue)
+const VES_STROKE = '#000000'; // контур оборудования
+const VES_FRAME: Record<string, string> = {
+  normal: '#000000',
+  warning: '#ffff00',
+  alarm: '#ff0000',
+  fault: '#ff0000',
+};
+/** Мигание рамки шкалы уровня до квитирования: 1 Гц, цвет состояния ↔ чёрный. */
+const VES_BLINK: Record<string, string> = {
+  warning: 'vves-blink-warning',
+  alarm: 'vves-blink-alarm',
+  fault: 'vves-blink-alarm',
+};
+
 export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
   const x = e.x;
   const y = e.y;
@@ -199,25 +219,39 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
     }
 
     case 'vves': {
-      const r = w / 2;
-      const hd = r * 0.5;
-      const b = y + h - 4;
-      const top = y + hd + 2;
-      const hh = b - top;
+      // УГО горизонтальной ёмкости (п. 7.4.8.2 «г», «д»): обечайка +
+      // два эллиптических днища, пропорционально реальному аппарату.
+      // Внутри — шкала уровня (п. 7.4.2.6): газовая подушка сверху,
+      // нефтепродукт, вода снизу; рамка кодирует состояние параметра и
+      // мигает до квитирования.
+      const st = e.state || 'normal';
+      const frame = VES_FRAME[st] || VES_FRAME.normal;
+      const blink = e.unacked ? (VES_BLINK[st] || '') : '';
+      const rx = Math.min((h * 0.44) / 2, w * 0.25); // радиус днища
+      const ry = h / 2;
+      const gx = x + w * 0.22;                       // посадочное место шкалы
+      const gw = Math.max(8, w * 0.085);
+      const gh = h * 0.62;
+      const gy = y + (h - gh) / 2;
+      const ins = 2;
       const tot = Math.max(0, Math.min(100, live.lvl(e.lv || '')));
       const wl = Math.max(0, Math.min(tot, live.lw(e.lvw || '')));
-      const yT = b - (hh * tot) / 100;
-      const yW = b - (hh * wl) / 100;
+      const oilH = (gh - ins * 2) * tot / 100;
+      const watH = (gh - ins * 2) * wl / 100;
+      const bot = gy + gh - ins;
       return (
         <g>
           <path
-            d={`M${x} ${y + hd} A${r} ${hd} 0 0 1 ${x + w} ${y + hd} L${x + w} ${y + h - hd} A${r} ${hd} 0 0 1 ${x} ${y + h - hd} Z`}
-            style={ST}
+            d={`M${x + w - rx} ${y} A${rx} ${ry} 0 0 1 ${x + w - rx} ${y + h} L${x + rx} ${y + h} A${rx} ${ry} 0 0 1 ${x + rx} ${y} Z`}
+            fill={VES_GAS}
+            stroke={VES_STROKE}
+            strokeWidth={1.6}
           />
-          <rect x={x + 3} y={yT} width={w - 6} height={Math.max(1, yW - yT)} fill={tot < 20 ? '#e2483c' : tot > 88 ? '#e8b93a' : '#d2833c'} opacity={0.55} />
-          <rect x={x + 3} y={yW} width={w - 6} height={Math.max(1, b - yW)} fill={wl > 80 ? '#e2483c' : wl < 20 ? '#e8b93a' : '#2f6feb'} opacity={0.7} />
-          <line x1={x - 10} y1={yW} x2={x + w + 10} y2={yW} stroke="#4fc3f7" strokeWidth={1.5} strokeDasharray="6 4" />
-          <Tx x={x + w + 14} y={yW - 4} s="раздел фаз" size={8} fill="#4fc3f7" anchor="start" />
+          <g>
+            <rect x={gx} y={gy} width={gw} height={gh} fill={VES_GAS} stroke={frame} strokeWidth={1.5} className={blink} />
+            <rect x={gx + ins} y={bot - oilH} width={gw - ins * 2} height={oilH} fill={VES_OIL} />
+            <rect x={gx + ins} y={bot - watH} width={gw - ins * 2} height={watH} fill={VES_WATER} />
+          </g>
           <Txt x={x + w / 2} y={y + h + 16} s={e.n || ''} size={11} fill="var(--mn-text)" maxW={w + 8} />
           {e.s ? <Txt x={x + w / 2} y={y - 8} up s={e.s} size={9} fill="var(--mn-text-dim)" maxW={w + 30} /> : null}
         </g>
