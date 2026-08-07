@@ -614,3 +614,18 @@ export interface ActionLogEntry {
   session_id: string | null;
   module_id: number | null;
 }
+
+export type ScadaLogEventType = 'click' | 'inspector_open' | 'inspector_close' | 'page_enter' | 'page_exit';
+
+export interface ScadaLogEntry {
+  id: number;
+  timestamp: number;
+  user_id: number | null;
+  username: string;
+  event_type: ScadaLogEventType;
+  object_id: string;
+  object_name: string;
+  duration_s: number | null;
+  session_id: string | null;
+  module_id: number | null;
+}

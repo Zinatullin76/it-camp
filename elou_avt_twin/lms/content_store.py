@@ -163,6 +163,19 @@ CREATE TABLE IF NOT EXISTS lms_action_log (
     module_id   INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS lms_scada_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp   REAL NOT NULL,
+    user_id     INTEGER,
+    username    TEXT NOT NULL DEFAULT '',
+    event_type  TEXT NOT NULL DEFAULT 'click',
+    object_id   TEXT NOT NULL DEFAULT '',
+    object_name TEXT NOT NULL DEFAULT '',
+    duration_s  REAL,
+    session_id  TEXT,
+    module_id   INTEGER
+);
+
 CREATE INDEX IF NOT EXISTS idx_lessons_module  ON lms_lessons (module_id, seq);
 CREATE INDEX IF NOT EXISTS idx_questions_test  ON lms_questions (test_id, seq);
 CREATE INDEX IF NOT EXISTS idx_tasks_module    ON lms_training_tasks (module_id);
@@ -170,6 +183,8 @@ CREATE INDEX IF NOT EXISTS idx_scenarios_mod   ON lms_scenarios (module_id);
 CREATE INDEX IF NOT EXISTS idx_assess_user     ON lms_assessments (user_id, finished_at);
 CREATE INDEX IF NOT EXISTS idx_assess_module   ON lms_assessments (module_id);
 CREATE INDEX IF NOT EXISTS idx_action_log_time ON lms_action_log (timestamp);
+CREATE INDEX IF NOT EXISTS idx_scada_log_time  ON lms_scada_log (timestamp);
+CREATE INDEX IF NOT EXISTS idx_scada_log_user  ON lms_scada_log (username, timestamp);
 """
 
 
@@ -681,3 +696,49 @@ class LmsContentStore:
             d["new_state"] = _unjson(d.get("new_state"))
             out.append(d)
         return out
+
+    # ------------------------------------------------------------------
+    # SCADA interaction log (клики по объектам и время в окне)
+    # ------------------------------------------------------------------
+
+    def add_scada_log(self, entry: Dict[str, Any]) -> int:
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "INSERT INTO lms_scada_log (timestamp, user_id, username, event_type, "
+                "object_id, object_name, duration_s, session_id, module_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (entry.get("timestamp", time.time()), entry.get("user_id"),
+                 entry.get("username", ""), entry.get("event_type", "click"),
+                 entry.get("object_id", ""), entry.get("object_name", ""),
+                 entry.get("duration_s"), entry.get("session_id"), entry.get("module_id")),
+            )
+            self._conn.commit()
+            return int(cur.lastrowid)
+
+    def list_scada_log(self, username: Optional[str] = None,
+                       object_id: Optional[str] = None,
+                       event_type: Optional[str] = None,
+                       session_id: Optional[str] = None,
+                       limit: int = 500) -> List[Dict[str, Any]]:
+        sql = "SELECT * FROM lms_scada_log"
+        conds: List[str] = []
+        params: List[Any] = []
+        if username:
+            conds.append("username = ?")
+            params.append(username)
+        if object_id:
+            conds.append("object_id = ?")
+            params.append(object_id)
+        if event_type:
+            conds.append("event_type = ?")
+            params.append(event_type)
+        if session_id:
+            conds.append("session_id = ?")
+            params.append(session_id)
+        if conds:
+            sql += " WHERE " + " AND ".join(conds)
+        sql += " ORDER BY id DESC LIMIT ?"
+        params.append(limit)
+        with self._lock:
+            rows = self._conn.execute(sql, tuple(params)).fetchall()
+        return [dict(r) for r in rows]

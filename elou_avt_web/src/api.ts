@@ -19,6 +19,8 @@ import type {
   Scheme,
   SchemeNodeData,
   SchemeEdgeData,
+  ScadaLogEntry,
+  ScadaLogEventType,
   LmsAnalytics,
   LmsCourse,
   LmsDashboard,
@@ -430,6 +432,28 @@ export const api = {
     if (params?.session_id) q.set('session_id', params.session_id);
     q.set('limit', String(params?.limit ?? 500));
     return json<ActionLogEntry[]>(`/lms/action-log?${q.toString()}`);
+  },
+
+  // ---- SCADA: журнал кликов и времени в окне ----
+  logScadaEvent: (ev: { event_type: ScadaLogEventType; object_id?: string; object_name?: string; duration_s?: number | null }) =>
+    json<{ ok: boolean }>('/lms/scada-log', {
+      method: 'POST',
+      keepalive: true,
+      body: JSON.stringify({
+        event_type: ev.event_type,
+        object_id: ev.object_id ?? '',
+        object_name: ev.object_name ?? '',
+        duration_s: ev.duration_s ?? null,
+      }),
+    }),
+  scadaLog: (params?: { username?: string; object_id?: string; event_type?: string; session_id?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.username) q.set('username', params.username);
+    if (params?.object_id) q.set('object_id', params.object_id);
+    if (params?.event_type) q.set('event_type', params.event_type);
+    if (params?.session_id) q.set('session_id', params.session_id);
+    q.set('limit', String(params?.limit ?? 500));
+    return json<ScadaLogEntry[]>(`/lms/scada-log?${q.toString()}`);
   },
 };
 

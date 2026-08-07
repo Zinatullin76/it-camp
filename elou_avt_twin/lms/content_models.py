@@ -227,6 +227,27 @@ class ActionLogEntry(BaseModel):
     module_id: Optional[int] = None
 
 
+class ScadaLogEventType(str, Enum):
+    CLICK = "click"
+    INSPECTOR_OPEN = "inspector_open"
+    INSPECTOR_CLOSE = "inspector_close"
+    PAGE_ENTER = "page_enter"
+    PAGE_EXIT = "page_exit"
+
+
+class ScadaLogEntry(BaseModel):
+    id: int = 0
+    timestamp: float = 0.0
+    user_id: Optional[int] = None
+    username: str = ""
+    event_type: ScadaLogEventType = ScadaLogEventType.CLICK
+    object_id: str = ""
+    object_name: str = ""
+    duration_s: Optional[float] = None
+    session_id: Optional[str] = None
+    module_id: Optional[int] = None
+
+
 # ---------------------------------------------------------------------------
 # Request models
 # ---------------------------------------------------------------------------
@@ -299,6 +320,15 @@ class StatusWrite(BaseModel):
 class TestSubmit(BaseModel):
     answers: Dict[str, Any] = Field(default_factory=dict)
     duration_s: float = 0.0
+
+
+class ScadaLogWrite(BaseModel):
+    event_type: ScadaLogEventType
+    object_id: str = ""
+    object_name: str = ""
+    duration_s: Optional[float] = None
+    session_id: Optional[str] = None
+    module_id: Optional[int] = None
 
 
 class TaskStart(BaseModel):

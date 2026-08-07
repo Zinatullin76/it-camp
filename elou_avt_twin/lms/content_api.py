@@ -54,6 +54,7 @@ from .content_models import (
     PublishWrite,
     QuestionWrite,
     ScenarioWrite,
+    ScadaLogWrite,
     StatusWrite,
     TaskWrite,
     TestSubmit,
@@ -325,3 +326,27 @@ def action_log(username: Optional[str] = None,
                current_user: Principal = Depends(get_current_user)):
     return get_service().action_log(username=username, object_id=object_id,
                                     session_id=session_id, limit=limit)
+
+
+# ---------------------------------------------------------------------------
+# SCADA: журнал кликов по объектам и время в окне
+# ---------------------------------------------------------------------------
+
+
+@router.post("/scada-log", dependencies=[Depends(require_permission("view_scheme"))])
+def scada_log_write(req: ScadaLogWrite,
+                    current_user: Principal = Depends(get_current_user)):
+    get_service().log_scada_event(current_user.username, req)
+    return {"ok": True}
+
+
+@router.get("/scada-log", dependencies=[Depends(require_permission("view_history"))])
+def scada_log(username: Optional[str] = None,
+              object_id: Optional[str] = None,
+              event_type: Optional[str] = None,
+              session_id: Optional[str] = None,
+              limit: int = Query(500, ge=1, le=5000),
+              current_user: Principal = Depends(get_current_user)):
+    return get_service().scada_log(username=username, object_id=object_id,
+                                   event_type=event_type, session_id=session_id,
+                                   limit=limit)

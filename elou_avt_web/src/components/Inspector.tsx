@@ -308,7 +308,7 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         ● {statusText}
       </div>
       <div className="param-list">{paramRows}</div>
-      {onUpdateDisp && (
+      {canEditScheme && onUpdateDisp && (
         <div style={{ marginTop: 12 }}>
           <div className="panel-title">ПОКАЗЫВАТЬ НА СХЕМЕ</div>
           <div className="param-list">
@@ -335,7 +335,7 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         </div>
       )}
       {control && <div style={{ marginTop: 12 }}>{control}</div>}
-      {canManageTwin && spec?.editable && spec.params.length > 0 && (
+      {canEditScheme && canManageTwin && spec?.editable && spec.params.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div className="panel-title">ФИЗ. СВОЙСТВА</div>
           <div className="param-editor">

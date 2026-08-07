@@ -12,20 +12,23 @@ import {
   useReactFlow,
   MarkerType,
 } from '@xyflow/react';
-import type { Connection, Edge, NodeMouseHandler } from '@xyflow/react';
+import type { Connection, Edge, EdgeMouseHandler, NodeMouseHandler } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 import { api, connectWs } from '../api';
-import type { ApiState, HistoryResponse, Scheme, SchemeNodeData, SchemeEdgeData, NodeTelemetry } from '../types';
+import type { ApiState, HistoryResponse, Scheme, SchemeNodeData, SchemeEdgeData, NodeTelemetry, ScadaLogEventType } from '../types';
 import { useAuth } from '../auth';
-import { PALETTE, createNode, nodeSize } from '../schemeConfig';
+import { PALETTE, createNode, nodeSize, phaseMeta, normalizePhase, PHASE_TYPES, DEFAULT_PHASE } from '../schemeConfig';
 import { mnemoLayout } from '../layout';
-import EquipmentNodeComponent from '../nodes/EquipmentNode';
-import type { EquipmentNode, EquipmentNodeData } from '../nodes/EquipmentNode';
+import EquipmentNodeComponent, { SchemeEditorContext } from '../nodes/EquipmentNode';
+import type { EquipmentNode, EquipmentNodeData, TagCfg } from '../nodes/EquipmentNode';
 import Inspector from '../components/Inspector';
+import EdgeInspector from '../components/EdgeInspector';
+import StreamEdge from '../components/StreamEdge';
 import TrendChart, { SERIES_META } from '../components/TrendChart';
 
 const nodeTypes = { equipment: EquipmentNodeComponent };
+const edgeTypes = { stream: StreamEdge };
 
 
 const SCENARIOS = [
@@ -40,15 +43,33 @@ const SCENARIOS = [
   { id: 'SHUTDOWN', label: 'Останов установки' },
 ];
 
-const EDGE_KIND: Record<string, string> = {
-  hot: '#fb923c',
-  cooling: '#38bdf8',
-  process: '#64748b',
-};
+const EDGE_STROKE = 2;
 
-function edgeMarker(kind: string) {
-  const stroke = EDGE_KIND[kind] ?? '#64748b';
-  return { type: MarkerType.ArrowClosed, width: 13, height: 13, color: stroke };
+function edgeMarker(color: string) {
+  return { type: MarkerType.ArrowClosed, width: 13, height: 13, color };
+}
+
+interface EdgeCfg {
+  phase?: string;
+  offset?: number;
+}
+
+const EDGE_KEY = 'hmi-edge-v1';
+
+function loadEdgeCfg(): Record<string, EdgeCfg> {
+  try {
+    return JSON.parse(localStorage.getItem(EDGE_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveEdgeCfg(m: Record<string, EdgeCfg>) {
+  try {
+    localStorage.setItem(EDGE_KEY, JSON.stringify(m));
+  } catch {
+    // ignore storage errors
+  }
 }
 
 const DISP_KEY = 'hmi-disp-v1';
@@ -64,6 +85,24 @@ function loadDisp(): Record<string, string[]> {
 function saveDisp(d: Record<string, string[]>) {
   try {
     localStorage.setItem(DISP_KEY, JSON.stringify(d));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const TAGS_KEY = 'hmi-tags-v1';
+
+function loadTags(): Record<string, Record<string, TagCfg>> {
+  try {
+    return JSON.parse(localStorage.getItem(TAGS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveTags(t: Record<string, Record<string, TagCfg>>) {
+  try {
+    localStorage.setItem(TAGS_KEY, JSON.stringify(t));
   } catch {
     // ignore storage errors
   }
@@ -89,18 +128,25 @@ function toRfNodes(scheme: Scheme): EquipmentNode[] {
   });
 }
 
-function toRfEdges(scheme: Scheme): Edge[] {
-  return scheme.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.source_port,
-    targetHandle: e.target_port,
-    type: 'smoothstep',
-    animated: false,
-    markerEnd: edgeMarker(e.kind),
-    style: { stroke: EDGE_KIND[e.kind] ?? '#64748b', strokeWidth: 1.5 },
-  }));
+function toRfEdges(scheme: Scheme, edgeCfg: Record<string, EdgeCfg>): Edge[] {
+  return scheme.edges.map((e) => {
+    const cfg = edgeCfg[e.id];
+    const phase = phaseMeta(normalizePhase(cfg?.phase ?? e.kind));
+    const offset = cfg?.offset ?? 0;
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.source_port,
+      targetHandle: e.target_port,
+      type: 'stream',
+      animated: false,
+      pathOptions: { offset },
+      markerEnd: edgeMarker(phase.color),
+      style: { stroke: phase.color, strokeWidth: EDGE_STROKE },
+      data: { phase: phase.id },
+    };
+  });
 }
 
 function HmiInner() {
@@ -119,13 +165,71 @@ function HmiInner() {
   const [scenario, setScenario] = useState('PUMP_FAILURE_001');
   const [msg, setMsg] = useState('');
   const [dispMap, setDispMap] = useState<Record<string, string[]>>(loadDisp);
+  const [tagsMap, setTagsMap] = useState<Record<string, Record<string, TagCfg>>>(loadTags);
+  const [edgeCfg, setEdgeCfg] = useState<Record<string, EdgeCfg>>(loadEdgeCfg);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inspectorRef = useRef<{ objectId: string; objectName: string; openedAt: number } | null>(null);
+  const pageEnterRef = useRef<number>(Date.now());
+  const scadaFlushedRef = useRef(false);
 
-  const withDisp = useCallback(
+  const logScada = useCallback(
+    (eventType: ScadaLogEventType, objectId: string, objectName: string, durationS?: number) => {
+      api.logScadaEvent({ event_type: eventType, object_id: objectId, object_name: objectName, duration_s: durationS })
+        .catch(() => undefined);
+    },
+    [],
+  );
+
+  const closeInspector = useCallback(() => {
+    const cur = inspectorRef.current;
+    if (!cur) return;
+    inspectorRef.current = null;
+    const duration = (Date.now() - cur.openedAt) / 1000;
+    logScada('inspector_close', cur.objectId, cur.objectName, duration);
+  }, [logScada]);
+
+  const openInspector = useCallback(
+    (node: { id: string; name: string }) => {
+      if (inspectorRef.current?.objectId === node.id) return;
+      closeInspector();
+      inspectorRef.current = { objectId: node.id, objectName: node.name, openedAt: Date.now() };
+      logScada('inspector_open', node.id, node.name);
+    },
+    [closeInspector, logScada],
+  );
+
+  // SCADA-журнал: вход на страницу, выход, открытие/закрытие окна объекта
+  useEffect(() => {
+    logScada('page_enter', '', '');
+    const flush = () => {
+      if (scadaFlushedRef.current) return;
+      scadaFlushedRef.current = true;
+      closeInspector();
+      logScada('page_exit', '', '', (Date.now() - pageEnterRef.current) / 1000);
+    };
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      flush();
+    };
+  }, [logScada, closeInspector]);
+
+  // Смена выбранного объекта управляет окном инспектора
+  useEffect(() => {
+    if (!selectedId) {
+      closeInspector();
+      return;
+    }
+    const n = nodes.find((x) => x.id === selectedId);
+    if (n) openInspector({ id: n.id, name: n.data.name });
+  }, [selectedId, nodes, closeInspector, openInspector]);
+
+  const withCfg = useCallback(
     (nds: EquipmentNode[]): EquipmentNode[] =>
-      nds.map((n) => ({ ...n, data: { ...n.data, disp: dispMap[n.id] ?? [] } })),
-    [dispMap],
+      nds.map((n) => ({ ...n, data: { ...n.data, disp: dispMap[n.id] ?? [], tags: tagsMap[n.id] ?? {} } })),
+    [dispMap, tagsMap],
   );
 
   const onUpdateDisp = useCallback(
@@ -140,6 +244,67 @@ function HmiInner() {
     [setNodes],
   );
 
+  const onTagChange = useCallback(
+    (nodeId: string, key: string, patch: Partial<TagCfg>) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  tags: { ...(n.data.tags ?? {}), [key]: { ...(n.data.tags?.[key] ?? {}), ...patch } },
+                },
+              }
+            : n,
+        ),
+      );
+      setTagsMap((m) => {
+        const cur = m[nodeId] ?? {};
+        const nm = { ...m, [nodeId]: { ...cur, [key]: { ...(cur[key] ?? {}), ...patch } } };
+        saveTags(nm);
+        return nm;
+      });
+    },
+    [setNodes],
+  );
+
+  const onEdgePhase = useCallback(
+    (edgeId: string, phaseId: string) => {
+      const phase = phaseMeta(phaseId);
+      setEdges((eds) =>
+        eds.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                data: { ...(e.data as object), phase: phaseId },
+                markerEnd: edgeMarker(phase.color),
+                style: { ...(e.style as object), stroke: phase.color, strokeWidth: EDGE_STROKE },
+              }
+            : e,
+        ),
+      );
+      setEdgeCfg((m) => {
+        const nm = { ...m, [edgeId]: { ...(m[edgeId] ?? {}), phase: phaseId } };
+        saveEdgeCfg(nm);
+        return nm;
+      });
+    },
+    [setEdges],
+  );
+
+  const onEdgeOffset = useCallback(
+    (edgeId: string, offset: number) => {
+      setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, pathOptions: { offset } } : e)));
+      setEdgeCfg((m) => {
+        const nm = { ...m, [edgeId]: { ...(m[edgeId] ?? {}), offset } };
+        saveEdgeCfg(nm);
+        return nm;
+      });
+    },
+    [setEdges],
+  );
+
   const notify = useCallback((text: string) => {
     setMsg(text);
     if (msgTimer.current) clearTimeout(msgTimer.current);
@@ -152,7 +317,11 @@ function HmiInner() {
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
-        data: { ...n.data, telemetry: s.equipment?.[n.id] ?? null },
+        data: {
+          ...n.data,
+          telemetry: s.equipment?.[n.id] ?? null,
+          alarms: (s.alarms ?? []).filter((a) => a.parameter.startsWith(`${n.id}_`)),
+        },
       })),
     );
     setEdges((eds) =>
@@ -167,8 +336,8 @@ function HmiInner() {
   // Initial load
   useEffect(() => {
     api.getScheme().then((scheme) => {
-      setNodes(withDisp(toRfNodes(scheme)));
-      setEdges(toRfEdges(scheme));
+      setNodes(withCfg(toRfNodes(scheme)));
+      setEdges(toRfEdges(scheme, edgeCfg));
       setTimeout(() => fitView({ padding: 0.15, duration: 350 }), 80);
     }).catch(() => notify('Не удалось загрузить схему с бэкенда'));
     api.getHistory().then(setHistory).catch(() => undefined);
@@ -219,7 +388,7 @@ function HmiInner() {
           id: node.id,
           type: 'equipment',
           position: { x: node.x, y: node.y },
-          data: { nodeType: node.type, name: node.name, telemetry: null, schemeParams: node.params, disp: [] },
+          data: { nodeType: node.type, name: node.name, telemetry: null, schemeParams: node.params, disp: [], tags: {} },
         },
       ]);
       setSelectedId(node.id);
@@ -231,6 +400,7 @@ function HmiInner() {
   const onConnect = useCallback(
     (c: Connection) => {
       const id = `${c.source}-${c.target}-${Date.now()}`;
+      const phase = phaseMeta(DEFAULT_PHASE);
       setEdges((eds) => [
         ...eds,
         {
@@ -239,18 +409,34 @@ function HmiInner() {
           target: c.target!,
           sourceHandle: c.sourceHandle ?? 'out',
           targetHandle: c.targetHandle ?? 'in',
-          type: 'smoothstep',
+          type: 'stream',
           animated: false,
-          markerEnd: edgeMarker('process'),
-          style: { stroke: EDGE_KIND.process, strokeWidth: 1.5 },
+          pathOptions: { offset: 0 },
+          data: { phase: phase.id },
+          markerEnd: edgeMarker(phase.color),
+          style: { stroke: phase.color, strokeWidth: EDGE_STROKE },
         },
       ]);
     },
     [setEdges],
   );
 
-  const onNodeClick: NodeMouseHandler = useCallback((_, node) => setSelectedId(node.id), []);
-  const onPaneClick = useCallback(() => setSelectedId(null), []);
+  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
+    const name = (node.data as EquipmentNodeData).name ?? node.id;
+    logScada('click', node.id, name);
+    setSelectedId(node.id);
+    setSelectedEdgeId(null);
+  }, [logScada]);
+
+  const onEdgeClick: EdgeMouseHandler = useCallback((_, edge) => {
+    setSelectedEdgeId(edge.id);
+    setSelectedId(null);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedId(null);
+    setSelectedEdgeId(null);
+  }, []);
 
   const onRename = useCallback(
     (nodeId: string, name: string) => {
@@ -285,7 +471,7 @@ function HmiInner() {
       target: e.target,
       source_port: e.sourceHandle ?? 'out',
       target_port: e.targetHandle ?? 'in',
-      kind: 'process',
+      kind: (e.data as { phase?: string } | undefined)?.phase ?? 'crude',
     }));
     try {
       const state = await api.saveScheme(sn, se);
@@ -298,12 +484,12 @@ function HmiInner() {
 
   const loadDefault = useCallback(async () => {
     const scheme = await api.getScheme();
-    setNodes(withDisp(toRfNodes(scheme)));
-    setEdges(toRfEdges(scheme));
+    setNodes(withCfg(toRfNodes(scheme)));
+    setEdges(toRfEdges(scheme, edgeCfg));
     setSelectedId(null);
     setTimeout(() => fitView({ padding: 0.15, duration: 350 }), 80);
     notify('Схема загружена с бэкенда');
-  }, [withDisp, setNodes, setEdges, notify, fitView]);
+  }, [withCfg, setNodes, setEdges, notify, fitView, edgeCfg]);
 
   const runScenario = useCallback(async () => {
     const label = SCENARIOS.find((s) => s.id === scenario)?.label ?? scenario;
@@ -365,8 +551,8 @@ function HmiInner() {
         const state = await api.loadScheme(name);
         applyTelemetry(state);
         const scheme = await api.getScheme();
-        setNodes(withDisp(toRfNodes(scheme)));
-        setEdges(toRfEdges(scheme));
+        setNodes(withCfg(toRfNodes(scheme)));
+        setEdges(toRfEdges(scheme, edgeCfg));
         setSelectedId(null);
         setCurrentScheme(name);
         notify(`Схема «${name}» загружена`);
@@ -374,7 +560,7 @@ function HmiInner() {
         notify('Ошибка загрузки схемы');
       }
     },
-    [currentScheme, applyTelemetry, withDisp, setNodes, setEdges, notify],
+    [currentScheme, applyTelemetry, withCfg, setNodes, setEdges, notify],
   );
 
   const onCreateScheme = useCallback(async () => {
@@ -388,14 +574,14 @@ function HmiInner() {
       setSchemes(r.schemes);
       setCurrentScheme(r.current);
       const scheme = await api.getScheme();
-      setNodes(withDisp(toRfNodes(scheme)));
-      setEdges(toRfEdges(scheme));
+      setNodes(withCfg(toRfNodes(scheme)));
+      setEdges(toRfEdges(scheme, edgeCfg));
       setSelectedId(null);
       notify(`Схема «${trimmed}» создана`);
     } catch (err) {
       notify(`Ошибка создания схемы: ${String(err)}`);
     }
-  }, [withDisp, setNodes, setEdges, notify]);
+  }, [withCfg, setNodes, setEdges, notify, edgeCfg]);
 
   const onAction = useCallback(
     async (equipmentId: string, actionType: string, value?: number | null) => {
@@ -461,6 +647,7 @@ function HmiInner() {
               onClick={() => {
                 setEdit((v) => !v);
                 setSelectedId(null);
+                setSelectedEdgeId(null);
               }}
               title={edit ? 'Выйти из режима редактирования' : 'Редактировать схему'}
             >
@@ -531,7 +718,8 @@ function HmiInner() {
           </aside>
         )}
 
-        <div className="canvas" onDrop={canEditScheme && edit ? onDrop : undefined} onDragOver={(e) => canEditScheme && edit && e.preventDefault()}>
+        <div className={`canvas${canEditScheme && edit ? ' editing' : ''}`} onDrop={canEditScheme && edit ? onDrop : undefined} onDragOver={(e) => canEditScheme && edit && e.preventDefault()}>
+          <SchemeEditorContext.Provider value={{ edit, onTagChange, onRenameNode: onRename, onEdgeOffset }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -539,11 +727,16 @@ function HmiInner() {
             onEdgesChange={onEdgesChange}
             onConnect={canEditScheme && edit ? onConnect : undefined}
             onNodeClick={onNodeClick}
+            onEdgeClick={canEditScheme && edit ? onEdgeClick : undefined}
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             nodesDraggable={canEditScheme && edit}
             nodesConnectable={canEditScheme && edit}
+            elementsSelectable={canEditScheme && edit}
+            edgesFocusable={false}
+            edgesReconnectable={false}
             deleteKeyCode={canEditScheme && edit ? ['Backspace', 'Delete'] : null}
             minZoom={0.15}
             maxZoom={3}
@@ -567,43 +760,56 @@ function HmiInner() {
             )}
             <Panel position="bottom-center">
               <div className="flow-legend">
-                <span><span className="legend-line" style={{ background: '#64748b' }} /> технологический поток</span>
-                <span><span className="legend-line" style={{ background: '#fb923c' }} /> горячий теплоноситель</span>
-                <span><span className="legend-line" style={{ background: '#38bdf8' }} /> охлаждение/вода</span>
-                <span>🖱 колесо — масштаб · зажать — перемещение · клик по объекту — панель</span>
+                {PHASE_TYPES.map((p) => (
+                  <span key={p.id}><span className="legend-line" style={{ background: p.color }} />{p.label}</span>
+                ))}
               </div>
             </Panel>
           </ReactFlow>
+          </SchemeEditorContext.Provider>
         </div>
 
         <aside className="inspector">
           <div className="panel-title">ИНСПЕКТОР</div>
-          <Inspector
-            nodeId={selectedId ?? ''}
-            nodeName={selectedNode?.data.name ?? ''}
-            nodeType={selectedNode?.data.nodeType ?? ''}
-            schemeParams={selectedNode?.data.schemeParams ?? {}}
-            telemetry={selectedTelemetry}
-            disp={selectedNode?.data.disp ?? []}
-            onUpdateDisp={onUpdateDisp}
-            onAction={onAction}
-            onFailure={onFailure}
-            onRename={onRename}
-            onDelete={onDelete}
-            onUpdateParams={onUpdateParams}
-            canEditScheme={canEditScheme && edit}
-          />
-          <div className="panel-title trend-title">ТРЕНД ПАРАМЕТРА</div>
-          <select
-            className="scenario-select full"
-            value={trendParam}
-            onChange={(e) => setTrendParam(e.target.value)}
-          >
-            {Object.entries(SERIES_META).map(([k, m]) => (
-              <option key={k} value={k}>{m.label} ({m.unit})</option>
-            ))}
-          </select>
-          <TrendChart history={history} param={trendParam} />
+          {selectedEdgeId ? (
+            <EdgeInspector
+              edge={edges.find((e) => e.id === selectedEdgeId) ?? null}
+              onPhase={onEdgePhase}
+              onOffset={onEdgeOffset}
+              canEditScheme={canEditScheme && edit}
+            />
+          ) : (
+            <Inspector
+              nodeId={selectedId ?? ''}
+              nodeName={selectedNode?.data.name ?? ''}
+              nodeType={selectedNode?.data.nodeType ?? ''}
+              schemeParams={selectedNode?.data.schemeParams ?? {}}
+              telemetry={selectedTelemetry}
+              disp={selectedNode?.data.disp ?? []}
+              onUpdateDisp={onUpdateDisp}
+              onAction={onAction}
+              onFailure={onFailure}
+              onRename={onRename}
+              onDelete={onDelete}
+              onUpdateParams={onUpdateParams}
+              canEditScheme={canEditScheme && edit}
+            />
+          )}
+          {!selectedEdgeId && (
+            <>
+              <div className="panel-title trend-title">ТРЕНД ПАРАМЕТРА</div>
+              <select
+                className="scenario-select full"
+                value={trendParam}
+                onChange={(e) => setTrendParam(e.target.value)}
+              >
+                {Object.entries(SERIES_META).map(([k, m]) => (
+                  <option key={k} value={k}>{m.label} ({m.unit})</option>
+                ))}
+              </select>
+              <TrendChart history={history} param={trendParam} />
+            </>
+          )}
         </aside>
       </div>
 

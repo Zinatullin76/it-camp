@@ -1,5 +1,6 @@
-import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { memo, createContext, useContext } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
+import { Handle, Position, useReactFlow } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { NodeTelemetry, AlarmData } from '../types';
 import type { MnemoItem } from '../mnemo/mnemoTypes';
@@ -15,8 +16,31 @@ export type EquipmentNodeData = {
   size?: { w: number; h: number };
   mnemo?: Partial<MnemoItem>;
   disp?: string[];
+  tags?: Record<string, TagCfg>;
   alarms?: AlarmData[];
 };
+
+/** Per-square configuration: display name, position offset and scale. */
+export interface TagCfg {
+  label?: string;
+  dx?: number;
+  dy?: number;
+  scale?: number;
+}
+
+export interface SchemeEditorActions {
+  edit: boolean;
+  onTagChange: (nodeId: string, key: string, patch: Partial<TagCfg>) => void;
+  onRenameNode: (nodeId: string, name: string) => void;
+  onEdgeOffset: (edgeId: string, offset: number) => void;
+}
+
+export const SchemeEditorContext = createContext<SchemeEditorActions>({
+  edit: false,
+  onTagChange: () => {},
+  onRenameNode: () => {},
+  onEdgeOffset: () => {},
+});
 
 export type EquipmentNode = Node<EquipmentNodeData, 'equipment'>;
 
@@ -102,8 +126,12 @@ const handles = (type: string) => {
   }
 };
 
-function MnemoEquipmentNode({ data, selected }: NodeProps<EquipmentNode>) {
-  const { nodeType, name, telemetry, size, mnemo, disp, alarms } = data;
+const TAG_STACK = 52;
+
+function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
+  const { nodeType, name, telemetry, size, mnemo, disp, tags, alarms } = data;
+  const { edit, onTagChange, onRenameNode } = useContext(SchemeEditorContext);
+  const { getZoom } = useReactFlow();
   const box = size ?? nodeSize(nodeType);
   const color = telemetry?.failed ? '#f87171' : TYPE_COLORS[nodeType] ?? '#38bdf8';
   const item: MnemoItem = {
@@ -125,10 +153,59 @@ function MnemoEquipmentNode({ data, selected }: NodeProps<EquipmentNode>) {
   const warning = !failed && !critical && nodeAlarms.some((a) => a.severity !== 'CRITICAL');
   const state = failed ? 'fault' : critical ? 'alarm' : warning ? 'warning' : 'normal';
 
+  const renameNode = () => {
+    const n = window.prompt('Название узла:', name);
+    if (n && n.trim() && n.trim() !== name) onRenameNode(id, n.trim());
+  };
+
+  const startTagDrag = (e: ReactPointerEvent, key: string, cfg: TagCfg | undefined, index: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const zoom = getZoom();
+    const baseX = cfg?.dx ?? box.w + 10;
+    const baseY = cfg?.dy ?? index * TAG_STACK;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const onMove = (ev: PointerEvent) => {
+      onTagChange(id, key, { dx: baseX + (ev.clientX - sx) / zoom, dy: baseY + (ev.clientY - sy) / zoom });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const startTagScale = (e: ReactPointerEvent, key: string, cfg: TagCfg | undefined) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const zoom = getZoom();
+    const base = cfg?.scale ?? 1;
+    const sx = e.clientX;
+    const onMove = (ev: PointerEvent) => {
+      const scale = Math.max(0.4, Math.min(3, base + (ev.clientX - sx) / 150 / zoom));
+      onTagChange(id, key, { scale });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const renameTag = (key: string, cfg: TagCfg | undefined) => {
+    const meta = PARAM_LABELS[key];
+    const n = window.prompt('Название квадратика:', cfg?.label ?? meta?.label ?? key);
+    if (n !== null) onTagChange(id, key, { label: n.trim() || undefined });
+  };
+
   return (
     <div
       className={`mn-node${selected ? ' sel' : ''}`}
       style={{ width: box.w, height: svgH + 6 }}
+      onDoubleClick={edit ? (e) => { e.stopPropagation(); renameNode(); } : undefined}
     >
       <svg
         viewBox={`${bb[0]} ${bb[1]} ${bb[2]} ${bb[3]}`}
@@ -139,15 +216,33 @@ function MnemoEquipmentNode({ data, selected }: NodeProps<EquipmentNode>) {
       </svg>
       {dispParams.length > 0 && (
         <div className="mn-node-tags">
-          {dispParams.map((k) => {
+          {dispParams.map((k, j) => {
             const meta = PARAM_LABELS[k];
+            const cfg = tags?.[k];
             const v = telemetry?.params?.[k];
             const num = typeof v === 'number' && Number.isFinite(v);
             return (
-              <div key={k} className={`mn-node-tag state-${state}`}>
-                <div className="tag">{meta?.label ?? k}</div>
+              <div
+                key={k}
+                className={`mn-node-tag state-${state}${edit ? ' tag-editable' : ''}`}
+                style={{
+                  left: cfg?.dx ?? box.w + 10,
+                  top: cfg?.dy ?? j * TAG_STACK,
+                  transform: `scale(${cfg?.scale ?? 1})`,
+                  transformOrigin: 'top left',
+                }}
+                onPointerDown={edit ? (e) => startTagDrag(e, k, cfg, j) : undefined}
+                onDoubleClick={edit ? (e) => { e.stopPropagation(); renameTag(k, cfg); } : undefined}
+              >
+                <div className="tag">{cfg?.label ?? meta?.label ?? k}</div>
                 <div className={`val${failed ? ' text' : ''}`}>{failed ? 'ОТКАЗ' : num ? fmtValue(v, '') : '—'}</div>
                 <div className="unit">{meta?.unit ?? ''}</div>
+                {edit && (
+                  <div
+                    className="mn-node-tag-scale"
+                    onPointerDown={(e) => startTagScale(e, k, cfg)}
+                  />
+                )}
               </div>
             );
           })}

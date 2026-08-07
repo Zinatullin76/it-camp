@@ -7,6 +7,7 @@ import type {
   ExpectedAction,
   Lesson,
   LessonBlock,
+  LmsCompetency,
   ModuleAuthoringView,
   Question,
   QuestionKind,
@@ -56,6 +57,50 @@ const CRITERION_KEYS: { key: string; title: string }[] = [
 
 const ACTION_TYPES = ['TURN_ON', 'TURN_OFF', 'SET_PARAM', 'OPEN_VALVE', 'CLOSE_VALVE', 'INJECT_FAILURE', 'RESET_FAILURE'];
 
+const EVENT_TYPES = ['fault', 'param', 'state', 'alarm', 'mode'];
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  fault: 'Отказ',
+  param: 'Параметр',
+  state: 'Состояние',
+  alarm: 'Авария',
+  mode: 'Режим',
+};
+
+const EVENT_TYPE_HINT: Record<string, string> = {
+  fault: 'Оборудование выходит из строя в этот момент',
+  param: 'Значение параметра объекта меняется',
+  state: 'Объект переводится в заданное состояние',
+  alarm: 'Срабатывает аварийная сигнализация',
+  mode: 'Установка переходит в другой режим работы',
+};
+
+const EVENT_TYPE_COLOR: Record<string, string> = {
+  fault: '#f87171',
+  alarm: '#fbbf24',
+  param: '#38bdf8',
+  state: '#a78bfa',
+  mode: '#34d399',
+};
+
+const ACTION_TYPE_LABEL: Record<string, string> = {
+  TURN_ON: 'Включить',
+  TURN_OFF: 'Выключить',
+  SET_PARAM: 'Задать параметр',
+  OPEN_VALVE: 'Открыть клапан',
+  CLOSE_VALVE: 'Закрыть клапан',
+  INJECT_FAILURE: 'Внести отказ',
+  RESET_FAILURE: 'Сбросить отказ',
+};
+
+function typeLabel(v: string): string {
+  return EVENT_TYPE_LABEL[v] ?? v;
+}
+
+function actionLabel(v: string): string {
+  return ACTION_TYPE_LABEL[v] ?? (v === '' ? '— действие —' : v);
+}
+
 function numOr(v: string): number | string {
   const t = v.trim();
   if (t === '') return '';
@@ -74,6 +119,119 @@ function asString(v: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
+// Shared pickers (выпадающие списки вместо свободного ввода)
+// ---------------------------------------------------------------------------
+
+const EQUIP_TYPE_LABEL: Record<string, string> = {
+  pump: 'Насосы',
+  valve: 'Клапаны',
+  heater: 'Печи',
+  source: 'Источники',
+  sink: 'Стоки',
+  column: 'Колонны',
+  separator: 'Ёмкости/сепараторы',
+  heat_exchanger: 'Теплообменники',
+  elou: 'ЭЛОУ',
+};
+
+const TARGET_ATTRS = ['running', 'position', 'fuel_flow', 'failed', 'failure_mode', 'flow_kg_s', 'temperature_c', 'pressure_bar', 'level_m'];
+
+function equipmentOpts(equipment: EquipmentItem[]): { value: string; label: string }[] {
+  return equipment.map((e) => ({ value: e.id, label: `${e.name} · ${e.id}` }));
+}
+
+function competencyOpts(competencies: LmsCompetency[]): { value: string; label: string }[] {
+  return competencies.map((c) => ({ value: c.code, label: c.title ? `${c.title} (${c.code})` : c.code }));
+}
+
+function attrOptions(equipment: EquipmentItem[]): string[] {
+  const s = new Set<string>(TARGET_ATTRS);
+  equipment.forEach((e) => Object.keys(e.params ?? {}).forEach((p) => s.add(p)));
+  return Array.from(s);
+}
+
+function TagPicker({ options, value, onChange, placeholder, empty }: {
+  options: { value: string; label: string }[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+  empty?: string;
+}) {
+  const selected = new Set(value);
+  const remaining = options.filter((o) => !selected.has(o.value));
+  const stale = value.filter((v) => !options.some((o) => o.value === v));
+  return (
+    <div className="tag-picker">
+      {value.length === 0 && empty && <span className="tag-picker-empty">{empty}</span>}
+      {value.map((v) => {
+        const opt = options.find((o) => o.value === v);
+        return (
+          <span className="tag" key={v}>
+            <span title={opt ? opt.label : v}>{opt ? opt.label : v}</span>
+            <button type="button" className="tag-x" title="Убрать" onClick={() => onChange(value.filter((x) => x !== v))}>✕</button>
+          </span>
+        );
+      })}
+      {remaining.length > 0 && (
+        <select
+          className="scenario-select tag-picker-select"
+          value=""
+          onChange={(e) => { if (e.target.value) onChange([...value, e.target.value]); }}
+        >
+          <option value="">{placeholder ?? '+ добавить'}</option>
+          {remaining.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      )}
+      {stale.length > 0 && (
+        <span className="sc-hint" title="Эти значения не найдены в текущем списке, но будут сохранены">⚠ {stale.join(', ')}</span>
+      )}
+    </div>
+  );
+}
+
+function ObjectSelect({ equipment, value, onChange, width, placeholder }: {
+  equipment: EquipmentItem[];
+  value: string;
+  onChange: (v: string) => void;
+  width?: number;
+  placeholder?: string;
+}) {
+  const known = value !== '' && !equipment.some((e) => e.id === value);
+  const grouped: Record<string, EquipmentItem[]> = {};
+  equipment.forEach((e) => {
+    (grouped[e.type] = grouped[e.type] ?? []).push(e);
+  });
+  return (
+    <select className="scenario-select" style={width ? { width } : undefined} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">{placeholder ?? '— объект —'}</option>
+      {known && <option value={value}>{value} (вне схемы)</option>}
+      {Object.keys(grouped).sort().map((type) => (
+        <optgroup key={type} label={EQUIP_TYPE_LABEL[type] ?? type}>
+          {grouped[type].map((e) => <option key={e.id} value={e.id}>{e.name} · {e.id}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+function AttrSelect({ equipment, value, onChange, width }: {
+  equipment: EquipmentItem[];
+  value: string;
+  onChange: (v: string) => void;
+  width?: number;
+}) {
+  const opts = attrOptions(equipment);
+  const known = value !== '' && !opts.includes(value);
+  return (
+    <select className="scenario-select" style={width ? { width } : undefined} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">— атрибут —</option>
+      {known && <option value={value}>{value}</option>}
+      {opts.map((a) => <option key={a} value={a}>{a}</option>)}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Lesson editor
 // ---------------------------------------------------------------------------
 
@@ -81,9 +239,10 @@ interface BlockRow extends LessonBlock {
   key: number;
 }
 
-function LessonModal({ lesson, equipment, onSave, onClose }: {
+function LessonModal({ lesson, equipment, competencies, onSave, onClose }: {
   lesson: Lesson | null;
   equipment: EquipmentItem[];
+  competencies: LmsCompetency[];
   onSave: (w: { title: string; blocks: LessonBlock[]; equipment_ids: string[]; competency_codes: string[] }) => void;
   onClose: () => void;
 }) {
@@ -93,8 +252,8 @@ function LessonModal({ lesson, equipment, onSave, onClose }: {
       ? (lesson?.blocks ?? []).map((b, i) => ({ ...b, key: i }))
       : [{ kind: 'text', title: '', content: '', url: '', node_id: '', key: 0 }],
   );
-  const [equipmentIds, setEquipmentIds] = useState((lesson?.equipment_ids ?? []).join(', '));
-  const [competencyCodes, setCompetencyCodes] = useState((lesson?.competency_codes ?? []).join(', '));
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(lesson?.equipment_ids ?? []);
+  const [competencyCodes, setCompetencyCodes] = useState<string[]>(lesson?.competency_codes ?? []);
 
   const nextKey = blocks.reduce((m, b) => Math.max(m, b.key), 0) + 1;
   const upd = (key: number, patch: Partial<BlockRow>) =>
@@ -105,8 +264,8 @@ function LessonModal({ lesson, equipment, onSave, onClose }: {
     onSave({
       title: title.trim(),
       blocks: blocks.map(({ key: _k, ...b }) => ({ ...b })),
-      equipment_ids: equipmentIds.split(',').map((s) => s.trim()).filter(Boolean),
-      competency_codes: competencyCodes.split(',').map((s) => s.trim()).filter(Boolean),
+      equipment_ids: equipmentIds,
+      competency_codes: competencyCodes,
     });
   };
 
@@ -150,12 +309,7 @@ function LessonModal({ lesson, equipment, onSave, onClose }: {
               {b.kind === 'equipment_card' || b.kind === 'scheme_highlight' || b.kind === 'interactive_scheme' ? (
                 <div className="form-field">
                   <label className="form-label">Оборудование (узел схемы)</label>
-                  <input
-                    className="form-input"
-                    list="equipment-datalist"
-                    value={b.node_id}
-                    onChange={(e) => upd(b.key, { node_id: e.target.value })}
-                  />
+                  <ObjectSelect equipment={equipment} value={b.node_id} onChange={(v) => upd(b.key, { node_id: v })} />
                 </div>
               ) : null}
             </div>
@@ -167,18 +321,14 @@ function LessonModal({ lesson, equipment, onSave, onClose }: {
 
         <div className="settings-grid">
           <div className="form-field">
-            <label className="form-label">Оборудование (id через запятую)</label>
-            <input className="form-input" value={equipmentIds} onChange={(e) => setEquipmentIds(e.target.value)} />
+            <label className="form-label">Оборудование</label>
+            <TagPicker options={equipmentOpts(equipment)} value={equipmentIds} onChange={setEquipmentIds} empty="Не выбрано" placeholder="+ оборудование" />
           </div>
           <div className="form-field">
-            <label className="form-label">Компетенции (через запятую)</label>
-            <input className="form-input" value={competencyCodes} onChange={(e) => setCompetencyCodes(e.target.value)} />
+            <label className="form-label">Компетенции</label>
+            <TagPicker options={competencyOpts(competencies)} value={competencyCodes} onChange={setCompetencyCodes} empty="Не выбрано" placeholder="+ компетенция" />
           </div>
         </div>
-
-        <datalist id="equipment-datalist">
-          {equipment.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </datalist>
 
         <div className="row" style={{ justifyContent: 'flex-end' }}>
           <button className="btn" onClick={onClose}>Отмена</button>
@@ -402,8 +552,9 @@ function QuestionModal({ question, equipment, onSave, onClose }: {
   );
 }
 
-function TestModal({ test, onSave, onClose }: {
+function TestModal({ test, competencies, onSave, onClose }: {
   test: TestConfig | null;
+  competencies: LmsCompetency[];
   onSave: (w: { title: string; passing_score: number; attempts: number; retry_required: boolean; shuffle: boolean; competency_codes: string[] }) => void;
   onClose: () => void;
 }) {
@@ -412,7 +563,7 @@ function TestModal({ test, onSave, onClose }: {
   const [attempts, setAttempts] = useState(test?.attempts ?? 0);
   const [retryRequired, setRetryRequired] = useState(test?.retry_required ?? false);
   const [shuffle, setShuffle] = useState(test?.shuffle ?? false);
-  const [competencyCodes, setCompetencyCodes] = useState((test?.competency_codes ?? []).join(', '));
+  const [competencyCodes, setCompetencyCodes] = useState<string[]>(test?.competency_codes ?? []);
 
   const save = () => {
     if (!title.trim()) return notifyToast('Укажите название теста');
@@ -422,7 +573,7 @@ function TestModal({ test, onSave, onClose }: {
       attempts,
       retry_required: retryRequired,
       shuffle,
-      competency_codes: competencyCodes.split(',').map((s) => s.trim()).filter(Boolean),
+      competency_codes: competencyCodes,
     });
   };
 
@@ -445,8 +596,8 @@ function TestModal({ test, onSave, onClose }: {
           </div>
         </div>
         <div className="form-field">
-          <label className="form-label">Компетенции (через запятую)</label>
-          <input className="form-input" value={competencyCodes} onChange={(e) => setCompetencyCodes(e.target.value)} />
+          <label className="form-label">Компетенции</label>
+          <TagPicker options={competencyOpts(competencies)} value={competencyCodes} onChange={setCompetencyCodes} empty="Не выбрано" placeholder="+ компетенция" />
         </div>
         <div className="row" style={{ gap: 16 }}>
           <label className="form-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, textTransform: 'none' }}>
@@ -474,10 +625,12 @@ interface RestrRow extends RestrictionRule { rowKey: number }
 interface CritRow extends Criterion { rowKey: number }
 interface ExpRow extends ExpectedAction { rowKey: number }
 
-function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
+function TaskModal({ task, scenarios, moduleScenario, equipment, competencies, onSave, onClose }: {
   task: TrainingTask | null;
   scenarios: { id: string; name: string }[];
   moduleScenario: ScenarioDefinition | null;
+  equipment: EquipmentItem[];
+  competencies: LmsCompetency[];
   onSave: (w: Parameters<typeof api.lmsSaveTask>[1]) => void;
   onClose: () => void;
 }) {
@@ -486,8 +639,8 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
   const [scenarioId, setScenarioId] = useState(task?.scenario_id ?? '');
   const [durationMin, setDurationMin] = useState(task?.duration_min ?? 10);
   const [enabled, setEnabled] = useState(task?.enabled ?? true);
-  const [competencyCodes, setCompetencyCodes] = useState((task?.competency_codes ?? []).join(', '));
-  const [equipmentIds, setEquipmentIds] = useState((task?.equipment_ids ?? []).join(', '));
+  const [competencyCodes, setCompetencyCodes] = useState<string[]>(task?.competency_codes ?? []);
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(task?.equipment_ids ?? []);
   const [targetState, setTargetState] = useState<CondRow[]>(
     (task?.target_state ?? []).map((c, i) => ({ ...c, rowKey: i })),
   );
@@ -520,8 +673,8 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
       scenario_id: scenarioId,
       duration_min: durationMin,
       enabled,
-      competency_codes: competencyCodes.split(',').map((s) => s.trim()).filter(Boolean),
-      equipment_ids: equipmentIds.split(',').map((s) => s.trim()).filter(Boolean),
+      competency_codes: competencyCodes,
+      equipment_ids: equipmentIds,
       target_state: targetState.map(({ rowKey: _k, ...c }) => ({ ...c, value: numOr(asString(c.value)) })),
       restrictions: restrictions.map(({ rowKey: _k, ...r }) => ({ ...r, value: numOr(asString(r.value)) })),
       criteria: criteria.map(({ rowKey: _k, ...c }) => ({ ...c, weight: Number(c.weight) || 1 })),
@@ -560,12 +713,12 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
         </div>
         <div className="settings-grid">
           <div className="form-field">
-            <label className="form-label">Компетенции (через запятую)</label>
-            <input className="form-input" value={competencyCodes} onChange={(e) => setCompetencyCodes(e.target.value)} />
+            <label className="form-label">Компетенции</label>
+            <TagPicker options={competencyOpts(competencies)} value={competencyCodes} onChange={setCompetencyCodes} empty="Не выбрано" placeholder="+ компетенция" />
           </div>
           <div className="form-field">
-            <label className="form-label">Оборудование (id через запятую)</label>
-            <input className="form-input" value={equipmentIds} onChange={(e) => setEquipmentIds(e.target.value)} />
+            <label className="form-label">Оборудование</label>
+            <TagPicker options={equipmentOpts(equipment)} value={equipmentIds} onChange={setEquipmentIds} empty="Не выбрано" placeholder="+ оборудование" />
           </div>
         </div>
         <label className="form-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, textTransform: 'none' }}>
@@ -576,8 +729,8 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
         <div className="col" style={{ gap: 6 }}>
           {targetState.map((c) => (
             <div className="row" key={c.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
-              <input className="form-input" style={{ width: 120 }} placeholder="объект" value={c.object_id} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, object_id: e.target.value } : x))} />
-              <input className="form-input" style={{ width: 110 }} placeholder="атрибут" value={c.attribute} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, attribute: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={150} value={c.object_id} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, object_id: v } : x))} />
+              <AttrSelect equipment={equipment} width={120} value={c.attribute} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, attribute: v } : x))} />
               <select className="scenario-select" value={c.relation} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, relation: e.target.value } : x))}>
                 {['==', '!=', '>', '<', '>=', '<=', 'between'].map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -610,10 +763,10 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
         <div className="col" style={{ gap: 6 }}>
           {expectedActions.map((a) => (
             <div className="row" key={a.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
-              <input className="form-input" style={{ width: 130 }} placeholder="объект" value={a.object_id} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, object_id: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={130} value={a.object_id} onChange={(v) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, object_id: v } : x))} />
               <select className="scenario-select" value={a.action_type} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, action_type: e.target.value } : x))}>
                 <option value="">— действие —</option>
-                {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {ACTION_TYPES.map((t) => <option key={t} value={t}>{actionLabel(t)}</option>)}
               </select>
               <input className="form-input" style={{ width: 80 }} placeholder="знач." value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
               <input className="form-input" style={{ flex: 1 }} placeholder="описание" value={a.description} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, description: e.target.value } : x))} />
@@ -631,7 +784,7 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
                 <option value="">— действие —</option>
                 {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input className="form-input" style={{ width: 120 }} placeholder="объект" value={r.object_id} onChange={(e) => setRestrictions((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={140} value={r.object_id} onChange={(v) => setRestrictions((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: v } : x))} />
               <input className="form-input" style={{ width: 90 }} placeholder="знач." value={asString(r.value)} onChange={(e) => setRestrictions((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, value: e.target.value } : x))} />
               <select className="scenario-select" value={r.severity} onChange={(e) => setRestrictions((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, severity: e.target.value } : x))}>
                 <option value="warning">warning</option>
@@ -652,7 +805,7 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
                 <option value="">— действие —</option>
                 {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input className="form-input" style={{ width: 120 }} placeholder="объект" value={r.object_id} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={130} value={r.object_id} onChange={(v) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: v } : x))} />
               <input className="form-input" style={{ flex: 1 }} placeholder="сообщение" value={r.message} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, message: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setCriticalErrors((rs) => rs.filter((x) => x.rowKey !== r.rowKey))}>✕</button>
             </div>
@@ -675,8 +828,161 @@ function TaskModal({ task, scenarios, moduleScenario, onSave, onClose }: {
 
 type EventRow = ScenarioDefinition['events'][number] & { rowKey: number };
 
-function ScenarioModal({ scenario, onSave, onClose }: {
+function SectionTitle({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="sc-section">
+      <div className="card-title">{title}</div>
+      <div className="sc-hint">{hint}</div>
+    </div>
+  );
+}
+
+function tryJson(s: string): { ok: boolean; error: string } {
+  if (!s.trim()) return { ok: true, error: '' };
+  try {
+    const v = JSON.parse(s);
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return { ok: false, error: 'Ожидается объект {...}' };
+    return { ok: true, error: '' };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Некорректный JSON' };
+  }
+}
+
+const STATE_TYPE_LABEL: Record<string, string> = { pump: 'Насос', valve: 'Клапан', heater: 'Печь' };
+
+function StateEditor({ label, hint, equipment, value, onChange }: {
+  label: string;
+  hint: string;
+  equipment: EquipmentItem[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [mode, setMode] = useState<'visual' | 'json'>('visual');
+  const parsed = useMemo<Record<string, unknown>>(() => {
+    try {
+      const v = JSON.parse(value);
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    } catch {
+      return {};
+    }
+  }, [value]);
+  const json = tryJson(value);
+
+  const setKey = (key: string, v: unknown) => {
+    const next = { ...parsed, [key]: v };
+    onChange(JSON.stringify(next, null, 2));
+  };
+  const removeKey = (key: string) => {
+    const next = { ...parsed };
+    delete next[key];
+    onChange(JSON.stringify(next, null, 2));
+  };
+
+  const rows = equipment.filter((e) => e.type === 'pump' || e.type === 'valve' || e.type === 'heater');
+
+  const sliderRow = (e: EquipmentItem, keyName: string, def: number, min: number, max: number, step: number, fmt: (n: number) => string) => {
+    const raw = parsed[keyName];
+    const val = typeof raw === 'number' ? raw : def;
+    return (
+      <div className="sc-state-card" key={e.id}>
+        <div className="sc-state-head">
+          <span className="sc-state-name">{e.name}</span>
+          <span className="sc-state-badge">{e.id}</span>
+        </div>
+        <div className="sc-state-slider-row">
+          <input className="sc-state-slider" type="range" min={min} max={max} step={step} value={val} onChange={(ev) => setKey(keyName, Number(ev.target.value))} />
+          <span className="sc-state-val">{fmt(val)}</span>
+          {typeof raw === 'number' && (
+            <button type="button" className="btn btn-ghost" style={{ padding: '1px 6px', fontSize: 11 }} onClick={() => removeKey(keyName)} title="Убрать из состояния">✕</button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="form-field">
+      <label className="form-label sc-state-label">
+        {label}
+        <span className="sc-state-tabs">
+          <button type="button" className={`sc-state-tab${mode === 'visual' ? ' on' : ''}`} onClick={() => setMode('visual')}>Визуально</button>
+          <button type="button" className={`sc-state-tab${mode === 'json' ? ' on' : ''}`} onClick={() => setMode('json')}>JSON</button>
+        </span>
+      </label>
+
+      {mode === 'visual' ? (
+        rows.length === 0 ? (
+          <div className="sc-hint">В текущей схеме нет настраиваемого оборудования (насосы, клапаны, печи). Переключитесь на режим «JSON».</div>
+        ) : (
+          <div className="sc-state-grid">
+            {rows.map((e) => {
+              if (e.type === 'pump') {
+                const on = parsed[`${e.id}_running`];
+                return (
+                  <div className="sc-state-card" key={e.id}>
+                    <div className="sc-state-head">
+                      <span className="sc-state-name">{e.name}</span>
+                      <span className="sc-state-badge">{e.id}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`sc-state-toggle ${on === true ? 'on' : on === false ? 'off' : ''}`}
+                      onClick={() => setKey(`${e.id}_running`, on === true ? false : on === false ? undefined : true)}
+                      title="Нажмите: включить / остановить / убрать из состояния"
+                    >
+                      <span className="sc-state-dot" />
+                      {on === true ? 'Включён' : on === false ? 'Остановлен' : 'Не задано'}
+                    </button>
+                  </div>
+                );
+              }
+              if (e.type === 'valve') {
+                return sliderRow(e, `${e.id}_position`, e.params?.initial_position ?? 0.5, 0, 1, 0.05, (n) => `${Math.round(n * 100)}%`);
+              }
+              return sliderRow(e, `${e.id}_fuel_flow`, e.params?.initial_fuel_flow ?? 0, 0, 1.2, 0.02, (n) => n.toFixed(2));
+            })}
+          </div>
+        )
+      ) : (
+        <>
+          <textarea className="form-input sc-json" rows={3} spellCheck={false} value={value} onChange={(e) => onChange(e.target.value)} />
+          <div className={`sc-json-status${json.ok ? ' ok' : ' err'}`}>
+            {json.ok ? '✓ Синтаксис JSON в порядке' : `✗ ${json.error}`}
+            <span className="sc-json-hint">{hint}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function EventTimeline({ events }: { events: EventRow[] }) {
+  const sorted = events.filter((e) => Number(e.time) >= 0).sort((a, b) => Number(a.time) - Number(b.time));
+  if (sorted.length === 0) return null;
+  const max = Math.max(10, ...sorted.map((e) => Number(e.time)));
+  return (
+    <div className="ev-timeline">
+      <div className="ev-timeline-track">
+        {sorted.map((e, i) => (
+          <div
+            key={`${e.rowKey}-${i}`}
+            className="ev-timeline-mark"
+            style={{ left: `${Math.min(100, (Number(e.time) / max) * 100)}%`, background: EVENT_TYPE_COLOR[e.event_type] ?? '#94a3b8' }}
+            title={`t=${e.time}с · ${typeLabel(e.event_type)}${e.object_id ? ` · ${e.object_id}` : ''}`}
+          >
+            <span className="ev-timeline-time">{e.time}с</span>
+          </div>
+        ))}
+      </div>
+      <div className="ev-timeline-axis"><span>0с</span><span>{max}с</span></div>
+    </div>
+  );
+}
+
+function ScenarioModal({ scenario, equipment, competencies, onSave, onClose }: {
   scenario: ScenarioDefinition | null;
+  equipment: EquipmentItem[];
+  competencies: LmsCompetency[];
   onSave: (w: Parameters<typeof api.lmsSaveScenario>[1]) => void;
   onClose: () => void;
 }) {
@@ -685,8 +991,8 @@ function ScenarioModal({ scenario, onSave, onClose }: {
   const [goal, setGoal] = useState(scenario?.goal ?? '');
   const [durationMin, setDurationMin] = useState(scenario?.duration_min ?? 10);
   const [isExam, setIsExam] = useState(scenario?.is_exam ?? false);
-  const [competencyCodes, setCompetencyCodes] = useState((scenario?.competency_codes ?? []).join(', '));
-  const [equipmentIds, setEquipmentIds] = useState((scenario?.equipment_ids ?? []).join(', '));
+  const [competencyCodes, setCompetencyCodes] = useState<string[]>(scenario?.competency_codes ?? []);
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(scenario?.equipment_ids ?? []);
   const [initialState, setInitialState] = useState(scenario?.initial_state ? JSON.stringify(scenario.initial_state, null, 2) : '{}');
   const [finalState, setFinalState] = useState(scenario?.final_state ? JSON.stringify(scenario.final_state, null, 2) : '{}');
   const [events, setEvents] = useState<EventRow[]>(
@@ -709,31 +1015,22 @@ function ScenarioModal({ scenario, onSave, onClose }: {
   const nextCrit = successCriteria.reduce((m, r) => Math.max(m, r.rowKey), 0) + 1;
   const nextCritErr = criticalErrors.reduce((m, r) => Math.max(m, r.rowKey), 0) + 1;
 
-  const parseJson = (s: string) => {
-    try {
-      const v = JSON.parse(s);
-      return v && typeof v === 'object' ? v : {};
-    } catch {
-      return undefined;
-    }
-  };
-
   const save = () => {
     if (!title.trim()) return notifyToast('Укажите название сценария');
-    const init = parseJson(initialState);
-    const fin = parseJson(finalState);
-    if (init === undefined) return notifyToast('Начальное состояние — не JSON');
-    if (fin === undefined) return notifyToast('Финальное состояние — не JSON');
+    const init = tryJson(initialState);
+    const fin = tryJson(finalState);
+    if (!init.ok) return notifyToast(`Начальное состояние: ${init.error}`);
+    if (!fin.ok) return notifyToast(`Финальное состояние: ${fin.error}`);
     onSave({
       title: title.trim(),
       description: description.trim(),
       goal: goal.trim(),
       duration_min: durationMin,
       is_exam: isExam,
-      competency_codes: competencyCodes.split(',').map((s) => s.trim()).filter(Boolean),
-      equipment_ids: equipmentIds.split(',').map((s) => s.trim()).filter(Boolean),
-      initial_state: init,
-      final_state: fin,
+      competency_codes: competencyCodes,
+      equipment_ids: equipmentIds,
+      initial_state: JSON.parse(initialState || '{}'),
+      final_state: JSON.parse(finalState || '{}'),
       events: events.map(({ rowKey: _k, ...e }) => ({ ...e, time: Number(e.time) || 0, value: numOr(asString(e.value)) })),
       expected_actions: expectedActions.map(({ rowKey: _k, ...a }) => ({ ...a, value: numOr(asString(a.value)) })),
       success_criteria: successCriteria.map(({ rowKey: _k, ...c }) => ({ ...c, weight: Number(c.weight) || 1 })),
@@ -743,92 +1040,127 @@ function ScenarioModal({ scenario, onSave, onClose }: {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 780 }} onClick={(e) => e.stopPropagation()}>
-        <div className="page-title" style={{ fontSize: 16 }}>
-          {scenario ? `Сценарий #${scenario.id}` : 'Новый сценарий'}
+      <div className="modal" style={{ maxWidth: 880 }} onClick={(e) => e.stopPropagation()}>
+        <div className="row-between">
+          <div className="page-title" style={{ fontSize: 16 }}>
+            {scenario ? `Сценарий #${scenario.id}` : 'Новый сценарий'}
+          </div>
+          <div className="sc-summary">
+            Событий: <b>{events.length}</b> · Действий: <b>{expectedActions.length}</b> · Критериев: <b>{successCriteria.length}</b>
+          </div>
         </div>
-        <div className="form-field">
-          <label className="form-label">Название</label>
-          <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} />
+
+        <div className="card-title">ОБЩАЯ ИНФОРМАЦИЯ</div>
+        <div className="settings-grid">
+          <div className="form-field">
+            <label className="form-label">Название сценария *</label>
+            <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Напр.: Авария на насосе Н-1" />
+          </div>
+          <div className="form-field">
+            <label className="form-label">Длительность, мин</label>
+            <input className="form-input" type="number" min={1} value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value) || 10)} />
+          </div>
         </div>
         <div className="form-field">
           <label className="form-label">Описание</label>
           <textarea className="form-input" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <div className="form-field">
-          <label className="form-label">Цель</label>
-          <textarea className="form-input" rows={2} value={goal} onChange={(e) => setGoal(e.target.value)} />
+          <label className="form-label">Цель для оператора</label>
+          <textarea className="form-input" rows={2} value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="Напр.: вывести установку в нормальный режим, не допустив аварии" />
         </div>
         <div className="settings-grid">
           <div className="form-field">
-            <label className="form-label">Длительность, мин</label>
-            <input className="form-input" type="number" min={1} value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value) || 10)} />
+            <label className="form-label">Компетенции</label>
+            <TagPicker options={competencyOpts(competencies)} value={competencyCodes} onChange={setCompetencyCodes} empty="Не выбрано" placeholder="+ компетенция" />
           </div>
           <div className="form-field">
-            <label className="form-label">Компетенции (через запятую)</label>
-            <input className="form-input" value={competencyCodes} onChange={(e) => setCompetencyCodes(e.target.value)} />
+            <label className="form-label">Оборудование</label>
+            <TagPicker options={equipmentOpts(equipment)} value={equipmentIds} onChange={setEquipmentIds} empty="Не выбрано" placeholder="+ оборудование" />
           </div>
         </div>
-        <div className="settings-grid">
-          <div className="form-field">
-            <label className="form-label">Оборудование (id через запятую)</label>
-            <input className="form-input" value={equipmentIds} onChange={(e) => setEquipmentIds(e.target.value)} />
-          </div>
-          <div className="row" style={{ alignItems: 'flex-end' }}>
-            <label className="form-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, textTransform: 'none' }}>
-              <input type="checkbox" checked={isExam} onChange={(e) => setIsExam(e.target.checked)} /> Экзаменационный
-            </label>
-          </div>
+        <label className="form-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, textTransform: 'none' }}>
+          <input type="checkbox" checked={isExam} onChange={(e) => setIsExam(e.target.checked)} /> Экзаменационный сценарий
+        </label>
+
+        <div className="sc-sep" />
+
+        <div className="card-title">НАЧАЛЬНОЕ И ФИНАЛЬНОЕ СОСТОЯНИЕ</div>
+        <div className="sc-hint" style={{ marginBottom: 4 }}>Задайте настройку оборудования на старте и к моменту завершения практики. Поля, которые не трогали, в состояние не попадают.</div>
+        <StateEditor label="Начальное состояние" hint="Параметры установки на момент старта практики" equipment={equipment} value={initialState} onChange={setInitialState} />
+        <StateEditor label="Финальное состояние" hint="Требуемые параметры для успешного завершения" equipment={equipment} value={finalState} onChange={setFinalState} />
+
+        <div className="sc-sep" />
+
+        <SectionTitle title="СОБЫТИЯ ПО ВРЕМЕНИ" hint="Что и в какой момент происходит на установке. Цветные метки на шкале — хронология сценария." />
+        <EventTimeline events={events} />
+        <div className="sc-col-head">
+          <span style={{ width: 60 }}>Время, с</span>
+          <span style={{ width: 120 }}>Тип события</span>
+          <span style={{ width: 130 }}>Объект</span>
+          <span style={{ width: 100 }}>Параметр</span>
+          <span style={{ width: 80 }}>Значение</span>
+          <span style={{ flex: 1 }}>Сообщение оператору</span>
         </div>
-
-        <div className="card-title" style={{ marginTop: 4 }}>Начальное состояние (JSON)</div>
-        <textarea className="form-input" rows={3} style={{ fontFamily: 'Consolas, monospace', fontSize: 11.5 }} value={initialState} onChange={(e) => setInitialState(e.target.value)} />
-        <div className="card-title" style={{ marginTop: 6 }}>Финальное состояние (JSON)</div>
-        <textarea className="form-input" rows={3} style={{ fontFamily: 'Consolas, monospace', fontSize: 11.5 }} value={finalState} onChange={(e) => setFinalState(e.target.value)} />
-
-        <div className="card-title" style={{ marginTop: 10 }}>События (events)</div>
         <div className="col" style={{ gap: 6 }}>
           {events.map((ev) => (
-            <div className="row" key={ev.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
-              <input className="form-input" style={{ width: 60 }} placeholder="t, с" value={ev.time} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, time: Number(e.target.value) || 0 } : x))} />
-              <select className="scenario-select" value={ev.event_type} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, event_type: e.target.value } : x))}>
-                {['fault', 'param', 'state', 'alarm', 'mode'].map((t) => <option key={t} value={t}>{t}</option>)}
+            <div className="row sc-row" key={ev.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
+              <input className="form-input" style={{ width: 60 }} type="number" min={0} placeholder="t" value={ev.time} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, time: Number(e.target.value) || 0 } : x))} />
+              <select className="scenario-select" style={{ width: 120 }} title={EVENT_TYPE_HINT[ev.event_type]} value={ev.event_type} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, event_type: e.target.value } : x))}>
+                {EVENT_TYPES.map((t) => <option key={t} value={t} title={EVENT_TYPE_HINT[t]}>{typeLabel(t)}</option>)}
               </select>
-              <input className="form-input" style={{ width: 130 }} placeholder="объект" value={ev.object_id} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, object_id: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={170} value={ev.object_id} onChange={(v) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, object_id: v } : x))} />
               <input className="form-input" style={{ width: 100 }} placeholder="параметр" value={ev.param} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, param: e.target.value } : x))} />
-              <input className="form-input" style={{ width: 80 }} placeholder="знач." value={asString(ev.value)} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, value: e.target.value } : x))} />
-              <input className="form-input" style={{ flex: 1 }} placeholder="сообщение" value={ev.message} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, message: e.target.value } : x))} />
+              <input className="form-input" style={{ width: 80 }} placeholder="значение" value={asString(ev.value)} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, value: e.target.value } : x))} />
+              <input className="form-input" style={{ flex: 1, minWidth: 140 }} placeholder="напр.: Отказ насоса Н-1" value={ev.message} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, message: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setEvents((rs) => rs.filter((x) => x.rowKey !== ev.rowKey))}>✕</button>
             </div>
           ))}
           <button className="btn" onClick={() => setEvents((rs) => [...rs, { time: 30, event_type: 'fault', object_id: '', param: '', value: '', severity: 'warning', message: '', rowKey: nextEvent }])}>+ Событие</button>
         </div>
 
-        <div className="card-title" style={{ marginTop: 10 }}>Ожидаемые действия</div>
+        <div className="sc-sep" />
+
+        <SectionTitle title="ОЖИДАЕМЫЕ ДЕЙСТВИЯ ОПЕРАТОРА" hint="Что оператор должен сделать в ходе практики. Порядок нумеруется автоматически." />
+        <div className="sc-col-head">
+          <span style={{ width: 26 }}>№</span>
+          <span style={{ width: 130 }}>Объект</span>
+          <span style={{ width: 150 }}>Действие</span>
+          <span style={{ width: 80 }}>Значение</span>
+          <span style={{ flex: 1 }}>Пояснение</span>
+        </div>
         <div className="col" style={{ gap: 6 }}>
-          {expectedActions.map((a) => (
-            <div className="row" key={a.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
-              <input className="form-input" style={{ width: 130 }} placeholder="объект" value={a.object_id} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, object_id: e.target.value } : x))} />
-              <select className="scenario-select" value={a.action_type} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, action_type: e.target.value } : x))}>
+          {expectedActions.map((a, idx) => (
+            <div className="row sc-row" key={a.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
+              <span className="sc-seq">{idx + 1}</span>
+              <ObjectSelect equipment={equipment} width={190} value={a.object_id} onChange={(v) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, object_id: v } : x))} />
+              <select className="scenario-select" style={{ width: 150 }} value={a.action_type} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, action_type: e.target.value } : x))}>
                 <option value="">— действие —</option>
-                {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {ACTION_TYPES.map((t) => <option key={t} value={t}>{actionLabel(t)}</option>)}
               </select>
-              <input className="form-input" style={{ width: 80 }} placeholder="знач." value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
-              <input className="form-input" style={{ flex: 1 }} placeholder="описание" value={a.description} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, description: e.target.value } : x))} />
+              <input className="form-input" style={{ width: 80 }} placeholder="значение" value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
+              <input className="form-input" style={{ flex: 1, minWidth: 140 }} placeholder="пояснение" value={a.description} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, description: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setExpectedActions((rs) => rs.filter((x) => x.rowKey !== a.rowKey))}>✕</button>
             </div>
           ))}
           <button className="btn" onClick={() => setExpectedActions((rs) => [...rs, { seq: rs.length + 1, object_id: '', action_type: 'TURN_ON', value: '', description: '', deadline_t: null, weight: 1, rowKey: nextExp }])}>+ Действие</button>
         </div>
 
-        <div className="card-title" style={{ marginTop: 10 }}>Критерии успеха</div>
+        <div className="sc-sep" />
+
+        <SectionTitle title="КРИТЕРИИ УСПЕХА" hint="По каким признакам оценивается результат оператора. Вес — вклад критерия в итоговую оценку." />
+        <div className="sc-col-head">
+          <span style={{ flex: 1 }}>Тип критерия</span>
+          <span style={{ width: 200 }}>Название</span>
+          <span style={{ width: 70 }}>Вес</span>
+        </div>
         <div className="col" style={{ gap: 6 }}>
           {successCriteria.map((c) => (
             <div className="row" key={c.rowKey} style={{ gap: 8 }}>
               <select className="scenario-select" style={{ flex: 1 }} value={c.key} onChange={(e) => setSuccessCriteria((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, key: e.target.value } : x))}>
                 {CRITERION_KEYS.map((k) => <option key={k.key} value={k.key}>{k.title}</option>)}
               </select>
-              <input className="form-input" style={{ width: 100 }} placeholder="название" value={c.title} onChange={(e) => setSuccessCriteria((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, title: e.target.value } : x))} />
+              <input className="form-input" style={{ width: 200 }} placeholder="название" value={c.title} onChange={(e) => setSuccessCriteria((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, title: e.target.value } : x))} />
               <input className="form-input" style={{ width: 70 }} placeholder="вес" value={c.weight} onChange={(e) => setSuccessCriteria((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, weight: Number(e.target.value) || 0 } : x))} />
               <button className="btn btn-danger" onClick={() => setSuccessCriteria((rs) => rs.filter((x) => x.rowKey !== c.rowKey))}>✕</button>
             </div>
@@ -836,16 +1168,23 @@ function ScenarioModal({ scenario, onSave, onClose }: {
           <button className="btn" onClick={() => setSuccessCriteria((rs) => [...rs, { key: '', title: '', weight: 1, rowKey: nextCrit }])}>+ Критерий</button>
         </div>
 
-        <div className="card-title" style={{ marginTop: 10 }}>Критические ошибки</div>
+        <div className="sc-sep" />
+
+        <SectionTitle title="КРИТИЧЕСКИЕ ОШИБКИ" hint="Действия оператора, которые сразу приводят к провалу практики." />
+        <div className="sc-col-head">
+          <span style={{ width: 150 }}>Действие</span>
+          <span style={{ width: 130 }}>Объект</span>
+          <span style={{ flex: 1 }}>Сообщение</span>
+        </div>
         <div className="col" style={{ gap: 6 }}>
           {criticalErrors.map((r) => (
-            <div className="row" key={r.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
-              <select className="scenario-select" value={r.action_type} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, action_type: e.target.value } : x))}>
+            <div className="row sc-row" key={r.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
+              <select className="scenario-select" style={{ width: 150 }} value={r.action_type} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, action_type: e.target.value } : x))}>
                 <option value="">— действие —</option>
-                {ACTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {ACTION_TYPES.map((t) => <option key={t} value={t}>{actionLabel(t)}</option>)}
               </select>
-              <input className="form-input" style={{ width: 120 }} placeholder="объект" value={r.object_id} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: e.target.value } : x))} />
-              <input className="form-input" style={{ flex: 1 }} placeholder="сообщение" value={r.message} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, message: e.target.value } : x))} />
+              <ObjectSelect equipment={equipment} width={170} value={r.object_id} onChange={(v) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, object_id: v } : x))} />
+              <input className="form-input" style={{ flex: 1, minWidth: 140 }} placeholder="напр.: Включение при открытой аварийной задвижке" value={r.message} onChange={(e) => setCriticalErrors((rs) => rs.map((x) => x.rowKey === r.rowKey ? { ...x, message: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setCriticalErrors((rs) => rs.filter((x) => x.rowKey !== r.rowKey))}>✕</button>
             </div>
           ))}
@@ -854,7 +1193,7 @@ function ScenarioModal({ scenario, onSave, onClose }: {
 
         <div className="row" style={{ justifyContent: 'flex-end' }}>
           <button className="btn" onClick={onClose}>Отмена</button>
-          <button className="btn btn-start" onClick={save}>Сохранить</button>
+          <button className="btn btn-start" onClick={save}>Сохранить сценарий</button>
         </div>
       </div>
     </div>
@@ -877,6 +1216,7 @@ export default function ModuleConstructorPage() {
   const id = Number(moduleId);
   const view = useAsync<ModuleAuthoringView>(() => api.lmsAuthoringModule(id), [id]);
   const equipment = useAsync<EquipmentItem[]>(() => api.lmsAuthoringEquipment(), []);
+  const competencies = useAsync<LmsCompetency[]>(() => api.lmsCompetencies(), []);
   const scenarios = useAsync<{ id: string; name: string }[]>(() => api.lmsScenarios(), []);
 
   const [tab, setTab] = useState('lesson');
@@ -1217,15 +1557,23 @@ export default function ModuleConstructorPage() {
                   <div className="module-row-title">
                     {scenario.title} {scenario.is_exam ? <Chip tone="bad">экзамен</Chip> : <Chip tone="ok">практика</Chip>}
                   </div>
-                  <div className="module-row-sub">⏱ {scenario.duration_min} мин · Событий: {scenario.events.length}</div>
+                  <div className="module-row-sub">
+                    ⏱ {scenario.duration_min} мин · Событий: {scenario.events.length} · Действий: {scenario.expected_actions.length} · Критериев: {scenario.success_criteria.length} · Крит. ошибок: {scenario.critical_errors.length}
+                  </div>
                 </div>
               </div>
               {scenario.description && <p className="muted" style={{ margin: 0 }}>{scenario.description}</p>}
               {scenario.goal && <p className="muted" style={{ margin: 0 }}>Цель: {scenario.goal}</p>}
+              {scenario.events.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div className="sc-hint" style={{ marginBottom: 6 }}>Хронология событий сценария:</div>
+                  <EventTimeline events={(scenario.events ?? []).map((e, i) => ({ ...e, rowKey: i }))} />
+                </div>
+              )}
               <div className="col" style={{ gap: 4, marginTop: 8 }}>
                 {scenario.events.map((ev, i) => (
                   <div key={i} className="muted" style={{ fontSize: 12 }}>
-                    t={ev.time}с · {ev.event_type} → {ev.object_id} {ev.param && `(${ev.param})`} {asString(ev.value) !== '' && ` = ${asString(ev.value)}`} {ev.message ? `· ${ev.message}` : ''}
+                    t={ev.time}с · {typeLabel(ev.event_type)} → {ev.object_id} {ev.param && `(${ev.param})`} {asString(ev.value) !== '' && ` = ${asString(ev.value)}`} {ev.message ? `· ${ev.message}` : ''}
                   </div>
                 ))}
               </div>
@@ -1238,12 +1586,13 @@ export default function ModuleConstructorPage() {
         <LessonModal
           lesson={lessonModal.lesson}
           equipment={equipment.data ?? []}
+          competencies={competencies.data ?? []}
           onSave={(w) => void saveLesson(w)}
           onClose={() => setLessonModal(null)}
         />
       )}
 
-      {testModal && <TestModal test={test} onSave={(w) => void saveTest(w)} onClose={() => setTestModal(false)} />}
+      {testModal && <TestModal test={test} competencies={competencies.data ?? []} onSave={(w) => void saveTest(w)} onClose={() => setTestModal(false)} />}
 
       {questionModal && (
         <QuestionModal
@@ -1259,13 +1608,21 @@ export default function ModuleConstructorPage() {
           task={task}
           scenarios={scenarios.data ?? []}
           moduleScenario={scenario}
+          equipment={equipment.data ?? []}
+          competencies={competencies.data ?? []}
           onSave={(w) => void saveTask(w)}
           onClose={() => setTaskModal(false)}
         />
       )}
 
       {scenarioModal && (
-        <ScenarioModal scenario={scenario} onSave={(w) => void saveScenario(w)} onClose={() => setScenarioModal(false)} />
+        <ScenarioModal
+          scenario={scenario}
+          equipment={equipment.data ?? []}
+          competencies={competencies.data ?? []}
+          onSave={(w) => void saveScenario(w)}
+          onClose={() => setScenarioModal(false)}
+        />
       )}
     </Page>
   );

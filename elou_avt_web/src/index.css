@@ -330,8 +330,21 @@ body {
   box-shadow: 0 0 0 2px #38bdf8;
 }
 
-.canvas .react-flow__edge:hover .react-flow__edge-path {
-  stroke: #38bdf8;
+.canvas.editing .react-flow__edge:hover .react-flow__edge-path {
+  filter: brightness(1.35);
+}
+
+.canvas.editing .react-flow__edge:hover {
+  cursor: pointer;
+}
+
+.canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3.5 !important;
+  filter: drop-shadow(0 0 3px rgba(56, 189, 248, 0.9));
+}
+
+.canvas .react-flow__edge.selected .react-flow__edge-interaction {
+  stroke-width: 26 !important;
 }
 
 /* ---------- Panels ---------- */
@@ -674,8 +687,11 @@ body {
 /* ---------- Flow legend ---------- */
 .flow-legend {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   align-items: center;
+  justify-content: center;
+  max-width: 1200px;
   background: rgba(17, 26, 36, 0.9);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -730,6 +746,54 @@ body {
   font-size: 10px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+/* ---------- Инспектор потока / линии ---------- */
+.inspector-group-title {
+  margin: 10px 0 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.edge-swatch {
+  margin-top: 6px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.edge-offset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edge-offset-btn {
+  flex: 0 0 26px;
+  width: 26px;
+  padding: 2px 0;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.edge-offset-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.edge-offset-val {
+  flex: 0 0 auto;
+  min-width: 46px;
+  text-align: right;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .param-list {
@@ -1063,37 +1127,124 @@ input[type='range'] {
 
 .mn-node-tags {
   position: absolute;
-  left: calc(100% + 8px);
+  left: 0;
   top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  width: 0;
+  height: 0;
   pointer-events: none;
   z-index: 1;
 }
+
+/* ---- Мнемоэлемент «Аналоговый датчик» ----
+   Поле значения ВСЕГДА тёмно-серое (#535353).
+   Цвет состояния несёт рамка элемента и цифры значения. */
 .mn-node-tag {
+  position: absolute;
+  width: 92px;
+  padding: 3px;
+  background: var(--frame, #e6e6e6);
+  border: 1px solid rgba(0, 0, 0, .35);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1;
+  user-select: none;
+  box-sizing: border-box;
+}
+.mn-node-tag.tag-editable {
+  pointer-events: auto;
+  cursor: move;
+}
+.mn-node-tag.tag-editable:hover {
+  outline: 1px dashed var(--accent, #38bdf8);
+  outline-offset: 1px;
+}
+.mn-node-tag-scale {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 11px;
+  height: 11px;
+  background: var(--accent, #38bdf8);
+  border: 1.5px solid #fff;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  box-shadow: 0 0 3px rgba(0, 0, 0, .5);
+}
+.mn-node-tag .tag {
+  height: 11px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 104px;
-  padding: 2px 6px;
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  border-radius: 3px;
-  background: var(--panel-2);
-  white-space: nowrap;
-  font-family: Consolas, monospace;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--tag-fg, #000);
 }
-.mn-node-tag-lbl {
-  color: var(--muted);
-  font-size: 8.5px;
+.mn-node-tag .val {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--val-bg, #535353);
+  color: var(--val-fg, #fff);
+  font-size: 15px;
+  border: 1px solid var(--frame, #e6e6e6);
 }
-.mn-node-tag-val {
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.mn-node-tag .val.text { font-size: 12px; letter-spacing: .3px; }
+.mn-node-tag .unit {
+  height: 9px;
+  text-align: right;
+  font-size: 7px;
+  color: var(--unit-fg, #333);
+  padding-right: 1px;
+}
+
+/* ---- Состояния ---- */
+.mn-node-tag.state-normal {
+  --frame: #e6e6e6;
+  --val-bg: #535353;
+  --val-fg: #ffffff;
+  --tag-fg: #000000;
+  --unit-fg: #333333;
+}
+.mn-node-tag.state-warning {
+  --frame: #ffff00;
+  --val-bg: #535353;
+  --val-fg: #ffff00;
+  --tag-fg: #000000;
+  --unit-fg: #333333;
+}
+.mn-node-tag.state-alarm {
+  --frame: #ff0000;
+  --val-bg: #535353;
+  --val-fg: #ff0000;
+  --tag-fg: #ffffff;
+  --unit-fg: #3d0000;
+}
+.mn-node-tag.state-fault {
+  --frame: #ffa400;
+  --val-bg: #535353;
+  --val-fg: #ffa400;
+  --tag-fg: #000000;
+  --unit-fg: #333333;
+}
+.mn-node-tag.state-repair {
+  --frame: #c55a11;
+  --val-bg: #535353;
+  --val-fg: #c55a11;
+  --tag-fg: #000000;
+  --unit-fg: #3d1a00;
+}
+.mn-node-tag.state-sim {
+  --frame: #00ffff;
+  --val-bg: #535353;
+  --val-fg: #00ffff;
+  --tag-fg: #000000;
+  --unit-fg: #333333;
+}
+.mn-node-tag.state-nolock {
+  --frame: #e6e6e6;
+  --val-bg: #535353;
+  --val-fg: #ffffff;
+  --tag-fg: #000000;
+  --unit-fg: #333333;
 }
 
 .mn-fanb { animation: mn-spin 4s linear infinite; }
@@ -1774,6 +1925,186 @@ input[type='range'] {
 .card-title { font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: none; letter-spacing: 0; }
 .card-actions { display: flex; gap: 6px; align-items: center; }
+
+/* ---- Constructor: scenario editor ---- */
+.sc-section { display: flex; flex-direction: column; gap: 2px; }
+.sc-hint { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.sc-sep { border-top: 1px dashed var(--border); margin: 6px 0; }
+.sc-summary { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sc-summary b { color: var(--accent); }
+.sc-col-head {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.sc-row { align-items: center; }
+.sc-seq {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.sc-json { font-family: Consolas, monospace; font-size: 11.5px; }
+.sc-json-status { font-size: 11px; margin-top: -2px; }
+.sc-json-status.ok { color: var(--ok); }
+.sc-json-status.err { color: var(--danger); }
+.sc-json-status.err .sc-json-hint { color: var(--muted); }
+.sc-json-hint { margin-left: 8px; color: var(--muted); font-size: 10.5px; }
+.ev-timeline { margin: 4px 0 10px; }
+.ev-timeline-track {
+  position: relative;
+  height: 22px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ev-timeline-mark {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 6px;
+  border-radius: 3px;
+  cursor: default;
+}
+.ev-timeline-time {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ev-timeline-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ---- Scenario state editor ---- */
+.sc-state-label { display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 12px; }
+.sc-state-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.sc-state-tab {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.sc-state-tab.on { background: var(--accent); color: #fff; }
+.sc-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+.sc-state-card {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sc-state-head { display: flex; align-items: baseline; gap: 6px; }
+.sc-state-name { font-size: 12px; font-weight: 600; color: var(--fg); }
+.sc-state-badge {
+  font-size: 9.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  text-transform: uppercase;
+}
+.sc-state-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.sc-state-toggle.on { border-style: solid; border-color: var(--ok); color: var(--ok); }
+.sc-state-toggle.off { border-style: solid; border-color: var(--danger); color: var(--danger); }
+.sc-state-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sc-state-slider-row { display: flex; align-items: center; gap: 8px; }
+.sc-state-slider { flex: 1; accent-color: var(--accent); }
+.sc-state-val {
+  min-width: 46px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Tag picker (множественный выбор) ---- */
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-height: 38px;
+}
+.tag-picker-empty { font-size: 12px; color: var(--muted); }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 6px 2px 10px;
+  font-size: 11.5px;
+  max-width: 100%;
+}
+.tag span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-x {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 3px;
+  line-height: 1;
+}
+.tag-x:hover { color: var(--danger); }
+.tag-picker-select { width: auto; max-width: 220px; }
+
+
 
 /* ---- KPI stats ---- */
 .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); }

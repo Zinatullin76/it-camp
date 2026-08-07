@@ -24,6 +24,7 @@ from .content_models import (
     LessonWrite,
     ModuleStudy,
     QuestionWrite,
+    ScadaLogWrite,
     ScenarioDefinition,
     ScenarioWrite,
     TaskWrite,
@@ -516,6 +517,30 @@ class ContentService:
                    session_id: Optional[str] = None, limit: int = 500) -> List[Dict[str, Any]]:
         return self.store.list_action_log(
             username=username, object_id=object_id, session_id=session_id, limit=limit)
+
+    # ------------------------------------------------------------------
+    # SCADA interaction log (клики по объектам и время в окне)
+    # ------------------------------------------------------------------
+
+    def log_scada_event(self, username: str, req: ScadaLogWrite) -> None:
+        self.store.add_scada_log({
+            "timestamp": _now(),
+            "user_id": self._user_id(username),
+            "username": username,
+            "event_type": req.event_type.value,
+            "object_id": req.object_id,
+            "object_name": req.object_name,
+            "duration_s": req.duration_s,
+            "session_id": req.session_id,
+            "module_id": req.module_id,
+        })
+
+    def scada_log(self, username: Optional[str] = None, object_id: Optional[str] = None,
+                  event_type: Optional[str] = None, session_id: Optional[str] = None,
+                  limit: int = 500) -> List[Dict[str, Any]]:
+        return self.store.list_scada_log(
+            username=username, object_id=object_id, event_type=event_type,
+            session_id=session_id, limit=limit)
 
     def log_action(self, username: str, object_id: str, action: str,
                    old_state: Any = None, new_state: Any = None,

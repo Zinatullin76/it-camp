@@ -103,3 +103,71 @@ export function fmtValue(v: unknown, unit = ''): string {
   if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
   return `${v.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}${unit}`;
 }
+
+// ---------------------------------------------------------------------------
+// Потоки / фазы технологических линий. Палитра — «Тип продукта» (HEX из
+// легенды мнемосхемы). Выбирается в редакторе схемы и определяет цвет линии.
+// ---------------------------------------------------------------------------
+
+export interface PhaseMeta {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export const PHASE_TYPES: PhaseMeta[] = [
+  { id: 'gas_haz', label: 'Опасные газы', color: '#FFD965' },
+  { id: 'liq', label: 'Неопасные жидкости', color: '#0070C0' },
+  { id: 'oil', label: 'Нефть и нефтепродукты', color: '#000000' },
+  { id: 'gas', label: 'Неопасные газы', color: '#00B0F0' },
+  { id: 'reag', label: 'Реагенты', color: '#9966FF' },
+  { id: 'drain', label: 'Дренажные жидкости', color: '#7F6000' },
+  { id: 'other', label: 'Прочие продукты', color: '#54426A' },
+];
+
+export const DEFAULT_PHASE = 'oil';
+
+// Устаревшие id/kind старых схем -> тип продукта.
+const PHASE_ALIASES: Record<string, string> = {
+  process: 'oil',
+  hot: 'gas',
+  cooling: 'liq',
+  crude: 'oil',
+  des: 'oil',
+  atb: 'oil',
+  naph: 'oil',
+  ker: 'oil',
+  dt: 'oil',
+  go: 'oil',
+  maz: 'oil',
+  gaz: 'gas_haz',
+  fuel: 'gas_haz',
+  steam: 'gas',
+  water: 'liq',
+  reag: 'reag',
+  sig: 'other',
+};
+
+function resolvePhase(id: string): string {
+  return PHASE_ALIASES[id] ?? id;
+}
+
+export function phaseMeta(id: string): PhaseMeta {
+  const resolved = resolvePhase(id);
+  return PHASE_TYPES.find((p) => p.id === resolved) ?? PHASE_TYPES[2];
+}
+
+export function normalizePhase(kind: string): string {
+  const resolved = resolvePhase(kind);
+  return PHASE_TYPES.some((p) => p.id === resolved) ? resolved : DEFAULT_PHASE;
+}
+
+// Контрастный цвет текста поверх заданного фона.
+export function contrastText(hex: string): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  return lum > 150 ? '#111' : '#fff';
+}
