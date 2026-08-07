@@ -30,6 +30,8 @@ export interface MnemoItem {
   state?: string;
   /** Событие не квитировано — рамка мигает до квитирования. */
   unacked?: boolean;
+  /** Обозначение уровня в сепараторе: 'reflux' | 'water'. */
+  lmode?: string;
 }
 
 export interface MnemoPipe {

@@ -58,7 +58,7 @@ export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   heat_exchanger: { u: 300.0, area: 200.0 },
   heater: { max_heat_duty: 50000000.0, response_tau: 60.0 },
   column: { num_stages: 20, feed_stage: 10 },
-  separator: {},
+  separator: { level_mode: 'reflux' },
 };
 
 // Node card size per type (width x height) — compact, matches the symbol.

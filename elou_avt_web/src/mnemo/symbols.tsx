@@ -149,6 +149,8 @@ const VES_BLINK: Record<string, string> = {
   alarm: 'vves-blink-alarm',
   fault: 'vves-blink-alarm',
 };
+/** Полоса воды снизу во «флегме» (доля высоты шкалы). */
+const VES_WATER_BAND = 0.25;
 
 export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
   const x = e.x;
@@ -235,9 +237,12 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
       const gy = y + (h - gh) / 2;
       const ins = 2;
       const tot = Math.max(0, Math.min(100, live.lvl(e.lv || '')));
-      const wl = Math.max(0, Math.min(tot, live.lw(e.lvw || '')));
-      const oilH = (gh - ins * 2) * tot / 100;
-      const watH = (gh - ins * 2) * wl / 100;
+      // Флегма: тёмная жидкость в середине, внизу вода, сверху пустота.
+      // Вода: только вода снизу до уровня, сверху пустота.
+      const isWater = e.lmode === 'water';
+      const waterTop = isWater ? tot : Math.min(VES_WATER_BAND * 100, tot);
+      const oilH = isWater ? 0 : (gh - ins * 2) * tot / 100;
+      const watH = (gh - ins * 2) * waterTop / 100;
       const bot = gy + gh - ins;
       return (
         <g>

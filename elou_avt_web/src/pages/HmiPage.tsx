@@ -618,6 +618,25 @@ function HmiInner() {
     [applyTelemetry, notify],
   );
 
+  const onUpdateSchemeParam = useCallback(
+    (nodeId: string, key: string, value: unknown) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  schemeParams: { ...(n.data as EquipmentNodeData).schemeParams, [key]: value },
+                },
+              }
+            : n,
+        ),
+      );
+    },
+    [setNodes],
+  );
+
   const selectedTelemetry = selectedId ? live?.equipment?.[selectedId] ?? null : null;
   const selectedNode = selectedId ? (nodes.find((n) => n.id === selectedId) ?? null) : null;
 
@@ -792,6 +811,7 @@ function HmiInner() {
               onRename={onRename}
               onDelete={onDelete}
               onUpdateParams={onUpdateParams}
+              onUpdateSchemeParam={onUpdateSchemeParam}
               canEditScheme={canEditScheme && edit}
             />
           )}

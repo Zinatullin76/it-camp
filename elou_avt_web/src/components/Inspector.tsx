@@ -16,11 +16,12 @@ interface Props {
   onRename: (nodeId: string, name: string) => void;
   onDelete: (nodeId: string) => void;
   onUpdateParams: (equipmentId: string, params: Record<string, number>) => Promise<void>;
+  onUpdateSchemeParam?: (nodeId: string, key: string, value: unknown) => void;
   canEditScheme?: boolean;
   canManageTwin?: boolean;
 }
 
-export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, canEditScheme = true, canManageTwin = true }: Props) {
+export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, onUpdateSchemeParam, canEditScheme = true, canManageTwin = true }: Props) {
   const [valvePos, setValvePos] = useState(0.6);
   const [fuel, setFuel] = useState(0.8);
   const [reflux, setReflux] = useState(2.0);
@@ -276,6 +277,34 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
             <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Выключить</button>
           </div>
         );
+      case 'separator': {
+        // Настройка доступна только в редакторе схемы.
+        if (!canEditScheme) return null;
+        const lmode = schemeParams?.level_mode === 'water' ? 'water' : 'reflux';
+        return (
+          <div className="ctrl-group">
+            <div className="panel-title" style={{ margin: 0 }}>ОБОЗНАЧЕНИЕ УРОВНЯ</div>
+            <label className="param-check">
+              <input
+                type="radio"
+                name={`lmode-${nodeId}`}
+                checked={lmode === 'reflux'}
+                onChange={() => onUpdateSchemeParam?.(nodeId, 'level_mode', 'reflux')}
+              />
+              <span>Флегма — тёмная жидкость, внизу вода, сверху пустота</span>
+            </label>
+            <label className="param-check">
+              <input
+                type="radio"
+                name={`lmode-${nodeId}`}
+                checked={lmode === 'water'}
+                onChange={() => onUpdateSchemeParam?.(nodeId, 'level_mode', 'water')}
+              />
+              <span>Вода — только вода, сверху пустота</span>
+            </label>
+          </div>
+        );
+      }
       default:
         return null;
     }

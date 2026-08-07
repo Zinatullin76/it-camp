@@ -138,7 +138,7 @@ const handles = (type: string) => {
 const TAG_STACK = 52;
 
 function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
-  const { nodeType, name, telemetry, size, mnemo, disp, tags, alarms } = data;
+  const { nodeType, name, telemetry, size, mnemo, disp, tags, alarms, schemeParams } = data;
   const { edit, onTagChange, onRenameNode } = useContext(SchemeEditorContext);
   const { getZoom } = useReactFlow();
   const box = size ?? nodeSize(nodeType);
@@ -166,6 +166,8 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
   // Состояние и мигание рамки шкалы уровня (использует символ 'vves').
   item.state = state;
   item.unacked = !failed && (critical || warning);
+  // Обозначение уровня: 'флегма' (тёмная жидкость + вода) либо 'вода'.
+  item.lmode = schemeParams?.level_mode === 'water' ? 'water' : 'reflux';
 
   const renameNode = () => {
     const n = window.prompt('Название узла:', name);
