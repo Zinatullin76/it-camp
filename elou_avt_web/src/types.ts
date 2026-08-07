@@ -229,6 +229,8 @@ export interface LmsPracticeTask {
   scenario_name: string;
   is_ready: boolean;
   readiness_percent: number;
+  module_id?: number;
+  module_title?: string;
 }
 
 export interface LmsScenario {

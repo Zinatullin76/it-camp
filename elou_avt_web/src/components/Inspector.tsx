@@ -128,11 +128,15 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
   const color = TYPE_COLORS[telemetry.type] ?? '#38bdf8';
   const statusText = telemetry.failed
     ? `АВАРИЯ: ${telemetry.failure_mode ?? '—'}`
-    : telemetry.running === null
-      ? 'Граница'
-      : telemetry.running
-        ? 'РАБОТАЕТ'
-        : 'ОСТАНОВЛЕН';
+    : telemetry.type === 'gate_valve'
+      ? telemetry.params?.open
+        ? 'ОТКРЫТА'
+        : 'ЗАКРЫТА'
+      : telemetry.running === null
+        ? 'Граница'
+        : telemetry.running
+          ? 'РАБОТАЕТ'
+          : 'ОСТАНОВЛЕН';
 
   const control = (() => {
     switch (telemetry.type) {
@@ -182,6 +186,16 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
             </label>
             {canManageTwin && (
               <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинил)</button>
+            )}
+          </div>
+        );
+      case 'gate_valve':
+        return (
+          <div className="ctrl-group">
+            <button className="btn btn-start" onClick={() => onAction(nodeId, 'TURN_ON')}>⭯ Открыть</button>
+            <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>⏹ Закрыть</button>
+            {canManageTwin && (
+              <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинила)</button>
             )}
           </div>
         );
@@ -274,9 +288,13 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       const display =
         k === 'converged'
           ? String(v)
-          : typeof v === 'number'
-            ? fmtValue(v, meta?.unit ?? '')
-            : String(v);
+          : k === 'open'
+            ? v
+              ? 'Открыта'
+              : 'Закрыта'
+            : typeof v === 'number'
+              ? fmtValue(v, meta?.unit ?? '')
+              : String(v);
       return (
         <div className="param-row" key={k}>
           <span>{meta?.label ?? k}</span>

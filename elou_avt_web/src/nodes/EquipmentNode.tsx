@@ -54,6 +54,7 @@ const SYMBOL: Record<string, Partial<MnemoItem>> = {
   sink: { t: 'box', w: 132, h: 38 },
   pump: { t: 'pump' },
   valve: { t: 'valve', vt: 'cv' },
+  gate_valve: { t: 'valve', vt: 'gate' },
   elou: { t: 'ed', w: 120, h: 44, lv: 'lv' },
   heat_exchanger: { t: 'hx', w: 132, h: 40 },
   heater: { t: 'fur', w: 118, h: 66 },
@@ -82,8 +83,16 @@ function buildLive(t: NodeTelemetry | null, color: string): MnemoLive {
     lvl: () => pct(),
     lw: () => pct(),
     flowColor: () => color,
-    run: () => 'unknown',
+    run: () => (t?.failed ? 'fail' : t?.running ? 'run' : 'off'),
     equip: () => undefined,
+    gate: () => t?.params?.open === true,
+    valve: () => {
+      if (t?.failed) return 'fail';
+      if (t?.type === 'gate_valve') return t.params?.open === true ? 'open' : 'closed';
+      const pos = t?.params?.position;
+      if (typeof pos !== 'number' || !Number.isFinite(pos)) return 'mid';
+      return pos >= 0.99 ? 'open' : pos <= 0.01 ? 'closed' : 'mid';
+    },
     param: () => null,
     fireOn: fuel > 0.15,
     edVolt: true,
@@ -141,6 +150,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
     n: name,
     ...(mnemo ?? SYMBOL[nodeType] ?? {}),
   };
+  if (nodeType === 'gate_valve' || nodeType === 'valve') item.gate = id;
   const bb = itemBBox(item);
   const live = buildLive(telemetry, color);
   const svgW = box.w - 6;
@@ -221,6 +231,8 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
             const cfg = tags?.[k];
             const v = telemetry?.params?.[k];
             const num = typeof v === 'number' && Number.isFinite(v);
+            const boolV = typeof v === 'boolean';
+            const disp = failed ? 'ОТКАЗ' : boolV ? (v ? 'ОТКР' : 'ЗАКР') : num ? fmtValue(v, '') : '—';
             return (
               <div
                 key={k}
@@ -235,7 +247,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
                 onDoubleClick={edit ? (e) => { e.stopPropagation(); renameTag(k, cfg); } : undefined}
               >
                 <div className="tag">{cfg?.label ?? meta?.label ?? k}</div>
-                <div className={`val${failed ? ' text' : ''}`}>{failed ? 'ОТКАЗ' : num ? fmtValue(v, '') : '—'}</div>
+                <div className={`val${failed ? ' text' : ''}`}>{disp}</div>
                 <div className="unit">{meta?.unit ?? ''}</div>
                 {edit && (
                   <div

@@ -247,6 +247,22 @@ def study_module(module_id: int, current_user: Principal = Depends(get_current_u
     return _call(lambda: get_service().study_view(module_id))
 
 
+@router.get("/practice-library",
+            dependencies=[Depends(require_permission("view_courses"))])
+def practice_library(current_user: Principal = Depends(get_current_user)):
+    """Библиотека практики оператора: сценарии опубликованных курсов."""
+    return get_service().practice_catalog(current_user.username)
+
+
+@router.get("/practice-library/{task_id}",
+            dependencies=[Depends(require_permission("view_courses"))])
+def practice_library_task(task_id: int, current_user: Principal = Depends(get_current_user)):
+    task = get_service().practice_catalog_task(task_id, current_user.username)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Задание '{task_id}' не найдено")
+    return task
+
+
 @router.post("/tests/{test_id}/submit",
              dependencies=[Depends(require_permission("view_courses"))])
 def submit_test(test_id: int, req: TestSubmit,

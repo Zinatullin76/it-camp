@@ -165,6 +165,10 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["flow_kg_s"] = out.get("flow_out", 0.0)
             p["pressure_in_bar"] = round(out["inlet_pressure"] / 1e5, 3) if out.get("inlet_pressure") else None
             p["pressure_out_bar"] = round(out["outlet_pressure"] / 1e5, 3) if out.get("outlet_pressure") else None
+        elif ntype == "gate_valve":
+            p["open"] = bool(eq.is_open) if eq else None
+            p["flow_kg_s"] = round(out.get("flow_out", 0.0), 3)
+            p["blocked"] = bool(out.get("blocked", False))
         elif ntype in ("separator", "tank"):
             p["level_m"] = out.get("level")
             p["level_setpoint_m"] = out.get("setpoint")
@@ -307,7 +311,8 @@ def _node_type_for(equipment_id: str) -> Optional[str]:
     eq = twin._engine._equipment.get(equipment_id)
     if eq is not None:
         return {
-            "Pump": "pump", "Valve": "valve", "Heater": "heater",
+            "Pump": "pump", "Valve": "valve", "GateValve": "gate_valve",
+            "Heater": "heater",
             "ELOU": "elou", "Tank": "tank", "HeatExchanger": "heat_exchanger",
             "DistillationColumn": "column", "Separator": "separator",
         }.get(type(eq).__name__)
@@ -741,6 +746,7 @@ def scheme_templates():
             {"type": "sink", "label": "Продукт / отбор", "category": "boundary"},
             {"type": "pump", "label": "Насос", "category": "equipment"},
             {"type": "valve", "label": "Регулирующий клапан", "category": "equipment"},
+            {"type": "gate_valve", "label": "Задвижка", "category": "equipment"},
             {"type": "elou", "label": "ЭЛОУ (электродегидратор)", "category": "equipment"},
             {"type": "heat_exchanger", "label": "Теплообменник", "category": "equipment"},
             {"type": "heater", "label": "Печь", "category": "equipment"},

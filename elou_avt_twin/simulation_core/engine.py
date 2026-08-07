@@ -22,11 +22,13 @@ from models.base import (
     OperatorAction,
     Alarm,
     ErrorEvent,
+    Severity,
 )
 from models.scenario import Scenario, ScenarioEvent
 from equipment import (
-    Pump, Valve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
+    Pump, Valve, GateValve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
 )
+from calculation_core.hydraulics.pressure_drop import calculate_pipe_pressure_drop
 from scheme import ProcessScheme, SchemeNode, load_scheme
 from safety.alarm_system import AlarmSystem
 from events.error_tracker import ErrorTracker, ExpectedAction
@@ -59,6 +61,13 @@ class SimulationEngine:
         self._alarm_system = AlarmSystem()
         self._error_tracker = ErrorTracker()
         self._active_failures: List[str] = []
+
+        # Water-hammer surge detection (ТЗ section 36): previous valve
+        # positions and the per-valve surge alerts already raised, so a fast
+        # closure is measured against the flow it actually cut.
+        self._prev_valve_positions: Dict[str, float] = {}
+        self._last_surge_alerts: Dict[str, float] = {}
+        self._surge_close_threshold = 0.5
 
         # Build equipment
         self._equipment: Dict[str, Any] = self._build_equipment()
@@ -171,6 +180,9 @@ class SimulationEngine:
 
         # 3. Step all equipment
         eq_outputs = self._step_equipment(state, dt)
+        # 3b. Water-hammer check: a valve that closes fast enough cuts the flow
+        # abruptly -> Joukowsky surge against the pipe MAOP (ТЗ section 36).
+        new_errors.extend(self._check_water_hammer(eq_outputs))
 
         # 4. Build new state
         new_state = self._build_state(state, eq_outputs, dt)
@@ -299,6 +311,11 @@ class SimulationEngine:
                     continue
                 out = eq.step(dt, inlet_stream=inlet, delta_p=node.params.get("delta_p", 5e5))
             elif ntype == "valve":
+                inlet = self._merge_streams(incoming.get("in"))
+                if inlet is None:
+                    continue
+                out = eq.step(dt, inlet_stream=inlet)
+            elif ntype == "gate_valve":
                 inlet = self._merge_streams(incoming.get("in"))
                 if inlet is None:
                     continue
@@ -502,6 +519,8 @@ class SimulationEngine:
                 self._equipment[node.id] = Pump(node.id, node.params)
             elif node.type == "valve":
                 self._equipment[node.id] = Valve(node.id, node.params)
+            elif node.type == "gate_valve":
+                self._equipment[node.id] = GateValve(node.id, node.params)
             elif node.type == "elou":
                 self._equipment[node.id] = ELOU(node.id, node.params)
             elif node.type == "heat_exchanger":
@@ -592,6 +611,19 @@ class SimulationEngine:
                     valid = [c for c in child_caps if c is not None]
                     downstream = min(valid) if valid else None
                     res = pump_cap if downstream is None else min(pump_cap, downstream)
+            elif node.type == "gate_valve":
+                # A closed задвижка dead-heads its whole upstream line, an
+                # open one passes the flow through without restricting it.
+                eq = self._equipment.get(nid)
+                if eq is None or not getattr(eq, "is_open", True):
+                    res = 0.0
+                else:
+                    out_edges = [e for e in self._edges if e.source == nid]
+                    if not out_edges:
+                        res = None
+                    else:
+                        child_caps = [cap_of(e.target) for e in out_edges]
+                        res = None if any(c is None for c in child_caps) else min(child_caps)
             else:
                 out_edges = [e for e in self._edges if e.source == nid]
                 if not out_edges:
@@ -668,12 +700,26 @@ class SimulationEngine:
                             "k": _K_EPS if k <= 0.0 else k,
                             "closed": eq.position <= 1e-6,
                         }
+                    elif nxt_node.type == "gate_valve":
+                        eq = self._equipment.get(nxt)
+                        if eq is None:
+                            continue
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {
+                            "type": "valve",
+                            "k": _K_EPS,
+                            "closed": not getattr(eq, "is_open", True),
+                        }
                     elif nxt_node.type == "pump":
                         children.setdefault(cur, []).append(nxt)
                         tree_nodes[nxt] = {"type": "pump", "head": self._make_pump_head(nxt)}
                     else:
                         children.setdefault(cur, []).append(nxt)
-                        tree_nodes[nxt] = {"type": "pass"}
+                        k_pipe = self._pipe_resistance(nxt, density)
+                        if k_pipe is not None:
+                            tree_nodes[nxt] = {"type": "res", "k": k_pipe, "head": self._static_head(nxt, density)}
+                        else:
+                            tree_nodes[nxt] = {"type": "pass"}
                     element_count += 1
                     visit(nxt, seen | {nxt})
 
@@ -690,18 +736,64 @@ class SimulationEngine:
             })
         return trees
 
+    def _pipe_resistance(self, nid: str, density: float) -> Optional[float]:
+        """Quadratic pipe resistance k in ΔP = k·Q² for a scheme pipe node.
+
+        Uses the node's pipe params (length_m, diameter_m, roughness_m,
+        minor_loss_k, flow_kg_s / nominal_flow as the reference flow).  Returns
+        None when the node carries no pipe geometry, so it stays a pass-through.
+        """
+        node = self._node_map.get(nid)
+        if node is None:
+            return None
+        p = node.params
+        length = p.get("length_m")
+        diameter = p.get("diameter_m")
+        if not length or not diameter or float(length) <= 0.0 or float(diameter) <= 0.0:
+            return None
+        ref_flow = float(p.get("flow_kg_s") or p.get("nominal_flow") or 1.0)
+        dp = calculate_pipe_pressure_drop(
+            flow_rate=ref_flow, density=density,
+            viscosity=float(p.get("viscosity_pa_s", 0.001)),
+            length=float(length), diameter=float(diameter),
+            roughness=float(p.get("roughness_m", 0.000045)),
+            minor_loss_k=float(p.get("minor_loss_k", 0.0)),
+        )
+        return dp / max(ref_flow * ref_flow, 1e-12)
+
+    def _static_head(self, nid: str, density: float) -> float:
+        """Static head term [Pa] for a scheme pipe node: ρ·g·Δz (ТЗ section 17).
+
+        Positive when the outlet is ABOVE the inlet (costs pressure), negative
+        when it falls (gains pressure).  Defaults to zero when no elevation
+        params are present.
+        """
+        node = self._node_map.get(nid)
+        if node is None:
+            return 0.0
+        p = node.params
+        dz = p.get("delta_elevation_m")
+        if dz is None:
+            z_in = p.get("elevation_in_m", 0.0)
+            z_out = p.get("elevation_out_m", 0.0)
+            dz = z_out - z_in
+        return density * 9.81 * float(dz)
+
     def _make_pump_head(self, nid: str) -> Callable[[float], float]:
-        """Pump discharge head characteristic H(Q) for a scheme pump node."""
+        """Pump discharge head characteristic H(Q) for a scheme pump node.
+
+        Delegates to the pump's real pump curve (ТЗ sections 19-22) so the
+        network solver and the equipment use the SAME characteristic at the
+        operating point.  Q is the mass flow [kg/s], H is in [Pa].
+        """
         def pump_head(q: float) -> float:
             eq = self._equipment.get(nid)
             node = self._node_map.get(nid)
             if eq is None or node is None or not (eq.state.running and not eq.state.failed):
                 return 0.0
-            h_max = float(node.params.get("delta_p", 5e5)) * eq.speed_ratio * eq.speed_ratio
-            q_ref = eq.current_capacity()
-            if q_ref <= 1e-9:
-                return 0.0
-            return h_max * max(0.0, 1.0 - (q / q_ref) ** 2)
+            density = 850.0
+            q_m3_s = max(0.0, q) / max(density, 1e-6)
+            return max(0.0, eq.curve.pressure_rise(q_m3_s, eq.speed_ratio))
         return pump_head
 
     def _solve_line_hydraulics(self) -> Dict[str, Dict[str, float]]:
@@ -732,6 +824,69 @@ class SimulationEngine:
                 continue
             result.update(solved)
         return result
+
+    # ------------------------------------------------------------------
+    # Water-hammer surge check (ТЗ section 36)
+    # ------------------------------------------------------------------
+
+    def _check_water_hammer(self, eq_outputs: Dict[str, Any]) -> List[ErrorEvent]:
+        """Detect rapid valve closures and evaluate the Joukowsky surge.
+
+        A valve that closes by more than ``_surge_close_threshold`` in one step
+        and cuts a real flow triggers a surge evaluation against the pipe MAOP.
+        MEDIUM/HIGH-risk surges become operator-error events (once per closure,
+        not every step), so the check never spams the event log.
+        """
+        import math
+        from physics.water_hammer import surge_risk
+        events: List[ErrorEvent] = []
+        density = 850.0
+        for nid, out in eq_outputs.items():
+            node = self._node_map.get(nid)
+            if node is None or node.type != "valve":
+                continue
+            eq = self._equipment.get(nid)
+            if eq is None:
+                continue
+            pos = float(getattr(eq, "position", 0.0))
+            prev_pos = self._prev_valve_positions.get(nid, pos)
+            self._prev_valve_positions[nid] = pos
+            close_delta = prev_pos - pos
+            if close_delta < self._surge_close_threshold:
+                continue
+            prev_flow = float(self._last_outputs.get(nid, {}).get("flow_out", 0.0))
+            cur_flow = float(out.get("flow_out", 0.0))
+            if prev_flow <= 1e-9:
+                continue
+            diam = float(node.params.get("diameter_m", 0.1))
+            area = math.pi * diam * diam / 4.0
+            v_prev = prev_flow / (density * area)
+            v_cur = max(0.0, cur_flow) / (density * area)
+            dv = max(0.0, v_prev - v_cur)
+            if dv <= 1e-9:
+                continue
+            maop = float(node.params.get("maop_pa", 1e6))
+            p_nom = float(node.params.get("pressure_bar", 1.01325)) * 1e5
+            risk = surge_risk(p_nom, dv, maop, density=density, damping=0.9)
+            band = risk["risk_band"]
+            if band not in ("MEDIUM", "HIGH"):
+                continue
+            tag = f"{nid}:surge"
+            if tag in self._last_surge_alerts:
+                continue
+            self._last_surge_alerts[tag] = self._time
+            events.append(ErrorEvent(
+                error_type="SURGE_RISK",
+                severity=Severity.CRITICAL if band == "HIGH" else Severity.HIGH,
+                timestamp=self._time,
+                operator_action=f"SET_VALUE on {nid} (fast closure)",
+                expected_action="Slow valve closure (ramp) to limit surge",
+                cause=(f"Rapid closure of {nid} cut the flow by "
+                       f"{dv:.2f} m/s in one step"),
+                consequence=(f"Water hammer: P_max {risk['max_surge_pressure_pa']/1e5:.1f} bar "
+                             f"vs MAOP {maop/1e5:.1f} bar ({band} risk)"),
+            ))
+        return events
 
     @staticmethod
     def _merge_streams(streams: Optional[List["Stream"]]) -> Optional["Stream"]:

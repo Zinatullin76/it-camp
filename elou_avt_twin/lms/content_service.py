@@ -253,6 +253,77 @@ class ContentService:
         )
 
     # ------------------------------------------------------------------
+    # Practice catalog (страница «Практика» = сценарии курсов)
+    # ------------------------------------------------------------------
+
+    def _practice_task_view(self, task: Dict[str, Any], module: Dict[str, Any],
+                            scenario: Dict[str, Any], comp_levels: Dict[str, float]) -> Dict[str, Any]:
+        req = task.get("competency_codes", []) or []
+        avg_req = (sum(comp_levels.get(c, 0.0) for c in req) / len(req)) if req else 100.0
+        is_exam = bool(scenario.get("is_exam"))
+        return {
+            "id": task["id"],
+            "module_id": int(task["module_id"]),
+            "module_title": module.get("title", ""),
+            "title": task.get("title", ""),
+            "description": task.get("goal", ""),
+            "scenario_id": f"LMS-{scenario['id']}",
+            "scenario_name": scenario.get("title", ""),
+            "category": "exam" if is_exam else "practice",
+            "difficulty": "HARD" if is_exam else "MIDDLE",
+            "duration_min": int(task.get("duration_min", 10) or 10),
+            "required_competencies": req,
+            "enabled": True,
+            "is_random": False,
+            "is_ready": avg_req >= 50.0,
+            "readiness_percent": round(avg_req, 1),
+        }
+
+    def practice_catalog(self, username: str) -> List[Dict[str, Any]]:
+        """Опубликованные практические задания курсов.
+
+        «Практика» = сценарии курсов: берутся только опубликованные модули
+        с заданием и опубликованным сценарием (lms_training_tasks +
+        lms_scenarios). Запуск идёт тем же движком, что и в курсах.
+        """
+        user_id = self._user_id(username) or 0
+        comp_levels = {c["code"]: float(c["level_percent"])
+                       for c in self.lms.get_user_competencies(user_id)}
+        out = []
+        for course in self.lms.list_courses():
+            for module in self.lms.get_modules(int(course["id"])):
+                mid = int(module["id"])
+                m = self.store.module(mid)
+                if m is None or not m.get("published"):
+                    continue
+                task = self.store.get_task_by_module(mid)
+                if task is None or not task.get("enabled"):
+                    continue
+                scenario = self.store.get_scenario_by_module(mid)
+                if scenario is None or scenario.get("status") != "PUBLISHED":
+                    continue
+                out.append(self._practice_task_view(task, m, scenario, comp_levels))
+        out.sort(key=lambda t: (t["category"], t["module_title"], t["title"]))
+        return out
+
+    def practice_catalog_task(self, task_id: int,
+                              username: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        task = self.store.get_task(task_id)
+        if task is None:
+            return None
+        module_id = int(task["module_id"])
+        m = self.store.module(module_id)
+        scenario = self.store.get_scenario_by_module(module_id)
+        if m is None or not m.get("published"):
+            return None
+        if scenario is None or scenario.get("status") != "PUBLISHED":
+            return None
+        user_id = self._user_id(username) if username else 0
+        comp_levels = {c["code"]: float(c["level_percent"])
+                       for c in self.lms.get_user_competencies(user_id)}
+        return self._practice_task_view(task, m, scenario, comp_levels)
+
+    # ------------------------------------------------------------------
     # Test submission
     # ------------------------------------------------------------------
 

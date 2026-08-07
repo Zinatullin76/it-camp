@@ -40,11 +40,15 @@ class SchemeEdge(BaseModel):
     kind: str = "process"
 
 
+SCHEMA_VERSION = "1.1"
+
+
 class ProcessScheme(BaseModel):
-    """The full scheme graph."""
+    """The full scheme graph (configuration and topology only — no runtime state)."""
 
     id: str = "default"
     name: str = "ЭЛОУ-АВТ / default"
+    schema_version: str = SCHEMA_VERSION
     nodes: List[SchemeNode] = Field(default_factory=list)
     edges: List[SchemeEdge] = Field(default_factory=list)
 
@@ -73,8 +77,45 @@ class ProcessScheme(BaseModel):
         self.edges.append(edge)
 
 
+def migrate_scheme_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Migrate legacy scheme JSON to the current schema (ТЗ section 6).
+
+    Upgrades ambiguous legacy parameter names to their canonical SI names:
+      pump   nominal_flow     -> nominal_volumetric_flow_m3_s
+      pump   delta_p          -> nominal_head_pa
+      valve  cv               -> flow_coefficient_si
+    Legacy keys are preserved alongside (harmless) so old consumers keep
+    working, but the canonical names take precedence in the physics core.
+    """
+    version = data.get("schema_version", "1.0")
+    data = dict(data)
+    nodes = data.get("nodes", [])
+    new_nodes = []
+    for node in nodes:
+        node = dict(node)
+        params = dict(node.get("params") or {})
+        ntype = node.get("type", "")
+        if ntype == "pump":
+            if "nominal_flow" in params and "nominal_volumetric_flow_m3_s" not in params:
+                params["nominal_volumetric_flow_m3_s"] = params["nominal_flow"]
+            if "delta_p" in params and "nominal_head_pa" not in params:
+                params["nominal_head_pa"] = params["delta_p"]
+        elif ntype == "valve":
+            if "cv" in params and "flow_coefficient_si" not in params:
+                params["flow_coefficient_si"] = params["cv"]
+        node["params"] = params
+        new_nodes.append(node)
+    data["nodes"] = new_nodes
+    if version != SCHEMA_VERSION:
+        data["schema_version"] = SCHEMA_VERSION
+    return data
+
+
 def load_scheme(path: Optional[Path | str] = None) -> ProcessScheme:
-    """Load a scheme from a JSON file (falls back to the default scheme)."""
+    """Load a scheme from a JSON file (falls back to the default scheme).
+
+    Applies ``migrate_scheme_data`` so legacy schemes load cleanly.
+    """
     path = Path(path) if path else DEFAULT_SCHEME_PATH
     if not path.exists():
         logger.warning("Scheme file %s not found; using empty scheme.", path)
@@ -82,6 +123,7 @@ def load_scheme(path: Optional[Path | str] = None) -> ProcessScheme:
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
+        data = migrate_scheme_data(data)
         return ProcessScheme.model_validate(data)
     except Exception:
         logger.exception("Failed to load scheme from %s; using empty scheme.", path)
@@ -89,10 +131,23 @@ def load_scheme(path: Optional[Path | str] = None) -> ProcessScheme:
 
 
 def save_scheme(scheme: ProcessScheme, path: Optional[Path | str] = None) -> Path:
-    """Persist a scheme to a JSON file."""
+    """Persist a scheme to a JSON file (atomic, deterministic, UTF-8).
+
+    The file is written to a temporary sibling and atomically replaced, so a
+    crash mid-save never leaves a corrupt scheme behind.
+    """
     path = Path(path) if path else DEFAULT_SCHEME_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(scheme.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
+    payload = json.dumps(
+        scheme.model_dump(mode="json"),
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(payload)
+        f.write("\n")
+    tmp.replace(path)
     logger.info("Scheme saved to %s (%d nodes, %d edges).", path, len(scheme.nodes), len(scheme.edges))
     return path

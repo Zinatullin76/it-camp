@@ -74,6 +74,12 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
             "min": 0.0, "max": 100.0, "step": 1.0, "default": 0.0,
         },
     },
+    "gate_valve": {
+        "initial_open": {
+            "label": "Открыта при старте", "unit": "", "scale": 1.0,
+            "min": 0.0, "max": 1.0, "step": 1.0, "default": 1.0,
+        },
+    },
     "heater": {
         "max_heat_duty": {
             "label": "Макс. тепловая нагрузка", "unit": "МВт", "scale": 1e6,

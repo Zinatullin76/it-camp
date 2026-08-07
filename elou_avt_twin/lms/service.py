@@ -46,6 +46,7 @@ from .models import (
     StudyGroup,
     GroupMembersRequest,
 )
+from .content_store import LmsContentStore
 from .store import LmsStore
 
 STAGES = ["Стажер", "Оператор", "Оператор 2 категории",
@@ -71,11 +72,13 @@ class LmsService:
     """High-level LMS service. Depends only on stores and the scenario catalog."""
 
     def __init__(self, store: LmsStore, session_store: SessionStore,
-                 auth_store: AuthStore, scenarios: Dict[str, Scenario]):
+                 auth_store: AuthStore, scenarios: Dict[str, Scenario],
+                 content_store: Optional[LmsContentStore] = None):
         self.store = store
         self.sessions = session_store
         self.auth = auth_store
         self.scenarios = scenarios
+        self.content = content_store
 
     # ------------------------------------------------------------------
     # Helpers
@@ -98,7 +101,16 @@ class LmsService:
 
     def _scenario_name(self, scenario_id: str) -> str:
         s = self.scenarios.get(scenario_id)
-        return s.name if s else scenario_id
+        if s:
+            return s.name
+        parts = scenario_id.split("-")
+        if len(parts) == 2 and parts[0] == "LMS" and self.content is not None:
+            try:
+                sc = self.content.get_scenario(int(parts[1]))
+                return sc.get("title", scenario_id) if sc else scenario_id
+            except (TypeError, ValueError):
+                return scenario_id
+        return scenario_id
 
     def _stage(self, mastery: float) -> Dict[str, Any]:
         thresholds = [20.0, 40.0, 60.0, 80.0]
@@ -220,6 +232,16 @@ class LmsService:
         for t in self.store.list_tasks():
             if t["scenario_id"] == scenario_id:
                 return t["title"]
+        parts = scenario_id.split("-")
+        if len(parts) == 2 and parts[0] == "LMS" and self.content is not None:
+            try:
+                sc = self.content.get_scenario(int(parts[1]))
+                if sc is not None:
+                    task = self.content.get_task_by_module(int(sc["module_id"]))
+                    if task:
+                        return task["title"]
+            except (TypeError, ValueError):
+                pass
         return self._scenario_name(scenario_id)
 
     # ------------------------------------------------------------------

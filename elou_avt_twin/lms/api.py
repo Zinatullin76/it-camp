@@ -65,6 +65,7 @@ from .models import (
     TaskUpdate,
     UserProgress,
 )
+from .content_store import LmsContentStore
 from .seeds import seed
 from .service import LmsService
 from .store import LmsStore
@@ -88,6 +89,7 @@ def get_service() -> LmsService:
             session_store=SessionStore(),
             auth_store=auth_store,
             scenarios=SCENARIO_REGISTRY,
+            content_store=LmsContentStore(),
         )
     return _service
 

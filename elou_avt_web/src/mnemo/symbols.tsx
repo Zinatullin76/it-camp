@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactElement } from 'react';
 import type { MnemoItem } from './mnemoTypes';
-import type { MnemoLive } from './sources';
-import { fmtVal } from './sources';
+import type { MnemoLive, ValveState } from './sources';
+import { fmtVal, pumpVisual, PUMP_COLORS } from './sources';
 
 const ST: CSSProperties = {
   fill: 'var(--mn-fill)',
@@ -358,72 +358,95 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
 
     case 'pump': {
       const st = live.run(e.n || '');
-      const col = st === 'fail' ? '#f87171' : st === 'run' ? '#35d399' : '#3d5261';
-      const run = st === 'run';
-      const cx = x + 14;
-      const cy = y + 14;
+      const vis = pumpVisual(st);
+      const blink = vis.blink ? `pump-blink-${vis.blink}` : undefined;
+      const px = x + 2;
+      const py = y + 4;
+      const nL = labelLines(e.n, 10, 96);
+      const nY = py + 67;
+      const sY = nY + nL * 11.8 + 7;
+      const stroke = '#000';
       return (
-        <g className={st === 'fail' ? 'mn-alarm-flash' : undefined}>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={13}
-            style={{ fill: run ? 'rgba(53,211,153,0.16)' : 'var(--mn-fill-2)', stroke: col, strokeWidth: 1.8 }}
+        <g>
+          <rect x={px + 48} y={py + 9} width={38.5} height={17} fill={PUMP_COLORS.gray} stroke={stroke} strokeWidth={4} />
+          <rect x={px + 39} y={py + 45} width={29.5} height={8} fill={vis.volute} stroke={stroke} strokeWidth={4} className={blink} />
+          <circle cx={px + 53} cy={py + 29.5} r={21} fill={vis.volute} stroke={stroke} strokeWidth={4} className={blink} />
+          <rect x={px + 36.5} y={py + 52} width={35} height={4.5} fill={vis.volute} stroke={stroke} strokeWidth={4} className={blink} />
+          <rect x={px + 11} y={py + 18} width={6.5} height={23} fill={PUMP_COLORS.gray} stroke={stroke} strokeWidth={4} />
+          <rect x={px + 18.5} y={py + 23} width={31} height={14} fill={PUMP_COLORS.gray} stroke={stroke} strokeWidth={4} />
+          <rect x={px + 87} y={py + 6} width={6.5} height={22.5} fill={PUMP_COLORS.gray} stroke={stroke} strokeWidth={4} />
+          <circle cx={px + 53} cy={py + 29.5} r={12.5} fill={PUMP_COLORS.gray} stroke={stroke} strokeWidth={3} />
+          <path
+            d={`M${px + 48.5} ${py + 23} L${px + 48.5} ${py + 36} L${px + 60.5} ${py + 29.5} Z`}
+            fill={vis.center}
+            stroke={stroke}
+            strokeWidth={2}
+            className={blink}
           />
-          <path d={`M${cx - 5} ${cy - 7.5} L${cx + 8} ${cy} L${cx - 5} ${cy + 7.5} Z`} style={{ fill: run ? '#35d399' : col }} />
-          <line x1={x + 2} y1={y + 30} x2={x + 26} y2={y + 30} style={{ stroke: 'var(--mn-line-2)', strokeWidth: 2 }} />
-          <Txt x={cx} y={y + 40} s={e.n || ''} size={10} fill="var(--mn-text-2)" maxW={44} />
+          <Txt x={px + 53} y={nY} s={e.n || ''} size={10} fill="var(--mn-text-2)" maxW={96} />
           {e.s ? (
-            <Txt
-              x={cx}
-              y={y + 40 + labelLines(e.n, 10, 44) * 11.8 + 7}
-              s={e.s}
-              size={8.5}
-              fill="var(--mn-text-dim-2)"
-              maxW={44}
-            />
+            <Txt x={px + 53} y={sY} s={e.s} size={8.5} fill="var(--mn-text-dim-2)" maxW={96} />
           ) : null}
         </g>
       );
     }
 
     case 'valve': {
+      // УГО по референсу visual/ЗадвижкаКлапан: корпус из двух клиньев,
+      // ступица, шток и круг-индикатор концевика. Задвижка (vt='gate')
+      // отличается длинным штоком и малым высоким индикатором; клапан
+      // (vt='cv') — коротким штоком и крупным индикатором ниже.
       const rot = e.r ? `rotate(${e.r} ${x} ${y})` : undefined;
       const c = e.ctrl ? live.ctrl(e.ctrl) : undefined;
-      const open = e.vt === 'check';
-      const body: ReactElement[] = [
-        <path
-          key="l"
-          d={`M${x - 12} ${y - 9} L${x} ${y} L${x - 12} ${y + 9} Z`}
-          style={{ fill: 'var(--mn-fill)', stroke: 'var(--mn-line-3)', strokeWidth: 1.5 }}
-        />,
-        <path
-          key="r"
-          d={`M${x + 12} ${y - 9} L${x} ${y} L${x + 12} ${y + 9} Z`}
-          style={{ fill: open ? 'var(--mn-line-3)' : 'var(--mn-fill)', stroke: 'var(--mn-line-3)', strokeWidth: 1.5 }}
-        />,
-      ];
-      if (e.vt === 'cv') {
-        body.push(
-          <line key="stem" x1={x} y1={y} x2={x} y2={y - 18} style={{ stroke: 'var(--mn-line-3)', strokeWidth: 1.5 }} />,
-          <path key="cap" d={`M${x - 11} ${y - 18} A11 8 0 0 1 ${x + 11} ${y - 18} Z`} style={{ fill: 'var(--mn-fill-3)', stroke: 'var(--mn-accent)', strokeWidth: 1.5 }} />,
-          <rect key="flow" x={x - 11} y={y - 19.5} width={c ? 22 * c.out / 100 : 0} height={3.4} style={{ fill: 'var(--mn-accent)' }} />,
-        );
-      } else if (e.vt === 'psv') {
-        body.push(
-          <line key="stem" x1={x} y1={y} x2={x} y2={y - 15} style={{ stroke: 'var(--mn-line-3)', strokeWidth: 1.5 }} />,
-          <path key="cap" d={`M${x - 5} ${y - 15} l10 -3 l-10 -3 l10 -3`} fill="none" style={{ stroke: 'var(--mn-line-3)', strokeWidth: 1.4 }} />,
-        );
+      const isGate = e.vt === 'gate';
+      let state: ValveState;
+      if (c) {
+        state = c.out >= 99 ? 'open' : c.out <= 1 ? 'closed' : 'mid';
+      } else if (isGate) {
+        state = e.gate
+          ? live.valve(e.gate)
+          : e.st === 'НЗ' ? 'closed' : 'open';
+      } else if (e.gate) {
+        state = live.valve(e.gate);
+      } else if (e.src) {
+        const v = live.sval(e.src);
+        state = v == null ? 'mid' : v >= 99 ? 'open' : v <= 1 ? 'closed' : 'mid';
       } else {
-        body.push(
-          <line key="stem" x1={x} y1={y} x2={x} y2={y - 14} style={{ stroke: 'var(--mn-line-3)', strokeWidth: 1.5 }} />,
-          <line key="cap" x1={x - 9} y1={y - 14} x2={x + 9} y2={y - 14} style={{ stroke: 'var(--mn-line-3)', strokeWidth: 2.4 }} />,
-        );
+        state = 'mid';
       }
+      const col = state === 'fail' ? '#ff0000'
+        : state === 'open' ? '#00af50'
+          : state === 'mid' ? '#ffff00'
+            : '#bebebe';
+      const stemY = isGate ? -26 : -16;
+      const stemH = isGate ? 46 : 18;
+      const indCy = isGate ? -40 : -29.5;
+      const indR = isGate ? 14 : 16;
       return (
         <g>
-          <g transform={rot}>{body}</g>
+          <g transform={rot} className={state === 'fail' ? 'mn-alarm-flash' : undefined}>
+            <polygon
+              points={`${x - 26},${y - 20} ${x - 26},${y + 20} ${x},${y}`}
+              style={{ fill: col, stroke: '#8c8c8c', strokeWidth: 2, strokeLinejoin: 'round' }}
+            />
+            <polygon
+              points={`${x + 26},${y - 20} ${x + 26},${y + 20} ${x},${y}`}
+              style={{ fill: col, stroke: '#8c8c8c', strokeWidth: 2, strokeLinejoin: 'round' }}
+            />
+            <circle cx={x} cy={y} r={6} style={{ fill: '#a6a6a6', stroke: '#8c8c8c', strokeWidth: 1.5 }} />
+            <rect x={x - 2.5} y={y + stemY} width={5} height={stemH} style={{ fill: '#a6a6a6', stroke: '#8c8c8c', strokeWidth: 1.5 }} />
+            <circle cx={x} cy={y + indCy} r={indR} style={{ fill: col, stroke: '#8c8c8c', strokeWidth: 2 }} />
+          </g>
           {e.st ? <Tx x={x} y={y + 24} s={e.st} size={9} fill="var(--mn-amber)" /> : null}
+          {e.vt === 'gate' && !c && e.gate ? (
+            <Tx
+              x={x}
+              y={y + 24}
+              s={state === 'fail' ? 'АВАР' : state === 'open' ? 'ОТКР' : state === 'closed' ? 'ЗАКР' : 'СРЕД'}
+              size={9}
+              fill={state === 'open' ? 'var(--mn-accent)' : 'var(--mn-amber)'}
+            />
+          ) : null}
           {c ? (
             <text
               x={x}
@@ -438,7 +461,7 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
             </text>
           ) : null}
           {e.n ? (
-            <Txt x={x} y={e.st || c ? y + 36 : y + 24} s={e.n} size={8} fill="var(--mn-text-dim)" maxW={44} />
+            <Txt x={x} y={e.st || c || isGate ? y + 36 : y + 24} s={e.n} size={8} fill="var(--mn-text-dim)" maxW={44} />
           ) : null}
         </g>
       );
@@ -569,17 +592,18 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
 
 export function itemBBox(e: MnemoItem): [number, number, number, number] {
   if (e.t === 'pump') {
-    const nL = labelLines(e.n, 10, 44);
-    const sL = labelLines(e.s, 8.5, 44);
-    const bot = 40 + nL * 11.8 + (sL ? 7 + sL * 10.03 : 0) + 4;
-    return [e.x - 2, e.y - 4, 32, Math.max(60, 4 + bot)];
+    const nL = labelLines(e.n, 10, 96);
+    const sL = labelLines(e.s, 8.5, 96);
+    const h = 79 + nL * 11.8 + (sL ? 7 + sL * 10.03 : 0);
+    return [e.x - 2, e.y - 4, 100, h];
   }
   if (e.t === 'valve') {
-    const hasLbl = !!e.st || !!e.ctrl;
-    const nY = hasLbl ? 36 : 24;
+    const hasLbl = !!e.st || !!e.ctrl || e.vt === 'gate';
+    const top = e.vt === 'gate' ? 54 : 45.5;
+    const nY = hasLbl ? 58 : 46;
     const nL = labelLines(e.n, 8, 44);
     const bot = nY + nL * 9.44 + 4;
-    return [e.x - 16, e.y - 22, 32, Math.max(64, 22 + bot)];
+    return [e.x - 27, e.y - top - 2, 54, Math.max(top + 22, top + bot)];
   }
   if (e.t === 'ovpump') {
     const w = e.w || 70;

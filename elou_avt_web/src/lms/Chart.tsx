@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import { echarts } from './echarts';
 import { useTheme } from './theme';
 
 interface Props {
-  option: echarts.EChartsOption;
+  option: echarts.EChartsCoreOption;
   height?: number;
   className?: string;
 }
@@ -35,11 +35,6 @@ export function Chart({ option, height = 260, className }: Props) {
 
   return <div ref={ref} className={className} style={{ height, width: '100%' }} />;
 }
-
-export const CHART_AXIS = {
-  light: '#94a3b8',
-  dark: '#64748b',
-};
 
 export function axisColors(theme: 'dark' | 'light') {
   const axis = theme === 'light' ? '#94a3b8' : '#64748b';

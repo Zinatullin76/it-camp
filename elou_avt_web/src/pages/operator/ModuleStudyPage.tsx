@@ -10,7 +10,7 @@ import type {
   QuestionKind,
   TestConfig,
 } from '../../types';
-import { MnemoPanel } from '../../mnemo/MnemoPanel';
+import ScadaScheme from '../../scada/ScadaScheme';
 import { useSimulation } from '../../lms/sim';
 import {
   Bar,
@@ -86,7 +86,7 @@ function PracticeFrame({ moduleId, onDone }: {
   };
 
   return (
-    <div className="hmi-scope practice-frame">
+    <div className="practice-frame">
       <div className="practice-bar">
         <span className="practice-bar-title">Практика по модулю</span>
         {sessionId && <span className="muted mono">сессия {sessionId.slice(0, 12)}</span>}
@@ -109,12 +109,9 @@ function PracticeFrame({ moduleId, onDone }: {
         </div>
       ) : (
         <div className="mnemo-wrap">
-          <MnemoPanel
+          <ScadaScheme
             live={sim.live}
-            refresh={sim.refresh}
-            history={sim.history}
-            user={user?.username ?? '—'}
-            connected={sim.connected}
+            user={user?.username}
           />
         </div>
       )}

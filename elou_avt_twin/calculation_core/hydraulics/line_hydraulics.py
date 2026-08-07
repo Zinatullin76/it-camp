@@ -163,6 +163,7 @@ def solve_branched_network(
                         {"type": "sink",  "sink_p": pressure [Pa]}
                         {"type": "valve", "k": resistance, "closed": bool}
                         {"type": "pump",  "head": Callable[[float], float] | None}
+                        {"type": "res",   "k": resistance, "head": static term [Pa]}
                         {"type": "pass"}
     children      : node_id -> list of child node ids (sinks included).
     root          : the source node id.
@@ -214,6 +215,23 @@ def solve_branched_network(
                 return sum(subtree_flow(c, p_in + head(q)) for c in kids) - q
 
             return bisection_root(residual_pump, 0.0, 1.0)
+        if ntype == "res":
+            # Pipe / equipment resistance element: quadratic drop k·q^2 plus a
+            # constant static-head term (ТЗ sections 15-17).
+            k = info.get("k", 0.0)
+            head = info.get("head", 0.0)
+            sink_kids = [c for c in kids if nodes[c]["type"] == "sink"]
+            if sink_kids:
+                p_pin = nodes[sink_kids[0]]["sink_p"]
+                if k > 0.0:
+                    return math.sqrt(max(0.0, (p_in + head - p_pin) / k))
+                return 0.0
+
+            def residual_res(q: float) -> float:
+                p_out = p_in + head - k * q * q
+                return sum(subtree_flow(c, p_out) for c in kids) - q
+
+            return bisection_root(residual_res, 0.0, 1.0)
         # Pass-through: the total flow is the sum of the children flows, which
         # do not depend on this node's own flow.
         return sum(subtree_flow(c, p_in) for c in kids)
@@ -304,6 +322,15 @@ def solve_branched_network(
             head = info.get("head") or (lambda qq: 0.0)
             p_out = p_in + head(q)
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
+        elif ntype == "res":
+            k = info.get("k", 0.0)
+            head = info.get("head", 0.0)
+            if q <= ZERO_FLOW:
+                result[nid] = {"flow": 0.0, "p_in": p_in, "p_out": max_sink_p(nid)}
+                walk_isolated(nid)
+                return
+            p_out = p_in + head - k * q * q
+            result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
         else:
             p_out = p_in
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_in}
@@ -316,9 +343,10 @@ def solve_branched_network(
                 # A sink fed directly through this node: demand is the flow the
                 # node's own resistance would deliver to that sink pressure.
                 k = info.get("k", 0.0)
-                if ntype == "valve" and k > 0.0:
-                    return math.sqrt(max(0.0, (p - nodes[c]["sink_p"]) / k))
-                return max(1.0, (p - nodes[c]["sink_p"]) / 1e5)
+                head = info.get("head", 0.0)
+                if ntype in ("valve", "res") and k > 0.0:
+                    return math.sqrt(max(0.0, (p + head - nodes[c]["sink_p"]) / k))
+                return max(1.0, (p + head - nodes[c]["sink_p"]) / 1e5)
             return subtree_flow(c, p)
 
         def demand(p: float) -> float:

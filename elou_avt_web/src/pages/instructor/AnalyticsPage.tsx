@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { EChartsOption } from 'echarts';
+import type { EChartsCoreOption } from '../../lms/echarts';
 import { api } from '../../api';
 import type { LmsAnalytics } from '../../types';
 import { useTheme } from '../../lms/theme';
@@ -17,7 +17,7 @@ export default function AnalyticsPage() {
     splitLine: { lineStyle: { color: c.split } },
   };
 
-  const barCommon: EChartsOption = useMemo(() => ({
+  const barCommon: EChartsCoreOption = useMemo(() => ({
     textStyle: { color: c.label },
     tooltip: { trigger: 'axis', backgroundColor: 'var(--panel-2)', borderColor: 'var(--border)', textStyle: { color: 'var(--text)' } },
     grid: { left: 10, right: 16, top: 24, bottom: 6, containLabel: true },
@@ -29,7 +29,7 @@ export default function AnalyticsPage() {
 
   const a = data;
 
-  const groupRating: EChartsOption = {
+  const groupRating: EChartsCoreOption = {
     ...barCommon,
     xAxis: { type: 'value', ...baseAxis },
     yAxis: { type: 'category', data: a.group_rating.map((g) => g.group_name), ...baseAxis },
@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
     ],
   };
 
-  const frequentErrors: EChartsOption = {
+  const frequentErrors: EChartsCoreOption = {
     ...barCommon,
     xAxis: { type: 'category', data: a.frequent_errors.map((e) => e.rule_error_type), ...baseAxis, axisLabel: { ...baseAxis.axisLabel, rotate: 24, interval: 0, fontSize: 9 } },
     yAxis: { type: 'value', ...baseAxis },
@@ -58,7 +58,7 @@ export default function AnalyticsPage() {
     ],
   };
 
-  const competencyDistribution: EChartsOption = {
+  const competencyDistribution: EChartsCoreOption = {
     ...barCommon,
     xAxis: { type: 'category', data: a.competency_distribution.map((x) => x.title), ...baseAxis, axisLabel: { ...baseAxis.axisLabel, rotate: 20, interval: 0, fontSize: 9 } },
     yAxis: { type: 'value', max: 100, ...baseAxis },
@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
     ],
   };
 
-  const dynamics: EChartsOption = {
+  const dynamics: EChartsCoreOption = {
     ...barCommon,
     xAxis: { type: 'category', data: a.learning_dynamics.map((d) => d.date), ...baseAxis },
     yAxis: { type: 'value', min: 0, max: 100, ...baseAxis },
@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
     ],
   };
 
-  const statusPie: EChartsOption = {
+  const statusPie: EChartsCoreOption = {
     textStyle: { color: c.label },
     tooltip: { trigger: 'item', backgroundColor: 'var(--panel-2)', borderColor: 'var(--border)', textStyle: { color: 'var(--text)' } },
     legend: { bottom: 0, textStyle: { color: c.label }, type: 'scroll' },

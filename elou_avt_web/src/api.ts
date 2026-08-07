@@ -1,12 +1,10 @@
 import type {
-  ActionLogEntry,
   ApiState,
   AssessmentView,
   ControllerSnap,
   EquipmentItem,
   EquipmentSpec,
   HistoryResponse,
-  InstructorOperator,
   Lesson,
   LessonBlock,
   ModuleAuthoringView,
@@ -15,11 +13,9 @@ import type {
   Question,
   ScenarioDefinition,
   ScenarioStatus,
-  ScenarioStatusStep,
   Scheme,
   SchemeNodeData,
   SchemeEdgeData,
-  ScadaLogEntry,
   ScadaLogEventType,
   LmsAnalytics,
   LmsCourse,
@@ -29,7 +25,6 @@ import type {
   LmsGroupView,
   LmsHistoryRow,
   LmsMonitorOperator,
-  LmsNotification,
   LmsPracticeTask,
   LmsProfile,
   LmsScenario,
@@ -119,7 +114,6 @@ export const api = {
   getState: () => json<ApiState>('/state'),
   getHistory: (limit = 600) => json<HistoryResponse>(`/history?limit=${limit}`),
   getScheme: () => json<Scheme>('/scheme'),
-  getTemplates: () => json<{ types: { type: string; label: string; category: string }[] }>('/scheme/templates'),
 
   listSchemes: () => json<{ current: string; schemes: string[] }>('/schemes'),
 
@@ -188,18 +182,6 @@ export const api = {
       method: 'POST',
     }),
 
-  listTrainingSessions: () =>
-    json<{ id: string; scenario_id: string; status: string; performance_score?: number | null }[]>('/training/sessions'),
-
-  getTrainingSession: (sessionId: string) =>
-    json<{
-      id: string;
-      actions: unknown[];
-      snapshots: unknown[];
-      alarms: unknown[];
-      error_events: unknown[];
-    }>(`/training/sessions/${sessionId}`),
-
   resetScenario: () => json<ApiState>('/scenario/reset', { method: 'POST' }),
 
   step: () => json<ApiState>('/scenario/step', { method: 'POST' }),
@@ -222,18 +204,11 @@ export const api = {
   lmsPracticeTasks: (includeExam = true) =>
     json<LmsPracticeTask[]>(`/lms/practice-tasks?include_exam=${includeExam}`),
   lmsPracticeTask: (id: number) => json<LmsPracticeTask>(`/lms/practice-tasks/${id}`),
+  lmsPracticeCatalog: () => json<LmsPracticeTask[]>('/lms/practice-library'),
+  lmsPracticeCatalogTask: (id: number) => json<LmsPracticeTask>(`/lms/practice-library/${id}`),
   lmsScenarios: () => json<LmsScenario[]>('/lms/scenarios'),
-  lmsNotifications: () => json<{ items: LmsNotification[]; unread: number }>('/lms/notifications'),
-  lmsNotificationsRead: () => json<{ ok: boolean }>('/lms/notifications/read', { method: 'POST' }),
-  lmsModuleStart: (moduleId: number) =>
-    json<{ ok: boolean }>(`/lms/modules/${moduleId}/start`, { method: 'POST' }),
   lmsModuleTheory: (moduleId: number) =>
     json<{ ok: boolean }>(`/lms/modules/${moduleId}/theory`, { method: 'POST' }),
-  lmsModuleComplete: (moduleId: number, score: number, sessionId?: string) =>
-    json<{ ok: boolean }>(`/lms/modules/${moduleId}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({ score, session_id: sessionId ?? null }),
-    }),
 
   // ---- LMS: инструктор ----
   lmsGroups: () => json<LmsGroup[]>('/lms/groups'),
@@ -243,9 +218,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, description, course_id: courseId }),
     }),
-  lmsUpdateGroup: (id: number, patch: { name?: string; description?: string; course_id?: number | null }) =>
-    json<LmsGroup>(`/lms/groups/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
-  lmsDeleteGroup: (id: number) => json<{ ok: boolean }>(`/lms/groups/${id}`, { method: 'DELETE' }),
   lmsSetGroupMembers: (id: number, userIds: number[]) =>
     json<{ ok: boolean }>(`/lms/groups/${id}/members`, {
       method: 'PUT',
@@ -308,7 +280,6 @@ export const api = {
   // ---- LMS: конструктор (авторство контента) ----
   lmsAuthoringModule: (id: number) => json<ModuleAuthoringView>(`/lms/authoring/modules/${id}`),
   lmsAuthoringEquipment: () => json<EquipmentItem[]>('/lms/authoring/equipment'),
-  lmsScenarioStatusFlow: (id: number) => json<ScenarioStatusStep[]>(`/lms/authoring/scenario-status/${id}`),
   lmsPublishModule: (id: number, published = true) =>
     json<ModuleAuthoringView>(`/lms/modules/${id}/publish`, {
       method: 'POST',
@@ -418,22 +389,6 @@ export const api = {
   lmsPracticeFinish: (sessionId: string) =>
     json<AssessmentView>(`/lms/practice/${sessionId}/finish`, { method: 'POST' }),
 
-  lmsMyAssessments: (limit = 100) => json<AssessmentView[]>(`/lms/assessments?limit=${limit}`),
-  lmsMyAssessment: (id: number) => json<AssessmentView>(`/lms/assessments/${id}`),
-
-  // ---- LMS: инструктор (контент) ----
-  lmsInstructorOperators: () => json<InstructorOperator[]>('/lms/instructor/operators'),
-  lmsInstructorAssessments: (limit = 300) => json<AssessmentView[]>(`/lms/instructor/assessments?limit=${limit}`),
-  lmsInstructorAssessment: (id: number) => json<AssessmentView>(`/lms/instructor/assessments/${id}`),
-  lmsActionLog: (params?: { username?: string; object_id?: string; session_id?: string; limit?: number }) => {
-    const q = new URLSearchParams();
-    if (params?.username) q.set('username', params.username);
-    if (params?.object_id) q.set('object_id', params.object_id);
-    if (params?.session_id) q.set('session_id', params.session_id);
-    q.set('limit', String(params?.limit ?? 500));
-    return json<ActionLogEntry[]>(`/lms/action-log?${q.toString()}`);
-  },
-
   // ---- SCADA: журнал кликов и времени в окне ----
   logScadaEvent: (ev: { event_type: ScadaLogEventType; object_id?: string; object_name?: string; duration_s?: number | null }) =>
     json<{ ok: boolean }>('/lms/scada-log', {
@@ -446,15 +401,6 @@ export const api = {
         duration_s: ev.duration_s ?? null,
       }),
     }),
-  scadaLog: (params?: { username?: string; object_id?: string; event_type?: string; session_id?: string; limit?: number }) => {
-    const q = new URLSearchParams();
-    if (params?.username) q.set('username', params.username);
-    if (params?.object_id) q.set('object_id', params.object_id);
-    if (params?.event_type) q.set('event_type', params.event_type);
-    if (params?.session_id) q.set('session_id', params.session_id);
-    q.set('limit', String(params?.limit ?? 500));
-    return json<ScadaLogEntry[]>(`/lms/scada-log?${q.toString()}`);
-  },
 };
 
 export function connectWs(onState: (s: ApiState) => void): () => void {

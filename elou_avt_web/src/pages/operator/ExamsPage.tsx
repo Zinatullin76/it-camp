@@ -5,7 +5,7 @@ import { TaskCards } from '../../lms/tasks';
 
 export default function ExamsPage() {
   const { data, error, loading, reload } = useAsync<LmsPracticeTask[]>(
-    () => api.lmsPracticeTasks(true),
+    () => api.lmsPracticeCatalog(),
     [],
   );
 

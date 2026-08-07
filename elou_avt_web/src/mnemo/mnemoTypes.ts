@@ -12,6 +12,7 @@ export interface MnemoItem {
   ctrl?: string;
   tag?: string;
   src?: string;
+  gate?: string;
   u?: string;
   sc?: number;
   fs?: number;

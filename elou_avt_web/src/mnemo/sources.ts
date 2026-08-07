@@ -59,17 +59,55 @@ const PUMP_NODE: Record<string, string> = {
 
 export type RunState = 'run' | 'off' | 'fail' | 'unknown';
 
-/** Pump parameters shown in the faceplate and selectable as on-scheme readout boxes. */
-export const PUMP_PARAMS: [string, string][] = [
-  ['pressure_bar', 'Давление'],
-  ['temperature_c', 'Температура'],
-  ['flow_kg_s', 'Расход'],
-  ['level_m', 'Уровень'],
-  ['current_a', 'Ток'],
-  ['speed_rpm', 'Обороты'],
-];
+export type ValveState = 'open' | 'closed' | 'mid' | 'fail';
 
-export const PARAM_LABEL: Record<string, string> = Object.fromEntries(PUMP_PARAMS);
+/** Палитра УГО насосного агрегата (приказ № 251-П, приложение № 1, табл. 11–12). */
+export const PUMP_COLORS = {
+  green: '#00AF50',
+  gray: '#BEBEBE',
+  yellow: '#FFFF00',
+  red: '#FF0000',
+  brown: '#AA5500',
+  cyan: '#00FFFF',
+} as const;
+
+/** Класс CSS-анимации мигания: пара цветов, частота 1 Гц, скачок steps(1, end). */
+export type PumpBlink = 'green-gray' | 'gray-green' | 'red-green' | 'red-gray';
+
+export interface PumpVisual {
+  volute: string;
+  center: string;
+  blink?: PumpBlink;
+}
+
+/** Визуал насоса по эталону visual/pump: состояния 01–09. */
+export const PUMP_SPEC: Record<string, PumpVisual> = {
+  '01': { volute: PUMP_COLORS.green, center: PUMP_COLORS.green },
+  '02': { volute: PUMP_COLORS.gray, center: PUMP_COLORS.gray },
+  '03': { volute: PUMP_COLORS.gray, center: PUMP_COLORS.yellow },
+  '04': { volute: PUMP_COLORS.gray, center: PUMP_COLORS.gray, blink: 'green-gray' },
+  '05': { volute: PUMP_COLORS.green, center: PUMP_COLORS.green, blink: 'gray-green' },
+  '06': { volute: PUMP_COLORS.red, center: PUMP_COLORS.red, blink: 'red-green' },
+  '07': { volute: PUMP_COLORS.red, center: PUMP_COLORS.red, blink: 'red-gray' },
+  '08': { volute: PUMP_COLORS.brown, center: PUMP_COLORS.brown },
+  '09': { volute: PUMP_COLORS.cyan, center: PUMP_COLORS.cyan },
+};
+
+/**
+ * Бэкенд отдаёт только running/failed, поэтому из 9 состояний доступны
+ * 01 Запущен (run), 02 Остановлен (off) и 07 Авария (fail); остальные
+ * зарезервированы под данные переходов/блокировок/ремонта/имитации.
+ */
+export function pumpVisual(st: RunState): PumpVisual {
+  switch (st) {
+    case 'run':
+      return PUMP_SPEC['01'];
+    case 'fail':
+      return PUMP_SPEC['07'];
+    default:
+      return PUMP_SPEC['02'];
+  }
+}
 
 /** S:* flow keys -> (node id, param key). */
 const FLOW_SRC: Record<string, [string, string]> = {
@@ -91,6 +129,8 @@ export interface MnemoLive {
   flowColor(fl: string): string;
   run(key: string): RunState;
   equip(label: string): string | undefined;
+  gate(key: string): boolean;
+  valve(key: string): ValveState;
   param(label: string, key: string): number | null;
   fireOn: boolean;
   edVolt: boolean;
@@ -182,6 +222,17 @@ export function buildLive(state: ApiState | null): MnemoLive {
     return tele(nid, key);
   };
 
+  const valveState = (key: string): ValveState => {
+    if (!state) return 'mid';
+    const eq = state.equipment?.[key];
+    if (!eq) return 'mid';
+    if (eq.failed) return 'fail';
+    if (eq.type === 'gate_valve') return eq.params?.open ? 'open' : 'closed';
+    const pos = eq.params?.position;
+    if (typeof pos !== 'number' || !Number.isFinite(pos)) return 'mid';
+    return pos >= 0.99 ? 'open' : pos <= 0.01 ? 'closed' : 'mid';
+  };
+
   return {
     ctrl: (tag) => state?.controllers?.[tag],
     sval,
@@ -190,6 +241,11 @@ export function buildLive(state: ApiState | null): MnemoLive {
     flowColor: (fl) => data.flows[fl]?.c ?? '#888',
     run: runState,
     equip: (label) => PUMP_NODE[label],
+    gate: (key) => {
+      const eq = state?.equipment?.[key];
+      return typeof eq?.params?.open === 'boolean' ? eq.params.open : true;
+    },
+    valve: valveState,
     param,
     fireOn: !!(state && fuel > 0.15),
     edVolt: !!(state && (state.equipment?.['elou_1']?.running ?? true)),
@@ -201,10 +257,4 @@ export function fmtVal(v: number | null): string {
   if (v == null || !Number.isFinite(v)) return '--';
   const a = Math.abs(v);
   return v.toFixed(a < 10 ? 2 : a < 100 ? 1 : 0);
-}
-
-export function fmtSimTime(t: number): string {
-  const m = Math.floor(t / 60);
-  const s = Math.floor(t % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
 }

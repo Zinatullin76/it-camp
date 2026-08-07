@@ -1,6 +1,7 @@
 from .base_equipment import BaseEquipment, EquipmentState
 from .pump import Pump
 from .valve import Valve
+from .gate_valve import GateValve
 from .heater import Heater
 from .heat_exchanger import HeatExchanger
 from .distillation_column import DistillationColumn
@@ -11,6 +12,7 @@ __all__ = [
     "BaseEquipment", "EquipmentState",
     "Pump",
     "Valve",
+    "GateValve",
     "Heater",
     "HeatExchanger",
     "DistillationColumn",

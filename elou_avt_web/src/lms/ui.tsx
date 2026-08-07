@@ -199,26 +199,6 @@ export function Err({ text }: { text: string }) {
   return <div className="login-error">{text}</div>;
 }
 
-export function Tabs({ items, value, onChange }: {
-  items: { id: string; label: string }[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  return (
-    <div className="tabs">
-      {items.map((t) => (
-        <button
-          key={t.id}
-          className={`tab${t.id === value ? ' on' : ''}`}
-          onClick={() => onChange(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // ------------------------------------------------------------ async hook ---
 
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {

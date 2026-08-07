@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import type { LmsPracticeTask } from '../types';
-import { MnemoPanel } from '../mnemo/MnemoPanel';
+import ScadaScheme from '../scada/ScadaScheme';
 import { useSimulation } from '../lms/sim';
-import { Err, Loader, notifyToast } from '../lms/ui';
+import { Err, Loader } from '../lms/ui';
 
 export default function PracticeRunner() {
   const { taskId } = useParams<{ taskId: string }>();
-  const [params] = useSearchParams();
-  const moduleId = params.get('module');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -25,16 +23,15 @@ export default function PracticeRunner() {
     if (!taskId) return;
     setError('');
     try {
-      const t = await api.lmsPracticeTask(Number(taskId));
+      const t = await api.lmsPracticeCatalogTask(Number(taskId));
       setTask(t);
-      const session = await api.startTrainingSession(t.scenario_id, user?.username ?? 'operator');
+      const session = await api.lmsPracticeStart(t.module_id ?? 0);
       setSessionId(session.session_id);
-      await api.startScenario(t.scenario_id);
       await sim.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [taskId, user, sim]);
+  }, [taskId, sim]);
 
   useEffect(() => {
     if (started.current) return;
@@ -44,17 +41,11 @@ export default function PracticeRunner() {
   }, []);
 
   const finish = async () => {
+    if (!sessionId) return;
     setBusy(true);
     try {
-      const s = await api.finishTrainingSession();
-      if (moduleId && s.performance_score != null) {
-        try {
-          await api.lmsModuleComplete(Number(moduleId), s.performance_score, s.session_id);
-        } catch {
-          /* модуль без привязки — не критично */
-        }
-      }
-      navigate(`/debrief/${s.session_id}`, { replace: true });
+      const a = await api.lmsPracticeFinish(sessionId);
+      navigate(`/debrief/${a.session_id ?? sessionId}`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -62,16 +53,11 @@ export default function PracticeRunner() {
   };
 
   const abort = async () => {
-    try {
-      await api.finishTrainingSession();
-    } catch {
-      /* нет активной сессии — просто выход */
-    }
     navigate('/practice', { replace: true });
   };
 
   return (
-    <div className="hmi-scope practice-frame">
+    <div className="practice-frame">
       <div className="practice-bar">
         <span className="practice-bar-title">{task?.title ?? 'Практическое задание'}</span>
         {task?.scenario_name && <span className="muted">{task.scenario_name}</span>}
@@ -103,12 +89,9 @@ export default function PracticeRunner() {
         <Loader text="Загрузка задания и запуск сценария…" />
       ) : (
         <div className="mnemo-wrap">
-          <MnemoPanel
+          <ScadaScheme
             live={sim.live}
-            refresh={sim.refresh}
-            history={sim.history}
-            user={user?.username ?? '—'}
-            connected={sim.connected}
+            user={user?.username}
           />
         </div>
       )}

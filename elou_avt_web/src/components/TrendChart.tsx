@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import { echarts } from '../lms/echarts';
 import type { HistoryResponse } from '../types';
 
 export const SERIES_META: Record<string, { label: string; unit: string }> = {
