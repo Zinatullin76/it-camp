@@ -31,6 +31,8 @@ const LV_NODE: Record<string, string> = {
 
 /** S:* temperature keys -> (node id, param key). */
 const TEMP_SRC: Record<string, [string, string]> = {
+  T_K1top: ['column_K1', 'top_temp_c'],
+  T_K1bot: ['column_K1', 'bottom_temp_c'],
   T_E1: ['sep_E1', 'temperature_c'],
   T_K2top: ['column_K2', 'top_temp_c'],
   T_K2bot: ['column_K2', 'bottom_temp_c'],
@@ -43,6 +45,31 @@ const TEMP_SRC: Record<string, [string, string]> = {
   Tp1: ['furnace_P1', 'outlet_temp_c'],
   Tp3: ['furnace_P3', 'outlet_temp_c'],
 };
+
+/** Mnemonic pump label -> backend pump node id (pump HMI state colouring). */
+const PUMP_NODE: Record<string, string> = {
+  'Н-1': 'pump_H1',
+  'Н-2': 'pump_H2',
+  'Н-4': 'pump_H4',
+  'Н-6': 'pump_H6',
+  'Н-20': 'pump_H20',
+  'Н-58': 'pump_H58',
+  'P-101A': 'pump_H1',
+};
+
+export type RunState = 'run' | 'off' | 'fail' | 'unknown';
+
+/** Pump parameters shown in the faceplate and selectable as on-scheme readout boxes. */
+export const PUMP_PARAMS: [string, string][] = [
+  ['pressure_bar', 'Давление'],
+  ['temperature_c', 'Температура'],
+  ['flow_kg_s', 'Расход'],
+  ['level_m', 'Уровень'],
+  ['current_a', 'Ток'],
+  ['speed_rpm', 'Обороты'],
+];
+
+export const PARAM_LABEL: Record<string, string> = Object.fromEntries(PUMP_PARAMS);
 
 /** S:* flow keys -> (node id, param key). */
 const FLOW_SRC: Record<string, [string, string]> = {
@@ -62,6 +89,9 @@ export interface MnemoLive {
   lvl(key: string): number;
   lw(key: string): number;
   flowColor(fl: string): string;
+  run(key: string): RunState;
+  equip(label: string): string | undefined;
+  param(label: string, key: string): number | null;
   fireOn: boolean;
   edVolt: boolean;
 }
@@ -138,12 +168,29 @@ export function buildLive(state: ApiState | null): MnemoLive {
     }
   }
 
+  const runState = (key: string): RunState => {
+    const nid = PUMP_NODE[key];
+    if (!nid || !state) return 'unknown';
+    const es = state.equipment?.[nid] ?? state.equipment_states?.[nid];
+    if (!es) return 'unknown';
+    if (es.failed) return 'fail';
+    return es.running ? 'run' : 'off';
+  };
+
+  const param = (label: string, key: string): number | null => {
+    const nid = PUMP_NODE[label] ?? label;
+    return tele(nid, key);
+  };
+
   return {
     ctrl: (tag) => state?.controllers?.[tag],
     sval,
     lvl: levelPct,
     lw: (key) => levelPct(key),
     flowColor: (fl) => data.flows[fl]?.c ?? '#888',
+    run: runState,
+    equip: (label) => PUMP_NODE[label],
+    param,
     fireOn: !!(state && fuel > 0.15),
     edVolt: !!(state && (state.equipment?.['elou_1']?.running ?? true)),
   };

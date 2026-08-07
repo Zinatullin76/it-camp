@@ -13,6 +13,9 @@ export interface MnemoItem {
   tag?: string;
   src?: string;
   u?: string;
+  sc?: number;
+  fs?: number;
+  fc?: string;
   hi?: number;
   fl?: string;
   lv?: string;

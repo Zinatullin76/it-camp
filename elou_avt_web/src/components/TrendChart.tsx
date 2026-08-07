@@ -16,9 +16,10 @@ export const SERIES_META: Record<string, { label: string; unit: string }> = {
 interface Props {
   history: HistoryResponse | null;
   param: string;
+  height?: number;
 }
 
-export default function TrendChart({ history, param }: Props) {
+export default function TrendChart({ history, param, height = 190 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
 
@@ -79,7 +80,7 @@ export default function TrendChart({ history, param }: Props) {
   return (
     <div
       ref={ref}
-      style={{ width: '100%', height: 190 }}
+      style={{ width: '100%', height }}
       data-param={param}
     />
   );

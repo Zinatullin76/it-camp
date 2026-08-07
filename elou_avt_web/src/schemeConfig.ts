@@ -14,6 +14,36 @@ export const PALETTE: PaletteItem[] = [
 
 export const TYPE_COLORS: Record<string, string> = Object.fromEntries(PALETTE.map((p) => [p.type, p.color]));
 
+// Human-readable labels/units for telemetry params (used in Inspector + on-scheme tags).
+export const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
+  flow_kg_s: { label: 'Расход', unit: 'кг/с' },
+  in_flow: { label: 'Расход вход', unit: 'кг/с' },
+  out_flow: { label: 'Расход выход', unit: 'кг/с' },
+  power_w: { label: 'Мощность', unit: 'кВт' },
+  pressure_bar: { label: 'Давление', unit: 'бар' },
+  pressure_in_bar: { label: 'Давление вход', unit: 'бар' },
+  pressure_out_bar: { label: 'Давление выход', unit: 'бар' },
+  temperature_c: { label: 'Температура', unit: '°C' },
+  outlet_temp_c: { label: 'Температура выхода', unit: '°C' },
+  top_temp_c: { label: 'Температура верха', unit: '°C' },
+  bottom_temp_c: { label: 'Температура низа', unit: '°C' },
+  t_cold_in_c: { label: 'Холодный вход', unit: '°C' },
+  t_cold_out_c: { label: 'Холодный выход', unit: '°C' },
+  t_hot_in_c: { label: 'Горячий вход', unit: '°C' },
+  t_hot_out_c: { label: 'Горячий выход', unit: '°C' },
+  position: { label: 'Открытие', unit: '%' },
+  duty_w: { label: 'Тепловая нагрузка', unit: 'МВт' },
+  fuel_flow: { label: 'Расход топлива', unit: 'кг/с' },
+  distillate_flow: { label: 'Дистиллят', unit: 'кг/с' },
+  bottoms_flow: { label: 'Кубовый остаток', unit: 'кг/с' },
+  level_m: { label: 'Уровень', unit: 'м' },
+  level_setpoint_m: { label: 'Уставка уровня', unit: 'м' },
+  volume_m3: { label: 'Объём аппарата', unit: 'м³' },
+  efficiency: { label: 'КПД', unit: '%' },
+  speed_rpm: { label: 'Частота вращения', unit: 'об/мин' },
+  converged: { label: 'Сходимость', unit: '' },
+};
+
 // Default parameters for a freshly created node.
 export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   source: { flow_kg_s: 100, temperature_c: 25, pressure_bar: 1.01325 },

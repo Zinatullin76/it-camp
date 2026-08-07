@@ -161,6 +161,28 @@ class AlarmSystem:
     def acknowledge_alarm(self, parameter: str) -> None:
         self._active_alarms.pop(parameter, None)
 
+    def register_custom_alarm(self, timestamp: float, parameter: str,
+                              actual_value: float = 1.0, threshold: float = 0.0,
+                              severity: str = "HIGH", description: str = "") -> None:
+        """Raise an alarm directly (scenario-driven event, «Обуч.txt» §16)."""
+        from models.base import Severity
+        try:
+            sev = Severity(severity.upper())
+        except ValueError:
+            sev = Severity.HIGH
+        self._alarm_counter += 1
+        alarm = Alarm(
+            id=f"ALM-SCENARIO-{parameter.upper()}-{self._alarm_counter:04d}",
+            timestamp=timestamp,
+            parameter=parameter,
+            actual_value=actual_value,
+            threshold=threshold,
+            severity=sev,
+            description=description,
+        )
+        self._active_alarms[parameter] = alarm
+        self._alarm_history.append(alarm)
+
     def reset(self) -> None:
         self._active_alarms.clear()
         self._alarm_history.clear()

@@ -17,13 +17,13 @@ import '@xyflow/react/dist/style.css';
 
 import { api, connectWs } from './api';
 import type { ApiState, HistoryResponse, Scheme, SchemeNodeData, SchemeEdgeData } from './types';
+import { useAuth } from './auth';
 import { PALETTE, createNode, nodeSize } from './schemeConfig';
 import { mnemoLayout } from './layout';
 import EquipmentNodeComponent from './nodes/EquipmentNode';
 import type { EquipmentNode, EquipmentNodeData } from './nodes/EquipmentNode';
 import Inspector from './components/Inspector';
 import TrendChart, { SERIES_META } from './components/TrendChart';
-import Dashboard from './components/Dashboard';
 import { MnemoPanel } from './mnemo/MnemoPanel';
 
 const nodeTypes = { equipment: EquipmentNodeComponent };
@@ -82,6 +82,9 @@ function toRfEdges(scheme: Scheme): Edge[] {
 }
 
 function AppInner() {
+  const { user, hasPermission } = useAuth();
+  const canEditScheme = hasPermission('manage_scheme');
+  const canManageTwin = hasPermission('manage_twin');
   const [nodes, setNodes, onNodesChange] = useNodesState<EquipmentNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [live, setLive] = useState<ApiState | null>(null);
@@ -91,7 +94,8 @@ function AppInner() {
   const [trendParam, setTrendParam] = useState('column_pressure_bar');
   const [schemes, setSchemes] = useState<string[]>([]);
   const [currentScheme, setCurrentScheme] = useState('default');
-  const [view, setView] = useState<'scheme' | 'dashboard' | 'mnemo'>('scheme');
+  const [scenario, setScenario] = useState('PUMP_FAILURE_001');
+  const [view, setView] = useState<'scada' | 'scheme'>('scada');
   const [msg, setMsg] = useState('');
   const { screenToFlowPosition, fitView } = useReactFlow();
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -262,6 +266,27 @@ function AppInner() {
     notify('Схема загружена с бекенда');
   }, [setNodes, setEdges, notify, fitView]);
 
+  const runScenario = useCallback(async () => {
+    const label = SCENARIOS.find((s) => s.id === scenario)?.label ?? scenario;
+    try {
+      const session = await api.startTrainingSession(scenario, user?.username ?? 'demo');
+      const state = await api.startScenario(scenario);
+      applyTelemetry(state);
+      notify(`«${label}» запущен · сессия ${session.session_id} (логируется)`);
+    } catch (e) {
+      notify(`Не удалось запустить сценарий: ${(e as Error).message}`);
+    }
+  }, [scenario, user, applyTelemetry, notify]);
+
+  const finishScenario = useCallback(async () => {
+    try {
+      const s = await api.finishTrainingSession();
+      notify(`Тренировка завершена · сессия ${s.session_id} · счёт ${s.performance_score ?? '—'}`);
+    } catch (e) {
+      notify(`Нет активной сессии: ${(e as Error).message}`);
+    }
+  }, [notify]);
+
   const reLayout = useCallback(() => {
     const layout = mnemoLayout(
       nodes.map((n) => ({
@@ -372,82 +397,107 @@ function AppInner() {
   const selectedNode = selectedId ? (nodes.find((n) => n.id === selectedId) ?? null) : null;
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="brand">
-          <div className="logo">A</div>
-          <div>
-            <div className="brand-title">ЭЛОУ-АВТ · DIGITAL TWIN</div>
-            <div className="brand-sub">Интерактивная технологическая схема</div>
+    <div className="app-page">
+      {view === 'scheme' ? (
+        <header className="header">
+          <div className="brand">
+            <div className="logo">A</div>
+            <div>
+              <div className="brand-title">ЭЛОУ-АВТ · DIGITAL TWIN</div>
+              <div className="brand-sub">Редактор P&ID-схемы</div>
+            </div>
           </div>
-        </div>
-        <div className="header-right">
-          <div className="view-toggle">
-            <button className={`btn ${view === 'scheme' ? 'btn-active' : ''}`} onClick={() => setView('scheme')}>📐 Схема</button>
-            <button className={`btn ${view === 'mnemo' ? 'btn-active' : ''}`} onClick={() => setView('mnemo')}>🗺 Мнемосхема</button>
-            <button className={`btn ${view === 'dashboard' ? 'btn-active' : ''}`} onClick={() => setView('dashboard')}>📊 Дашборд</button>
+          <div className="header-right">
+            <span className={`chip ${connected ? 'chip-ok' : 'chip-bad'}`}>
+              <span className="dot" /> {connected ? 'LIVE · СВЯЗЬ ЕСТЬ' : 'ОТКЛЮЧЕНО'}
+            </span>
+            <span className="chip chip-info">t = {(live?.simulation_time ?? 0).toFixed(0)} с</span>
+            <span className={`chip ${(live?.alarms?.length ?? 0) > 0 ? 'chip-alarm' : 'chip-ok'}`}>
+              ⚠ {(live?.alarms?.length ?? 0)} аварий
+            </span>
           </div>
-          <span className={`chip ${connected ? 'chip-ok' : 'chip-bad'}`}>
-            <span className="dot" /> {connected ? 'LIVE · СВЯЗЬ ЕСТЬ' : 'ОТКЛЮЧЕНО'}
-          </span>
-          <span className="chip chip-info">t = {(live?.simulation_time ?? 0).toFixed(0)} с</span>
-          <span className={`chip ${(live?.alarms?.length ?? 0) > 0 ? 'chip-alarm' : 'chip-ok'}`}>
-            ⚠ {(live?.alarms?.length ?? 0)} аварий
-          </span>
-        </div>
-      </header>
+        </header>
+      ) : null}
 
-      {view === 'mnemo' ? (
+      <div className="command-bar">
+        {canEditScheme && (
+          <button
+            className={`btn ${view === 'scheme' ? 'btn-active' : ''}`}
+            onClick={() => setView(view === 'scheme' ? 'scada' : 'scheme')}
+            title={view === 'scheme' ? 'Вернуться к SCADA' : 'Редактирование P&ID-схемы'}
+          >
+            {view === 'scheme' ? '🗺 К SCADA' : '📐 Редактор схемы'}
+          </button>
+        )}
+        <select className="scenario-select" value={scenario} onChange={(e) => setScenario(e.target.value)} title="Сценарий">
+          {SCENARIOS.map((s) => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+        <button className="btn btn-start" onClick={runScenario}>▶ Запустить сценарий</button>
+        <button className="btn btn-stop" onClick={finishScenario}>⏹ Завершить тренировку</button>
+        <span className="cmd-sep" />
+        <button className="btn btn-ghost" onClick={() => api.resetScenario().then(applyTelemetry)}>⏮ Сброс</button>
+        <button className="btn btn-ghost" onClick={() => api.step().then(applyTelemetry)}>⏭ Шаг</button>
+      </div>
+
+      {view === 'scada' ? (
         <div className="mnemo-wrap">
-          <MnemoPanel live={live} refresh={refresh} />
-        </div>
-      ) : view === 'dashboard' ? (
-        <div className="dash-body">
-          <Dashboard live={live} />
+          <MnemoPanel
+            live={live}
+            refresh={refresh}
+            history={history}
+            user={user?.username ?? '—'}
+            connected={connected}
+          />
         </div>
       ) : (
       <div className="body">
-        <aside className="palette">
-          <div className="panel-title">ПАЛИТРА ОБЪЕКТОВ</div>
-          <div className="palette-group">Границы</div>
-          {PALETTE.filter((p) => p.category === 'boundary').map((p) => (
-            <div
-              key={p.type}
-              className="palette-item"
-              draggable
-              onDragStart={(e) => onDragStart(e, p.type)}
-            >
-              <span className="palette-dot" style={{ background: p.color }} />
-              {p.label}
-            </div>
-          ))}
-          <div className="palette-group">Оборудование</div>
-          {PALETTE.filter((p) => p.category === 'equipment').map((p) => (
-            <div
-              key={p.type}
-              className="palette-item"
-              draggable
-              onDragStart={(e) => onDragStart(e, p.type)}
-            >
-              <span className="palette-dot" style={{ background: p.color }} />
-              {p.label}
-            </div>
-          ))}
-          <div className="hint">Перетащите объект на схему. Соединяйте объекты, потянув от порта к порту.</div>
-        </aside>
+        {canEditScheme && (
+          <aside className="palette">
+            <div className="panel-title">ПАЛИТРА ОБЪЕКТОВ</div>
+            <div className="palette-group">Границы</div>
+            {PALETTE.filter((p) => p.category === 'boundary').map((p) => (
+              <div
+                key={p.type}
+                className="palette-item"
+                draggable
+                onDragStart={(e) => onDragStart(e, p.type)}
+              >
+                <span className="palette-dot" style={{ background: p.color }} />
+                {p.label}
+              </div>
+            ))}
+            <div className="palette-group">Оборудование</div>
+            {PALETTE.filter((p) => p.category === 'equipment').map((p) => (
+              <div
+                key={p.type}
+                className="palette-item"
+                draggable
+                onDragStart={(e) => onDragStart(e, p.type)}
+              >
+                <span className="palette-dot" style={{ background: p.color }} />
+                {p.label}
+              </div>
+            ))}
+            <div className="hint">Перетащите объект на схему. Соединяйте объекты, потянув от порта к порту.</div>
+          </aside>
+        )}
 
-        <div className="canvas" onDrop={onDrop} onDragOver={(e) => e.preventDefault()}>
+        <div className="canvas" onDrop={canEditScheme ? onDrop : undefined} onDragOver={(e) => canEditScheme && e.preventDefault()}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            onConnect={canEditScheme ? onConnect : undefined}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             fitView
-            deleteKeyCode={['Backspace', 'Delete']}
+            nodesDraggable={canEditScheme}
+            nodesConnectable={canEditScheme}
+            deleteKeyCode={canEditScheme ? ['Backspace', 'Delete'] : null}
             minZoom={0.15}
             maxZoom={2.5}
             proOptions={{ hideAttribution: true }}
@@ -465,23 +515,21 @@ function AppInner() {
             />
             <Panel position="top-left">
               <div className="toolbar">
-                <button className="btn btn-ghost" onClick={saveScheme}>💾 Сохранить схему</button>
-                <button className="btn btn-ghost" onClick={onCreateScheme}>＋ Новая схема</button>
-                <button className="btn btn-ghost" onClick={loadDefault}>⟳ Загрузить с бека</button>
-                <button className="btn btn-ghost" onClick={reLayout}>🗜 Раскладка</button>
-                <button className="btn btn-ghost" onClick={() => api.resetScenario().then(applyTelemetry)}>⏮ Сброс</button>
-                <button className="btn btn-ghost" onClick={() => api.step().then(applyTelemetry)}>⏭ Шаг</button>
-                <select className="scenario-select" value={currentScheme} onChange={(e) => onSelectScheme(e.target.value)} title="Схема">
-                  {schemes.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <select className="scenario-select" defaultValue="" onChange={(e) => e.target.value && api.startScenario(e.target.value).then(applyTelemetry)}>
-                  <option value="" disabled>Сценарий…</option>
-                  {SCENARIOS.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
+                {canEditScheme && (
+                  <>
+                    <button className="btn btn-ghost" onClick={saveScheme}>💾 Сохранить схему</button>
+                    <button className="btn btn-ghost" onClick={onCreateScheme}>＋ Новая схема</button>
+                    <button className="btn btn-ghost" onClick={loadDefault}>⟳ Загрузить с бека</button>
+                    <button className="btn btn-ghost" onClick={reLayout}>🗜 Раскладка</button>
+                  </>
+                )}
+                {canEditScheme && (
+                  <select className="scenario-select" value={currentScheme} onChange={(e) => onSelectScheme(e.target.value)} title="Схема">
+                    {schemes.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </Panel>
             <Panel position="bottom-center">
@@ -508,6 +556,8 @@ function AppInner() {
             onRename={onRename}
             onDelete={onDelete}
             onUpdateParams={onUpdateParams}
+            canEditScheme={canEditScheme}
+            canManageTwin={canManageTwin}
           />
           <div className="panel-title trend-title">ТРЕНД ПАРАМЕТРА</div>
           <select className="scenario-select full" value={trendParam} onChange={(e) => setTrendParam(e.target.value)}>

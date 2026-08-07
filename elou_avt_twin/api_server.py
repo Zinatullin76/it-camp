@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
@@ -17,12 +17,21 @@ from scheme import ProcessScheme, SchemeNode, SchemeEdge, load_scheme, save_sche
 from equipment.params_spec import editor_spec, coerce, spec_for, NON_EDITABLE_TYPES
 from controls import ControlSystem
 from scenarios.scenario_registry import SCENARIO_REGISTRY
+from persistence.session_store import SessionStore
+from persistence.session_recorder import SessionRecorder
+from auth.deps import authenticate_websocket, get_auth_service, get_current_user, require_permission
+from auth.models import LoginRequest, RoleAssign, UserCreate
+from lms.api import router as lms_router
+from lms.content_api import router as lms_content_router
+from lms import runtime as lms_runtime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("elou_avt.api")
 
 app = FastAPI(title="ELOU-AVT Digital Twin API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.include_router(lms_router)
+app.include_router(lms_content_router)
 
 
 def _load_config() -> SimulationConfig:
@@ -86,6 +95,12 @@ control_system = ControlSystem()
 # Active training session (Training Layer, Этап 7 groundwork).
 _training_session: Optional[TrainingSession] = None
 
+# Persistent event log for the AI error-classification service. Created
+# lazily on the first /training/session call so importing this module does
+# not touch the filesystem.
+session_store: Optional[SessionStore] = None
+session_recorder: Optional[SessionRecorder] = None
+
 # UI-facing input overrides. The underlying engine uses these values as its feed source.
 inputs: Dict[str, float] = {"flow_kg_s": 100.0, "temperature_c": 25.0, "pressure_bar": 1.01325}
 
@@ -93,6 +108,23 @@ inputs: Dict[str, float] = {"flow_kg_s": 100.0, "temperature_c": 25.0, "pressure
 _DEFAULT_SCHEME = "process_elou_avt"
 scheme_store: ProcessScheme = load_scheme(Path(__file__).resolve().parent / "schemes" / f"{_DEFAULT_SCHEME}.json")
 twin._engine.set_scheme(scheme_store)
+
+# The LMS content layer (lms/content_*.py) reads the simulator singletons
+# through this bridge; re-configured whenever the session layer is created.
+lms_runtime.configure(twin, scheme_store, session_store, session_recorder, inputs)
+
+
+def ensure_session_layer() -> None:
+    """Create the training session store/recorder on demand and repoint the
+    LMS content layer at the same instances (one shared recorder for /action,
+    /command and the practice runner)."""
+    global session_store, session_recorder
+    with lock:
+        if session_store is None:
+            session_store = SessionStore()
+        if session_recorder is None:
+            session_recorder = SessionRecorder(session_store)
+        lms_runtime.configure(twin, scheme_store, session_store, session_recorder, inputs)
 
 
 def _build_node_telemetry(twin) -> Dict[str, Any]:
@@ -263,37 +295,96 @@ def _sanitize(obj):
         return [_sanitize(v) for v in obj]
     return obj
 
+def _node_type_for(equipment_id: str) -> Optional[str]:
+    """Resolve the P&ID node type of an equipment id.
+
+    Falls back to the engine equipment class for ids that are not in the
+    current scheme (e.g. demo ids used by scenario reference actions).
+    """
+    node = scheme_store.node(equipment_id)
+    if node is not None:
+        return node.type
+    eq = twin._engine._equipment.get(equipment_id)
+    if eq is not None:
+        return {
+            "Pump": "pump", "Valve": "valve", "Heater": "heater",
+            "ELOU": "elou", "Tank": "tank", "HeatExchanger": "heat_exchanger",
+            "DistillationColumn": "column", "Separator": "separator",
+        }.get(type(eq).__name__)
+    return None
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "service": "elou-avt-digital-twin"}
 
-@app.get("/state")
+# ---------------------------------------------------------------------------
+# Authentication & RBAC (см. auth/ — ролевая модель из Роли.txt)
+# ---------------------------------------------------------------------------
+
+@app.post("/auth/login")
+def auth_login(req: LoginRequest):
+    resp = get_auth_service().authenticate(req.username, req.password)
+    if resp is None:
+        raise HTTPException(status_code=401, detail="Неверный логин или пароль")
+    return resp
+
+@app.get("/auth/me", dependencies=[Depends(get_current_user)])
+def auth_me(current_user=Depends(get_current_user)):
+    return current_user.model_dump()
+
+@app.get("/auth/roles", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_roles():
+    return get_auth_service().list_roles()
+
+@app.get("/auth/permissions", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_permissions():
+    return get_auth_service().all_permissions()
+
+@app.get("/auth/users", dependencies=[Depends(require_permission("manage_users"))])
+def auth_users():
+    return get_auth_service().list_users()
+
+@app.post("/auth/users", dependencies=[Depends(require_permission("manage_users"))])
+def auth_create_user(req: UserCreate):
+    return get_auth_service().create_user(req)
+
+@app.post("/auth/users/{user_id}/roles", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_assign_roles(user_id: int, req: RoleAssign):
+    return get_auth_service().set_user_roles(user_id, req.role_codes)
+
+@app.post("/auth/users/{user_id}/deactivate", dependencies=[Depends(require_permission("manage_users"))])
+def auth_deactivate(user_id: int):
+    get_auth_service().set_user_active(user_id, False)
+    return {"ok": True}
+
+@app.get("/state", dependencies=[Depends(require_permission("view_scheme"))])
 def state():
     return _serialize_state()
 
-@app.get("/alarms")
+@app.get("/alarms", dependencies=[Depends(require_permission("view_scheme"))])
 def alarms():
     with lock:
         return [a.model_dump() for a in twin.get_alarms()]
 
-@app.get("/events")
+@app.get("/events", dependencies=[Depends(require_permission("view_scheme"))])
 def events():
     with lock:
         return [e.model_dump() for e in twin.get_events()]
 
-@app.get("/score")
+@app.get("/score", dependencies=[Depends(require_permission("view_scheme"))])
 def score():
     with lock:
         return twin.get_score_data()
 
-@app.get("/controllers")
+@app.get("/controllers", dependencies=[Depends(require_permission("view_scheme"))])
 def controllers():
     """Faceplate snapshot of every PID loop in the unified catalogue."""
     with lock:
         snap = control_system.snapshot()
         return {"count": len(snap), "controllers": snap}
 
-@app.get("/controllers/{tag}")
+@app.get("/controllers/{tag}", dependencies=[Depends(require_permission("view_scheme"))])
 def controller_detail(tag: str):
     """Faceplate snapshot of one control loop."""
     with lock:
@@ -301,7 +392,7 @@ def controller_detail(tag: str):
             raise HTTPException(status_code=404, detail=f"Регулятор '{tag}' не найден")
         return control_system.faceplate(tag)
 
-@app.post("/command")
+@app.post("/command", dependencies=[Depends(require_permission("send_commands"))])
 def command(req: CommandRequest):
     """Apply one operator command to a control loop."""
     with lock:
@@ -317,24 +408,48 @@ def command(req: CommandRequest):
             ctrl = control_system.apply_command(cmd)
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
+        if session_recorder is not None and session_recorder.active:
+            op_action = OperatorAction(
+                timestamp=twin._simulation_time,
+                operator_id=req.operator_id,
+                equipment_id=req.tag,
+                action_type=ActionType(req.action.value),
+                old_value=getattr(ctrl, "sp", None),
+                new_value=req.value if isinstance(req.value, (int, float)) else None,
+                source="hmi",
+            )
+            session_recorder.record_action(op_action, node_type="controller")
         return {"ok": True, "controller": control_system.faceplate(ctrl.tag)}
 
-@app.post("/training/session")
+@app.post("/training/session", dependencies=[Depends(require_permission("start_training"))])
 def start_training_session(req: StartSessionRequest):
     """Open a training session for a scenario (contract; scoring in Этап 7)."""
     global _training_session
     with lock:
         if req.scenario_id not in SCENARIO_REGISTRY:
             raise HTTPException(status_code=404, detail=f"Сценарий '{req.scenario_id}' не найден")
+        ensure_session_layer()
+        # If a previous session is still open, close it as aborted first.
+        if session_recorder.active:
+            session_recorder.abort(reason="superseded by a new session")
+        session_id = f"TR-{int(time.time())}"
+        session_recorder.begin(
+            scenario_id=req.scenario_id,
+            operator_id=req.operator_id,
+            scheme_version=scheme_store.id,
+            reference_actions=SCENARIO_REGISTRY[req.scenario_id].reference_actions,
+            sim_start=twin._simulation_time,
+            session_id=session_id,
+        )
         _training_session = TrainingSession(
-            session_id=f"TR-{int(time.time())}",
+            session_id=session_id,
             scenario_id=req.scenario_id,
             operator_id=req.operator_id,
         )
         _training_session.start(twin._simulation_time)
         return _training_session.model_dump()
 
-@app.get("/training/session")
+@app.get("/training/session", dependencies=[Depends(get_current_user)])
 def get_training_session():
     """Current training session, if any."""
     with lock:
@@ -342,7 +457,44 @@ def get_training_session():
             raise HTTPException(status_code=404, detail="Нет активной тренировочной сессии")
         return _training_session.model_dump()
 
-@app.post("/input")
+@app.post("/training/session/finish", dependencies=[Depends(require_permission("start_training"))])
+def finish_training_session():
+    """Complete the current session and persist score + AI verdict."""
+    global _training_session
+    with lock:
+        if _training_session is None or session_recorder is None or not session_recorder.active:
+            raise HTTPException(status_code=404, detail="Нет активной тренировочной сессии")
+        score_data = twin.get_score_data()
+        score = float(score_data.get("performance_score", 0.0))
+        session_recorder.end(
+            sim_end=twin._simulation_time,
+            score=score,
+            qualification="",
+            ai_verdict={"error_events": score_data.get("error_events", [])},
+        )
+        _training_session.finish(twin._simulation_time, score)
+        return _training_session.model_dump()
+
+@app.get("/training/sessions", dependencies=[Depends(require_permission("view_training_sessions"))])
+def list_training_sessions():
+    """Persisted training sessions (the AI training corpus)."""
+    with lock:
+        if session_store is None:
+            return []
+        return session_store.list_sessions()
+
+@app.get("/training/sessions/{session_id}", dependencies=[Depends(require_permission("view_training_sessions"))])
+def export_training_session(session_id: str):
+    """Full persisted event log of one session (AI dataset row)."""
+    with lock:
+        if session_store is None:
+            raise HTTPException(status_code=404, detail="Сессия не найдена")
+        data = session_store.export_session(session_id)
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"Сессия '{session_id}' не найдена")
+        return data
+
+@app.post("/input", dependencies=[Depends(require_permission("run_simulation"))])
 def set_input(req: InputRequest):
     with lock:
         if req.flow_kg_s is not None:
@@ -363,7 +515,7 @@ def set_input(req: InputRequest):
                     src.params[key] = val
         return _serialize_state()
 
-@app.post("/action")
+@app.post("/action", dependencies=[Depends(require_permission("send_commands"))])
 def action(req: ActionRequest):
     with lock:
         old = None
@@ -376,6 +528,11 @@ def action(req: ActionRequest):
             new_value=req.value,
             source="operator_panel",
         )
+        if session_recorder is not None and session_recorder.active:
+            action_id = session_recorder.record_action(
+                action, node_type=_node_type_for(req.equipment_id))
+            session_recorder.record_snapshot(
+                twin.get_state(), reason="action", action_id=action_id)
         twin.apply_operator_action(action)
         # Advance immediately so the UI shows the result without waiting for the loop.
         if twin._status.value != "RUNNING":
@@ -383,7 +540,7 @@ def action(req: ActionRequest):
         _safe_step()
         return _serialize_state()
 
-@app.get("/equipment/spec/{node_id}")
+@app.get("/equipment/spec/{node_id}", dependencies=[Depends(require_permission("view_scheme"))])
 def equipment_spec(node_id: str):
     """Editable physical-property spec + current values for one node."""
     with lock:
@@ -400,7 +557,7 @@ def equipment_spec(node_id: str):
             "params": editor_spec(node.type, eq, node),
         }
 
-@app.post("/equipment/params")
+@app.post("/equipment/params", dependencies=[Depends(require_permission("manage_twin"))])
 def update_equipment_params(req: EquipmentParamsRequest):
     """Apply physical-property corrections to a node and persist them."""
     with lock:
@@ -429,7 +586,7 @@ def update_equipment_params(req: EquipmentParamsRequest):
         _safe_step()
         return _serialize_state()
 
-@app.post("/scenario/start")
+@app.post("/scenario/start", dependencies=[Depends(require_permission("run_simulation"))])
 def start_scenario(req: ScenarioRequest):
     with lock:
         try:
@@ -444,14 +601,14 @@ def start_scenario(req: ScenarioRequest):
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
-@app.post("/scenario/reset")
+@app.post("/scenario/reset", dependencies=[Depends(require_permission("run_simulation"))])
 def reset_scenario():
     with lock:
         twin.reset()
         twin._engine.set_feed_override(inputs)
         return _serialize_state()
 
-@app.post("/scenario/step")
+@app.post("/scenario/step", dependencies=[Depends(require_permission("run_simulation"))])
 def step():
     with lock:
         if twin._status.value not in ("RUNNING", "IDLE"):
@@ -460,7 +617,7 @@ def step():
         _safe_step()
         return _serialize_state()
 
-@app.post("/failure/{equipment_id}")
+@app.post("/failure/{equipment_id}", dependencies=[Depends(require_permission("manage_twin"))])
 def failure(equipment_id: str):
     with lock:
         twin.inject_failure(equipment_id, "MECHANICAL_FAILURE")
@@ -471,7 +628,7 @@ def failure(equipment_id: str):
         return _serialize_state()
 
 
-@app.get("/history")
+@app.get("/history", dependencies=[Depends(require_permission("view_scheme"))])
 def history(limit: int = 600):
     """Return recent time series for trend charts."""
     data = _build_history()
@@ -481,7 +638,7 @@ def history(limit: int = 600):
             data["series"][k] = data["series"][k][-limit:]
     return data
 
-@app.get("/scheme")
+@app.get("/scheme", dependencies=[Depends(require_permission("view_scheme"))])
 def get_scheme():
     """Return the current P&ID scheme graph (nodes + edges)."""
     with lock:
@@ -495,7 +652,7 @@ def _save_current_scheme() -> None:
     save_scheme(scheme_store, SCHEME_DIR / f"{scheme_store.id}.json")
 
 
-@app.get("/schemes")
+@app.get("/schemes", dependencies=[Depends(require_permission("view_scheme"))])
 def list_schemes():
     """List available P&ID scheme files (without the .json extension)."""
     with lock:
@@ -521,7 +678,7 @@ def _reconfigure(new_scheme: ProcessScheme) -> None:
         _safe_step()
 
 
-@app.post("/scheme/load")
+@app.post("/scheme/load", dependencies=[Depends(require_permission("manage_scheme"))])
 def load_scheme_endpoint(req: SchemeLoadRequest):
     """Load a P&ID scheme by name and reconfigure the engine on it."""
     with lock:
@@ -538,7 +695,7 @@ def load_scheme_endpoint(req: SchemeLoadRequest):
 class SchemeCreateRequest(BaseModel):
     name: str
 
-@app.post("/scheme/new")
+@app.post("/scheme/new", dependencies=[Depends(require_permission("manage_scheme"))])
 def create_scheme_endpoint(req: SchemeCreateRequest):
     """Create an empty P&ID scheme by name and switch the engine to it."""
     with lock:
@@ -560,7 +717,7 @@ class SchemeRequest(BaseModel):
     nodes: list = []
     edges: list = []
 
-@app.post("/scheme")
+@app.post("/scheme", dependencies=[Depends(require_permission("manage_scheme"))])
 def post_scheme(req: SchemeRequest):
     """Replace the P&ID scheme, persist it and reconfigure the engine."""
     with lock:
@@ -575,7 +732,7 @@ def post_scheme(req: SchemeRequest):
         _reconfigure(new_scheme)
         return _serialize_state()
 
-@app.get("/scheme/templates")
+@app.get("/scheme/templates", dependencies=[Depends(require_permission("view_scheme"))])
 def scheme_templates():
     """Return the palette of object types available to the scheme editor."""
     return {
@@ -594,6 +751,10 @@ def scheme_templates():
 
 @app.websocket("/ws/simulation")
 async def websocket_simulation(websocket: WebSocket):
+    principal = authenticate_websocket(websocket.query_params.get("token", ""))
+    if principal is None:
+        await websocket.close(code=4401)
+        return
     await websocket.accept()
     try:
         while True:
@@ -611,11 +772,21 @@ async def websocket_simulation(websocket: WebSocket):
             pass
 
 
+def _sync_recorder(action_id: Optional[int] = None) -> None:
+    """Persist the latest step context into the active training session."""
+    if session_recorder is None or not session_recorder.active:
+        return
+    session_recorder.record_snapshot(twin.get_state(), reason="step")
+    session_recorder.sync_alarms(twin._engine._alarm_system.get_alarm_history())
+    session_recorder.sync_errors(twin._engine.get_events(), action_id=action_id)
+
+
 def _safe_step() -> None:
     """Step the simulation, logging any exception instead of swallowing it."""
     try:
         twin._engine.set_feed_override(inputs)
         twin.step(1.0)
+        _sync_recorder()
     except Exception:
         logger.error("Simulation step failed:\n%s", traceback.format_exc())
 

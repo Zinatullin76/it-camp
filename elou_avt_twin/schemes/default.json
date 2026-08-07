@@ -18,41 +18,20 @@
       "id": "pum_2",
       "type": "pump",
       "name": "Насос",
-      "x": 235.0,
-      "y": 6.0,
+      "x": 150.0,
+      "y": 0.0,
       "params": {
         "nominal_flow": 100,
-        "efficiency_nominal": 0.75
+        "efficiency_nominal": 0.75,
+        "delta_p": 500000
       }
     },
     {
       "id": "val_1",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 413.0,
-      "y": 12.0,
-      "params": {
-        "cv": 0.01,
-        "response_rate": 0.2
-      }
-    },
-    {
-      "id": "val_2",
-      "type": "valve",
-      "name": "Регулирующий клапан",
-      "x": 551.0,
-      "y": -79.0,
-      "params": {
-        "cv": 0.01,
-        "response_rate": 0.2
-      }
-    },
-    {
-      "id": "val_3",
-      "type": "valve",
-      "name": "Регулирующий клапан",
-      "x": 706.0,
-      "y": -89.0,
+      "x": 212.0,
+      "y": 0.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
@@ -62,8 +41,8 @@
       "id": "val_4",
       "type": "valve",
       "name": "Регулирующий клапан",
-      "x": 538.0,
-      "y": 72.0,
+      "x": 322.0,
+      "y": -56.0,
       "params": {
         "cv": 0.01,
         "response_rate": 0.2
@@ -73,21 +52,105 @@
       "id": "sink_5",
       "type": "sink",
       "name": "Продукт / отбор",
-      "x": 849.0,
-      "y": 71.0,
+      "x": 444.0,
+      "y": 0.0,
       "params": {
-        "pressure_bar": 2.0
+        "pressure_bar": 2
       }
     },
     {
       "id": "sink_6",
       "type": "sink",
       "name": "Продукт / отбор",
-      "x": 854.0,
-      "y": -101.0,
+      "x": 594.0,
+      "y": 0.0,
       "params": {
         "pressure_bar": 1.0132
       }
+    },
+    {
+      "id": "pum_1",
+      "type": "pump",
+      "name": "Насос",
+      "x": 110.0,
+      "y": 215.0,
+      "params": {
+        "nominal_flow": 100,
+        "efficiency_nominal": 0.75
+      }
+    },
+    {
+      "id": "val_4",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 322.0,
+      "y": -56.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "val_5",
+      "type": "valve",
+      "name": "Регулирующий клапан",
+      "x": 348.0,
+      "y": 188.0,
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      }
+    },
+    {
+      "id": "elo_6",
+      "type": "elou",
+      "name": "ЭЛОУ (электродегидратор)",
+      "x": 48.0,
+      "y": 292.0,
+      "params": {
+        "vessel_area": 30
+      }
+    },
+    {
+      "id": "hea_7",
+      "type": "heat_exchanger",
+      "name": "Теплообменник",
+      "x": -33.0,
+      "y": 429.0,
+      "params": {
+        "u": 300,
+        "area": 200
+      }
+    },
+    {
+      "id": "hea_8",
+      "type": "heater",
+      "name": "Печь",
+      "x": 174.0,
+      "y": 346.0,
+      "params": {
+        "max_heat_duty": 50000000,
+        "response_tau": 60
+      }
+    },
+    {
+      "id": "col_9",
+      "type": "column",
+      "name": "Колонна ректификации",
+      "x": 364.0,
+      "y": 339.0,
+      "params": {
+        "num_stages": 20,
+        "feed_stage": 10
+      }
+    },
+    {
+      "id": "sep_10",
+      "type": "separator",
+      "name": "Сепаратор",
+      "x": 587.0,
+      "y": 374.0,
+      "params": {}
     }
   ],
   "edges": [
@@ -108,22 +171,6 @@
       "kind": "process"
     },
     {
-      "id": "val_1-val_2-1785998714731",
-      "source": "val_1",
-      "target": "val_2",
-      "source_port": "out",
-      "target_port": "in",
-      "kind": "process"
-    },
-    {
-      "id": "val_2-val_3-1785998715929",
-      "source": "val_2",
-      "target": "val_3",
-      "source_port": "out",
-      "target_port": "in",
-      "kind": "process"
-    },
-    {
       "id": "val_1-val_4-1785998718176",
       "source": "val_1",
       "target": "val_4",
@@ -135,14 +182,6 @@
       "id": "val_4-sink_5-1785998719521",
       "source": "val_4",
       "target": "sink_5",
-      "source_port": "out",
-      "target_port": "in",
-      "kind": "process"
-    },
-    {
-      "id": "val_3-sink_6-1785998720974",
-      "source": "val_3",
-      "target": "sink_6",
       "source_port": "out",
       "target_port": "in",
       "kind": "process"

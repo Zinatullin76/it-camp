@@ -124,6 +124,15 @@ class DigitalTwin:
         self._apply_initial_state(self._scenario.initial_state)
         logger.info("Scenario loaded: %s — %s", scenario_id, self._scenario.name)
 
+    def load_scenario_object(self, scenario: Scenario) -> None:
+        """Load a scenario definition built at runtime (e.g. from the LMS
+        authoring system, «Обуч.txt») instead of the static registry."""
+        if self._engine is None:
+            self.create_simulation()
+        self._scenario = scenario
+        self._apply_initial_state(scenario.initial_state)
+        logger.info("Scenario object loaded: %s — %s", scenario.id, scenario.name)
+
     def _apply_initial_state(self, initial_state: Dict[str, Any]) -> None:
         """Apply scenario initial conditions to equipment.
 

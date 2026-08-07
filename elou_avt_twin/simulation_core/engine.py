@@ -1075,6 +1075,21 @@ class SimulationEngine:
             if eq:
                 value = event.parameters.get("fuel_flow") or event.parameters.get("flow")
                 eq.apply_action("SET_VALUE", value)
+        elif event.event_type == "SET_STATE":
+            eq = self._equipment.get(event.target_id)
+            if eq:
+                eq.apply_action(event.parameters.get("state", "TURN_ON"),
+                                event.parameters.get("value"))
+        elif event.event_type == "RAISE_ALARM":
+            params = event.parameters
+            self._alarm_system.register_custom_alarm(
+                timestamp=self._time,
+                parameter=params.get("param", "scenario_alarm"),
+                actual_value=params.get("value", 1.0),
+                threshold=params.get("threshold", 0.0),
+                severity=params.get("severity", "HIGH"),
+                description=params.get("description", "Авария по сценарию"),
+            )
         logger.info("Scenario event dispatched: %s on %s", event.event_type, event.target_id)
 
     # ------------------------------------------------------------------

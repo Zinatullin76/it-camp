@@ -19,6 +19,8 @@ export default defineConfig({
       '/command': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/controllers': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/training': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/lms': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/auth': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/ws': { target: 'ws://127.0.0.1:8000', ws: true },
     },
   },

@@ -1,0 +1,453 @@
+"""
+store.py
+========
+SQLite RBAC store + service.
+
+Table layout (created idempotently in the same `sessions.db` file used by
+`persistence.session_store`):
+
+    roles(code PK, name, description)
+    permissions(code PK, description)
+    role_permissions(role_code, permission_code)     -- many-to-many
+    users(id PK, username UNIQUE, password_hash, full_name, is_active)
+    user_roles(user_id, role_code)                   -- many-to-many
+
+Authorization is always derived from permissions: a user's effective set is
+the union of permissions of every role they belong to. The permission
+catalog and role bindings below mirror the roles in `Роли.txt`.
+
+Storage style follows `persistence.session_store` (WAL, busy_timeout,
+foreign_keys, RLock) so the two stores can share one database file.
+"""
+
+from __future__ import annotations
+
+import logging
+import sqlite3
+import threading
+import time
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from .models import LoginResponse, PermissionView, Principal, RoleView, UserCreate, UserView
+from .security import create_token, hash_password, verify_password, verify_token
+
+logger = logging.getLogger("elou_avt.auth")
+
+DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "sessions.db"
+
+# ---------------------------------------------------------------------------
+# Permission catalog (single source of truth; "can_*" codes used everywhere).
+# ---------------------------------------------------------------------------
+
+PERMISSIONS: Dict[str, str] = {
+    "view_scheme": "Просмотр мнемосхемы, телеметрии и алармов",
+    "send_commands": "Управление оборудованием через HMI",
+    "run_simulation": "Запуск и пошаговое управление симуляцией",
+    "manage_twin": "Настройка цифрового двойника и параметров оборудования",
+    "manage_alarms": "Настройка аварий и технологических ограничений",
+    "manage_scheme": "Редактирование P&ID-схемы",
+    "start_training": "Запуск и завершение тренировочных сессий",
+    "view_training_sessions": "Просмотр журнала тренировок",
+    "view_operator_actions": "Наблюдение за действиями оператора в реальном времени",
+    "view_statistics": "Просмотр статистики",
+    "manage_scenarios": "Создание и редактирование сценариев",
+    "create_checklists": "Создание чек-листов",
+    "create_grading_criteria": "Создание критериев оценки",
+    "create_exam": "Создание экзаменов",
+    "take_exam": "Прохождение экзаменов",
+    "grade_exam": "Проверка экзаменов и утверждение квалификации",
+    "view_exam_results": "Просмотр итоговых результатов экзаменов",
+    "create_reports": "Формирование отчетов",
+    "manage_users": "Управление пользователями",
+    "manage_roles": "Управление ролями и правами",
+    "view_logs": "Просмотр системных логов",
+    "manage_reference_data": "Управление справочниками",
+    "manage_equipment": "Управление оборудованием",
+    "manage_ai": "Управление моделями и рекомендациями ИИ",
+    "view_ai_analysis": "Просмотр статистики ошибок и анализа ИИ",
+    "get_ai_recommendations": "Получение рекомендаций ИИ",
+    "view_own_results": "Просмотр своих результатов",
+    "view_dashboard": "Просмотр главной кабинета оператора",
+    "view_courses": "Просмотр курсов и модулей обучения",
+    "view_competencies": "Просмотр карты компетенций",
+    "view_history": "Просмотр истории тренировок",
+    "view_profile": "Просмотр профиля пользователя",
+    "manage_groups": "Управление учебными группами",
+    "view_group_progress": "Просмотр прогресса учебных групп",
+    "view_analytics": "Просмотр аналитики обучения",
+    "monitor_operators": "Наблюдение за операторами в реальном времени",
+    "manage_courses": "Управление курсами и модулями",
+    "manage_practice_tasks": "Управление библиотекой практических заданий",
+    "manage_settings": "Управление настройками системы",
+}
+
+ALL_PERMISSION_CODES: List[str] = sorted(PERMISSIONS)
+
+ROLE_LABELS: Dict[str, str] = {
+    "administrator": "Администратор",
+    "instructor": "Инструктор",
+    "operator": "Оператор",
+}
+
+ALL_ROLE_CODES: List[str] = list(ROLE_LABELS)
+
+ROLE_DESCRIPTIONS: Dict[str, str] = {
+    "administrator": "Полный доступ: пользователи, роли, система, логи, справочники",
+    "instructor": "Запуск тренировок, выбор сценариев, группы, наблюдение, экзамены, статистика",
+    "operator": "Прохождение тренировок, управление процессом, HMI, свои результаты, рекомендации ИИ",
+}
+
+ROLE_PERMISSIONS: Dict[str, List[str]] = {
+    "administrator": ALL_PERMISSION_CODES,
+    "instructor": [
+        "view_scheme", "send_commands", "run_simulation", "start_training",
+        "view_training_sessions", "view_operator_actions", "view_statistics",
+        "create_exam", "view_ai_analysis", "get_ai_recommendations",
+        "view_own_results",
+        "view_dashboard", "view_courses", "view_competencies",
+        "view_history", "view_profile", "manage_groups", "view_group_progress",
+        "view_analytics", "monitor_operators", "manage_courses",
+        "manage_practice_tasks", "manage_scheme",
+    ],
+    # start_training включено: оператор сам открывает тренировку в демо-HMI
+    # («▶ Запустить сценарий»), хотя в промышленной модели запуск за инструктором.
+    "operator": [
+        "view_scheme", "send_commands", "run_simulation", "start_training",
+        "take_exam", "view_own_results", "get_ai_recommendations",
+        "view_dashboard", "view_courses", "view_competencies",
+        "view_history", "view_profile",
+    ],
+}
+
+# (username, password, full_name, [role_codes]) — seed accounts for the demo.
+# Пароли равны логину; в проде заменяются администратором.
+DEFAULT_USERS = [
+    ("admin", "admin", "Системный администратор", ["administrator"]),
+    ("instructor", "instructor", "Инструктор", ["instructor"]),
+    ("operator", "operator", "Оператор", ["operator"]),
+]
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS roles (
+    code        TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    code        TEXT PRIMARY KEY,
+    description TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_code       TEXT NOT NULL REFERENCES roles(code) ON DELETE CASCADE,
+    permission_code TEXT NOT NULL REFERENCES permissions(code) ON DELETE CASCADE,
+    PRIMARY KEY (role_code, permission_code)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    full_name     TEXT NOT NULL DEFAULT '',
+    is_active     INTEGER NOT NULL DEFAULT 1,
+    created_at    REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_code TEXT NOT NULL REFERENCES roles(code) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, role_code)
+);
+"""
+
+
+class AuthStore:
+    """SQLite-backed RBAC store (roles, permissions, users, bindings)."""
+
+    def __init__(self, path: Optional[Path | str] = None):
+        self._path = Path(path) if path else DEFAULT_DB_PATH
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.RLock()
+        self._conn = sqlite3.connect(str(self._path), check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        with self._lock:
+            self._conn.execute("PRAGMA journal_mode=WAL;")
+            self._conn.execute("PRAGMA busy_timeout=5000;")
+            self._conn.execute("PRAGMA foreign_keys=ON;")
+            self._conn.executescript(_SCHEMA)
+            self._conn.commit()
+        logger.info("AuthStore opened: %s", self._path)
+
+    @classmethod
+    def in_memory(cls) -> "AuthStore":
+        return cls(path=":memory:")
+
+    def close(self) -> None:
+        with self._lock:
+            self._conn.close()
+
+    # ------------------------------------------------------------------
+    # Seeds
+    # ------------------------------------------------------------------
+
+    def ensure_catalog(self) -> None:
+        """Idempotently insert the permission catalog and role bindings."""
+        with self._lock, self._conn:
+            for code, desc in PERMISSIONS.items():
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO permissions (code, description) VALUES (?, ?)",
+                    (code, desc),
+                )
+            # Устаревшие роли (методолог, технолог, аналитик ИИ, экзаменатор) удаляются —
+            # остаются только три кабинета. Связи role_permissions/user_roles слетают по CASCADE.
+            placeholders = ",".join("?" * len(ROLE_LABELS))
+            self._conn.execute(
+                f"DELETE FROM roles WHERE code NOT IN ({placeholders})",
+                list(ROLE_LABELS),
+            )
+            # Вместе с ролями удаляем не используемые больше демо-учетки.
+            self._conn.execute(
+                "DELETE FROM users WHERE username IN "
+                "('methodologist','process_engineer','ai_analyst','examiner')",
+            )
+            for code, name in ROLE_LABELS.items():
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO roles (code, name, description) VALUES (?, ?, ?)",
+                    (code, name, ROLE_DESCRIPTIONS.get(code, "")),
+                )
+            for role, codes in ROLE_PERMISSIONS.items():
+                for perm in codes:
+                    self._conn.execute(
+                        "INSERT OR IGNORE INTO role_permissions (role_code, permission_code) VALUES (?, ?)",
+                        (role, perm),
+                    )
+            self._conn.commit()
+
+    def ensure_default_users(self) -> None:
+        """Seed demo accounts once (only when the users table is empty)."""
+        self.ensure_catalog()
+        with self._lock, self._conn:
+            count = self._conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            if count:
+                return
+            for username, password, full_name, roles in DEFAULT_USERS:
+                now = time.time()
+                cur = self._conn.execute(
+                    "INSERT INTO users (username, password_hash, full_name, is_active, created_at) "
+                    "VALUES (?, ?, ?, 1, ?)",
+                    (username, hash_password(password), full_name, now),
+                )
+                user_id = cur.lastrowid
+                for role in roles:
+                    self._conn.execute(
+                        "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
+                        (user_id, role),
+                    )
+            self._conn.commit()
+
+    # ------------------------------------------------------------------
+    # Users
+    # ------------------------------------------------------------------
+
+    def get_user(self, user_id: int) -> Optional[dict]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def get_user_by_name(self, username: str) -> Optional[dict]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM users WHERE username = ?", (username,)
+            ).fetchone()
+            return dict(row) if row else None
+
+    def create_user(self, data: UserCreate) -> UserView:
+        with self._lock, self._conn:
+            now = time.time()
+            cur = self._conn.execute(
+                "INSERT INTO users (username, password_hash, full_name, is_active, created_at) "
+                "VALUES (?, ?, ?, 1, ?)",
+                (data.username, hash_password(data.password), data.full_name, now),
+            )
+            user_id = cur.lastrowid
+            for role in data.role_codes:
+                if role in ROLE_LABELS:
+                    self._conn.execute(
+                        "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
+                        (user_id, role),
+                    )
+            self._conn.commit()
+        return self.user_view(user_id)
+
+    def set_user_active(self, user_id: int, is_active: bool) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "UPDATE users SET is_active = ? WHERE id = ?",
+                (1 if is_active else 0, user_id),
+            )
+            self._conn.commit()
+
+    def set_user_roles(self, user_id: int, role_codes: List[str]) -> UserView:
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
+            for role in role_codes:
+                if role in ROLE_LABELS:
+                    self._conn.execute(
+                        "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
+                        (user_id, role),
+                    )
+            self._conn.commit()
+        return self.user_view(user_id)
+
+    def list_users(self) -> List[UserView]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id FROM users ORDER BY id"
+            ).fetchall()
+        return [self.user_view(int(r["id"])) for r in rows]
+
+    def list_roles(self) -> List[RoleView]:
+        self.ensure_catalog()
+        out: List[RoleView] = []
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT code, name, description FROM roles ORDER BY code"
+            ).fetchall()
+            for r in rows:
+                perms = [p["permission_code"] for p in self._conn.execute(
+                    "SELECT permission_code FROM role_permissions WHERE role_code = ? ORDER BY permission_code",
+                    (r["code"],),
+                )]
+                out.append(RoleView(
+                    code=r["code"], name=r["name"], description=r["description"], permissions=perms,
+                ))
+        return out
+
+    def all_permissions(self) -> List[PermissionView]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT code, description FROM permissions ORDER BY code"
+            ).fetchall()
+        return [PermissionView(code=r["code"], description=r["description"]) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Queries used to build a Principal
+    # ------------------------------------------------------------------
+
+    def roles_for_user(self, username: str) -> List[str]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT r.code FROM users u "
+                "JOIN user_roles ur ON ur.user_id = u.id "
+                "JOIN roles r ON r.code = ur.role_code "
+                "WHERE u.username = ? ORDER BY r.code",
+                (username,),
+            ).fetchall()
+        return [r["code"] for r in rows]
+
+    def permissions_for_user(self, username: str) -> List[str]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT DISTINCT rp.permission_code FROM users u "
+                "JOIN user_roles ur ON ur.user_id = u.id "
+                "JOIN role_permissions rp ON rp.role_code = ur.role_code "
+                "WHERE u.username = ? ORDER BY rp.permission_code",
+                (username,),
+            ).fetchall()
+        return [r["permission_code"] for r in rows]
+
+    def user_view(self, user_id: int) -> UserView:
+        row = self.get_user(user_id)
+        if row is None:
+            raise ValueError(f"User {user_id} not found")
+        username = row["username"]
+        return UserView(
+            id=user_id,
+            username=username,
+            full_name=row.get("full_name", ""),
+            is_active=bool(row.get("is_active")),
+            roles=self.roles_for_user(username),
+            permissions=self.permissions_for_user(username),
+        )
+
+    def principal_for(self, username: str) -> Optional[Principal]:
+        user = self.get_user_by_name(username)
+        if user is None or not user.get("is_active"):
+            return None
+        return Principal(
+            username=username,
+            full_name=user.get("full_name", ""),
+            roles=self.roles_for_user(username),
+            permissions=self.permissions_for_user(username),
+        )
+
+
+class AuthService:
+    """High-level RBAC service: authentication, token issuing and user admin."""
+
+    def __init__(
+        self,
+        store: Optional[AuthStore] = None,
+        secret: Optional[str] = None,
+        token_ttl: int = 8 * 3600,
+    ):
+        self._store = store or AuthStore()
+        self._secret = secret or "elou-avt-dev-secret-change-me"
+        self._ttl = token_ttl
+        self._store.ensure_catalog()
+        self._store.ensure_default_users()
+
+    @property
+    def store(self) -> AuthStore:
+        return self._store
+
+    def authenticate(self, username: str, password: str) -> Optional[LoginResponse]:
+        user = self._store.get_user_by_name(username)
+        if user is None or not user.get("is_active"):
+            return None
+        if not verify_password(password, user["password_hash"]):
+            return None
+        token = create_token(self._secret, username, ttl_seconds=self._ttl)
+        principal = self._store.principal_for(username)
+        return LoginResponse(
+            access_token=token,
+            expires_in=self._ttl,
+            user=UserView(
+                id=user["id"], username=username,
+                full_name=user.get("full_name", ""),
+                is_active=True,
+                roles=principal.roles if principal else [],
+                permissions=principal.permissions if principal else [],
+            ),
+        )
+
+    def principal_from_token(self, token: str) -> Optional[Principal]:
+        payload = verify_token(self._secret, token)
+        if payload is None:
+            return None
+        return self._store.principal_for(payload.get("sub", ""))
+
+    def principal_for(self, username: str) -> Optional[Principal]:
+        return self._store.principal_for(username)
+
+    def create_user(self, data: UserCreate) -> UserView:
+        return self._store.create_user(data)
+
+    def set_user_active(self, user_id: int, is_active: bool) -> None:
+        self._store.set_user_active(user_id, is_active)
+
+    def set_user_roles(self, user_id: int, role_codes: List[str]) -> UserView:
+        return self._store.set_user_roles(user_id, role_codes)
+
+    def list_users(self) -> List[UserView]:
+        return self._store.list_users()
+
+    def list_roles(self) -> List[RoleView]:
+        return self._store.list_roles()
+
+    def all_permissions(self) -> List[PermissionView]:
+        return self._store.all_permissions()

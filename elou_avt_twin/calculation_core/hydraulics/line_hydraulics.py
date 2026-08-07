@@ -23,11 +23,9 @@ MIN_OPENING = 1e-4
 _MIN_FLOW = 1e-9
 INF = float("inf")
 
-# A fully-open valve is asked to offer exactly zero resistance (dP = 0), but a
-# mathematically zero resistance makes a pressure-driven network degenerate
-# (infinite flow, or no definable flow at all).  We substitute a tiny positive
-# resistance so the solve stays bounded while the pressure drop it produces is
-# negligible (dp ~ k_eps * Q^2 ~ 1e-5 Pa at process flows).
+# Fallback resistance for a valve whose computed k is non-positive (e.g. a
+# degenerate Cv).  Real valve resistances come from Cv at any opening, so this
+# is only a guard against division errors, not a physics switch.
 _K_EPS = 1e-8
 
 # Flow below this is treated as "dead-headed" (zero), and the downstream of a
@@ -43,11 +41,13 @@ P_FLOOR = 1000.0
 def valve_resistance(density: float, cv: float, opening: float, min_opening: float = MIN_OPENING) -> float:
     """Quadratic resistance coefficient k in dP = k * Q^2, Q in kg/s, dP in Pa.
 
-    A fully open valve (opening >= 1) offers no resistance, so a wide-open
-    control valve does not create a pressure drop.
+    A control valve is a flow restriction at ANY opening, including fully open:
+    its discharge coefficient Cv fixes a minimum resistance k = 1/(rho * Cv^2)
+    at x = 1, and closing the valve grows the resistance as 1/x^2.  This keeps
+    the pressure-driven network bounded and well-conditioned (a real valve at
+    100% still needs a finite pressure drop to push a given flow).  The
+    min_opening floor keeps k finite near full closure.
     """
-    if opening >= 1.0 - 1e-9:
-        return 0.0
     x = max(min_opening, opening)
     return 1.0 / (density * cv * cv * x * x)
 
@@ -148,10 +148,11 @@ def solve_branched_network(
     branches in inverse proportion to their resistance instead of evenly.
 
     The source is a hard pressure boundary: it always holds ``p_src`` and the
-    network draws whatever flow its resistances allow.  ``q_src_limit`` is
-    accepted for interface compatibility but NOT enforced here.  A closed valve
-    isolates everything downstream: the pump head stands in front of it and the
-    downstream side sits at its own sink pressure.
+    network draws whatever flow its resistances allow.  ``q_src_limit`` caps
+    that flow: past the limit the source pressure sags until the network draws
+    exactly the limit.  A closed valve isolates everything downstream: the pump
+    head stands in front of it and the downstream side sits at its own sink
+    pressure.
 
     Parameters
     ----------
@@ -225,6 +226,28 @@ def solve_branched_network(
     # resistances allow.
     p_eff = p_src
     q_total = root_flow(p_src)
+
+    # Source capacity: the source holds its pressure only while demand does not
+    # exceed its throughput limit.  Past the limit it physically sags -- a feed
+    # of fixed capacity cannot deliver more, so the pressure drops to the value
+    # at which the network draws exactly the limit (mass-conserving).
+    if q_src_limit is not None:
+        q_lim = max(0.0, float(q_src_limit))
+        if q_total > q_lim:
+            if root_flow(P_FLOOR) <= q_lim:
+                lo, hi = P_FLOOR, p_src
+                for _ in range(100):
+                    mid = 0.5 * (lo + hi)
+                    if root_flow(mid) <= q_lim:
+                        lo = mid
+                    else:
+                        hi = mid
+                    if hi - lo <= 1e-6:
+                        break
+                p_eff = 0.5 * (lo + hi)
+            else:
+                p_eff = P_FLOOR
+            q_total = q_lim
 
     result: Dict[str, Dict[str, float]] = {
         root: {"flow": q_total, "p_in": p_eff, "p_out": p_eff},
@@ -323,17 +346,49 @@ def solve_branched_network(
             p_fork = 0.5 * (lo + hi)
         result[nid]["p_out"] = p_fork
         w_total = demand(p_fork)
-        for c in kids:
-            w = branch_demand(c, p_fork)
-            share = q * (w / w_total) if w_total > 1e-12 else 0.0
-            if nodes[c]["type"] == "sink":
-                result[c] = {
-                    "flow": share,
-                    "p_in": nodes[c]["sink_p"],
-                    "p_out": nodes[c]["sink_p"],
-                }
-            else:
-                distribute(c, p_fork, share)
+        if w_total > 1e-12:
+            for c in kids:
+                w = branch_demand(c, p_fork)
+                share = q * (w / w_total)
+                if nodes[c]["type"] == "sink":
+                    result[c] = {
+                        "flow": share,
+                        "p_in": nodes[c]["sink_p"],
+                        "p_out": nodes[c]["sink_p"],
+                    }
+                else:
+                    distribute(c, p_fork, share)
+        elif q > ZERO_FLOW:
+            # Degenerate case: no branch has any pressure-driven demand but the
+            # node must still carry its assigned flow.  Split it evenly among
+            # the live (reachable) branches so mass is never silently lost.
+            live = [
+                c for c in kids
+                if nodes[c]["type"] != "sink" or p_fork > nodes[c]["sink_p"]
+            ]
+            if not live:
+                live = list(kids)
+            share = q / len(live)
+            for c in kids:
+                w = share if c in live else 0.0
+                if nodes[c]["type"] == "sink":
+                    result[c] = {
+                        "flow": w,
+                        "p_in": nodes[c]["sink_p"],
+                        "p_out": nodes[c]["sink_p"],
+                    }
+                else:
+                    distribute(c, p_fork, w)
+        else:
+            for c in kids:
+                if nodes[c]["type"] == "sink":
+                    result[c] = {
+                        "flow": 0.0,
+                        "p_in": nodes[c]["sink_p"],
+                        "p_out": nodes[c]["sink_p"],
+                    }
+                else:
+                    distribute(c, p_fork, 0.0)
 
     for c in children.get(root, []):
         total = max(q_total, root_flow(p_eff))

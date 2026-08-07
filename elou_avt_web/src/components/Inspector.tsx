@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NodeTelemetry, EquipmentSpec } from '../types';
-import { TYPE_COLORS, fmtValue } from '../schemeConfig';
+import { TYPE_COLORS, fmtValue, PARAM_LABELS } from '../schemeConfig';
 import { api } from '../api';
 
 interface Props {
@@ -9,43 +9,18 @@ interface Props {
   nodeType: string;
   schemeParams: Record<string, unknown>;
   telemetry: NodeTelemetry | null;
+  disp?: string[];
+  onUpdateDisp?: (nodeId: string, keys: string[]) => void;
   onAction: (equipmentId: string, actionType: string, value?: number | null) => Promise<void>;
   onFailure: (equipmentId: string) => Promise<void>;
   onRename: (nodeId: string, name: string) => void;
   onDelete: (nodeId: string) => void;
   onUpdateParams: (equipmentId: string, params: Record<string, number>) => Promise<void>;
+  canEditScheme?: boolean;
+  canManageTwin?: boolean;
 }
 
-const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
-  flow_kg_s: { label: 'Расход', unit: 'кг/с' },
-  in_flow: { label: 'Расход вход', unit: 'кг/с' },
-  out_flow: { label: 'Расход выход', unit: 'кг/с' },
-  power_w: { label: 'Мощность', unit: 'кВт' },
-  pressure_bar: { label: 'Давление', unit: 'бар' },
-  pressure_in_bar: { label: 'Давление вход', unit: 'бар' },
-  pressure_out_bar: { label: 'Давление выход', unit: 'бар' },
-  temperature_c: { label: 'Температура', unit: '°C' },
-  outlet_temp_c: { label: 'Температура выхода', unit: '°C' },
-  top_temp_c: { label: 'Температура верха', unit: '°C' },
-  bottom_temp_c: { label: 'Температура низа', unit: '°C' },
-  t_cold_in_c: { label: 'Холодный вход', unit: '°C' },
-  t_cold_out_c: { label: 'Холодный выход', unit: '°C' },
-  t_hot_in_c: { label: 'Горячий вход', unit: '°C' },
-  t_hot_out_c: { label: 'Горячий выход', unit: '°C' },
-  position: { label: 'Открытие', unit: '%' },
-  duty_w: { label: 'Тепловая нагрузка', unit: 'МВт' },
-  fuel_flow: { label: 'Расход топлива', unit: 'кг/с' },
-  distillate_flow: { label: 'Дистиллят', unit: 'кг/с' },
-  bottoms_flow: { label: 'Кубовый остаток', unit: 'кг/с' },
-  level_m: { label: 'Уровень', unit: 'м' },
-  level_setpoint_m: { label: 'Уставка уровня', unit: 'м' },
-  volume_m3: { label: 'Объём аппарата', unit: 'м³' },
-  efficiency: { label: 'КПД', unit: '%' },
-  speed_rpm: { label: 'Частота вращения', unit: 'об/мин' },
-  converged: { label: 'Сходимость', unit: '' },
-};
-
-export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, onAction, onFailure, onRename, onDelete, onUpdateParams }: Props) {
+export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, canEditScheme = true, canManageTwin = true }: Props) {
   const [valvePos, setValvePos] = useState(0.6);
   const [fuel, setFuel] = useState(0.8);
   const [reflux, setReflux] = useState(2.0);
@@ -111,16 +86,20 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
     return (
       <div>
         <div className="inspector-header" style={{ borderLeft: `3px solid ${TYPE_COLORS[nodeType] ?? '#38bdf8'}` }}>
-          <input
-            className="rename-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={commitName}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-            }}
-            spellCheck={false}
-          />
+          {canEditScheme ? (
+            <input
+              className="rename-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              }}
+              spellCheck={false}
+            />
+          ) : (
+            <div style={{ fontWeight: 700 }}>{nodeName || nodeId}</div>
+          )}
           <div style={{ fontSize: 10, color: '#7f93a6' }}>{nodeId} • {nodeType}</div>
         </div>
         <div style={{ color: '#e8b93a', fontSize: 11, fontWeight: 700, margin: '4px 0 10px' }}>
@@ -137,9 +116,11 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         <div className="inspector-hint">
           Объект ещё не создан в расчётном движке. Нажмите «Сохранить схему», чтобы запустить симуляцию и получить телеметрию.
         </div>
-        <div style={{ marginTop: 12 }}>
-          <button className="btn btn-danger" onClick={() => onDelete(nodeId)}>🗑 Удалить объект</button>
-        </div>
+        {canEditScheme && (
+          <div style={{ marginTop: 12 }}>
+            <button className="btn btn-danger" onClick={() => onDelete(nodeId)}>🗑 Удалить объект</button>
+          </div>
+        )}
       </div>
     );
   }
@@ -161,7 +142,9 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
             <button className="btn btn-start" onClick={() => onAction(nodeId, 'TURN_ON')}>▶ Запустить</button>
             <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Остановить</button>
             <button className="btn btn-danger" onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Эвакуационный стоп</button>
-            <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Смоделировать отказ</button>
+            {canManageTwin && (
+              <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Смоделировать отказ</button>
+            )}
             <label className="ctrl-label">
               Частота вращения: {pumpSpeed} об/мин
               <input
@@ -197,7 +180,9 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
                 }}
               />
             </label>
-            <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинил)</button>
+            {canManageTwin && (
+              <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинил)</button>
+            )}
           </div>
         );
       case 'heater':
@@ -258,13 +243,15 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
             {isFeed && (
               <div className="inspector-hint">Расход сырья определяется открытием клапана FV-1/2/3 и частотой вращения насоса Н-1.</div>
             )}
-            <button className="btn btn-start" onClick={() => {
-              const params: Record<string, number> = { temperature_c: feedTemp };
-              if (!isFeed) params.flow_kg_s = feedFlow;
-              onUpdateParams(nodeId, params);
-            }}>
-              Применить граничные условия
-            </button>
+            {canManageTwin && (
+              <button className="btn btn-start" onClick={() => {
+                const params: Record<string, number> = { temperature_c: feedTemp };
+                if (!isFeed) params.flow_kg_s = feedFlow;
+                onUpdateParams(nodeId, params);
+              }}>
+                Применить граничные условия
+              </button>
+            )}
           </div>
         );
       }
@@ -301,24 +288,54 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
   return (
     <div>
       <div className="inspector-header" style={{ borderLeft: `3px solid ${color}` }}>
-        <input
-          className="rename-input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={commitName}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          }}
-          spellCheck={false}
-        />
+        {canEditScheme ? (
+          <input
+            className="rename-input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            spellCheck={false}
+          />
+        ) : (
+          <div style={{ fontWeight: 700 }}>{name || nodeId}</div>
+        )}
         <div style={{ fontSize: 10, color: '#7f93a6' }}>{nodeId} • {telemetry.type}</div>
       </div>
       <div style={{ color: telemetry.failed ? '#f87171' : '#35d399', fontSize: 11, fontWeight: 700, margin: '4px 0 10px' }}>
         ● {statusText}
       </div>
       <div className="param-list">{paramRows}</div>
+      {onUpdateDisp && (
+        <div style={{ marginTop: 12 }}>
+          <div className="panel-title">ПОКАЗЫВАТЬ НА СХЕМЕ</div>
+          <div className="param-list">
+            {Object.keys(telemetry.params)
+              .filter((k) => telemetry.params[k] !== null && telemetry.params[k] !== undefined)
+              .map((k) => {
+                const on = disp.includes(k);
+                return (
+                  <label className="param-check" key={k}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => {
+                        const next = on ? disp.filter((x) => x !== k) : [...disp, k];
+                        onUpdateDisp(nodeId, next);
+                      }}
+                    />
+                    <span>{PARAM_LABELS[k]?.label ?? k}</span>
+                  </label>
+                );
+              })}
+          </div>
+          <div className="inspector-hint">Отмеченные параметры показываются квадратиком рядом с объектом на схеме.</div>
+        </div>
+      )}
       {control && <div style={{ marginTop: 12 }}>{control}</div>}
-      {spec?.editable && spec.params.length > 0 && (
+      {canManageTwin && spec?.editable && spec.params.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div className="panel-title">ФИЗ. СВОЙСТВА</div>
           <div className="param-editor">
@@ -346,10 +363,12 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
           </div>
         </div>
       )}
-      <div style={{ marginTop: 12 }}>
-        <button className="btn btn-danger" onClick={() => onDelete(nodeId)}>🗑 Удалить объект</button>
-        <div className="inspector-hint">Переименование — Enter. Удаление — кнопка или Delete/Backspace. Не забудьте «Сохранить схему».</div>
-      </div>
+      {canEditScheme && (
+        <div style={{ marginTop: 12 }}>
+          <button className="btn btn-danger" onClick={() => onDelete(nodeId)}>🗑 Удалить объект</button>
+          <div className="inspector-hint">Переименование — Enter. Удаление — кнопка или Delete/Backspace. Не забудьте «Сохранить схему».</div>
+        </div>
+      )}
     </div>
   );
 }

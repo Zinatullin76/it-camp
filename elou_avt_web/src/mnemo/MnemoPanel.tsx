@@ -1,22 +1,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ApiState } from '../types';
+import type { ApiState, HistoryResponse } from '../types';
 import { api } from '../api';
 import type { MnemoItem, MnemoData } from './mnemoTypes';
 import dataRaw from './mnemoData.json';
-import { buildLive, fmtSimTime } from './sources';
+import { buildLive, fmtSimTime, fmtVal, PUMP_PARAMS } from './sources';
 import { MnemoScreen } from './MnemoScreen';
+import TrendChart, { SERIES_META } from '../components/TrendChart';
 
 const data = dataRaw as MnemoData;
 
 interface Props {
   live: ApiState | null;
   refresh: () => Promise<void> | void;
+  history: HistoryResponse | null;
+  user: string;
+  connected: boolean;
 }
 
 const K_MIN = 0.35;
 const K_MAX = 4;
 
-export function MnemoPanel({ live, refresh }: Props) {
+const DISP_KEY = 'mnemo-disp-v1';
+
+function loadDisp(): Record<string, string[]> {
+  try {
+    return JSON.parse(localStorage.getItem(DISP_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveDisp(d: Record<string, string[]>) {
+  try {
+    localStorage.setItem(DISP_KEY, JSON.stringify(d));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function MnemoPanel({ live, refresh, history, user, connected }: Props) {
   const [cur, setCur] = useState<string>(data.order[0]);
   const [k, setK] = useState(1);
   const [pan, setPan] = useState({ tx: 0, ty: 0 });
@@ -25,13 +47,53 @@ export function MnemoPanel({ live, refresh }: Props) {
   const [out, setOut] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [now, setNow] = useState(() => new Date());
+  const [trendParam, setTrendParam] = useState('column_pressure_bar');
+  const [disp, setDisp] = useState<Record<string, string[]>>(loadDisp);
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const liveVals = useMemo(() => buildLive(live), [live]);
   const screen = data.screens[cur];
 
+  const alarms = live?.alarms ?? [];
+  const critical = alarms.some((a) => a.severity === 'CRITICAL');
+  const mode = alarms.length === 0 ? 'НОРМА' : critical ? 'АВАРИЯ' : 'ВНИМАНИЕ';
+  const modeCls = alarms.length === 0 ? 'mode-norm' : critical ? 'mode-alarm' : 'mode-warn';
+
   const ctrl = sel?.item.ctrl ? live?.controllers?.[sel.item.ctrl] : undefined;
+  const pumpNode = sel?.item.n ? liveVals.equip(sel.item.n) : undefined;
+  const pumpTelemetry = pumpNode ? live?.equipment?.[pumpNode] : undefined;
+  const pumpState = pumpNode ? liveVals.run(sel!.item.n!) : 'unknown';
+
+  const pumpAction = async (t: string) => {
+    if (!pumpNode) return;
+    setBusy(true);
+    setErr('');
+    try {
+      await api.action(pumpNode, t);
+      await refresh();
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleDisp = (label: string, key: string) => {
+    setDisp((d) => {
+      const cur = d[label] ?? [];
+      const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+      const nd = { ...d, [label]: next };
+      saveDisp(nd);
+      return nd;
+    });
+  };
 
   useEffect(() => {
     if (ctrl) {
@@ -101,30 +163,33 @@ export function MnemoPanel({ live, refresh }: Props) {
     if (sel?.item.ctrl && Number.isFinite(v)) void send(sel.item.ctrl, 'SET_VALUE', v);
   };
 
-  const feedTH = live?.feed ? live.feed.flow_kg_s * 3.6 : 0;
-
   return (
     <div className="mnemo">
       <div className="mnemo-tabs">
-        <div className="mnemo-tabs-scroll">
-          {data.order.map((id) => (
-            <button
-              key={id}
-              className={`mnemo-tab ${id === cur ? 'on' : ''}`}
-              onClick={() => setCur(id)}
-            >
-              {data.screens[id].name}
-            </button>
-          ))}
+        <div className="mnemo-left">
+          <span className="mnemo-plant">УСТАНОВКА ЭЛОУ-АВТ</span>
+          <span className={`mnemo-mode ${modeCls}`}>{mode}</span>
         </div>
-        <div className="mnemo-kpis">
-          <span className="mnemo-kpi">⏱ {fmtSimTime(live?.simulation_time ?? 0)}</span>
-          <span className="mnemo-kpi">Сырьё <b>{feedTH.toFixed(1)}</b> т/ч</span>
-          <span className="mnemo-kpi">Продукт <b>{((live?.product_flow ?? 0) * 3.6).toFixed(1)}</b> т/ч</span>
-          <span className={`mnemo-kpi ${(live?.alarms?.length ?? 0) > 0 ? 'kpi-alarm' : ''}`}>
-            ⚠ {(live?.alarms?.length ?? 0)}
+        <div className="mnemo-right">
+          <span className="mnemo-kpi">👤 {user}</span>
+          <span className={`mnemo-link ${connected ? 'link-ok' : 'link-bad'}`}>
+            <span className="dot" /> {connected ? 'СВЯЗЬ ЕСТЬ' : 'ОТКЛЮЧЕНО'}
           </span>
+          <span className="mnemo-clock">{now.toLocaleTimeString('ru-RU')}</span>
+          <span className={`mnemo-kpi ${alarms.length > 0 ? 'kpi-alarm' : ''}`}>⚠ {alarms.length}</span>
         </div>
+      </div>
+
+      <div className="mnemo-screens">
+        {data.order.map((id) => (
+          <button
+            key={id}
+            className={`mnemo-tab ${id === cur ? 'on' : ''}`}
+            onClick={() => setCur(id)}
+          >
+            {data.screens[id].name}
+          </button>
+        ))}
       </div>
 
       <div className="mnemo-body">
@@ -144,13 +209,14 @@ export function MnemoPanel({ live, refresh }: Props) {
             <MnemoScreen
               data={screen}
               live={liveVals}
+              disp={disp}
               selected={sel?.idx ?? null}
               onSelect={(idx, item) => setSel({ idx, item })}
               onDeselect={() => setSel(null)}
             />
           </div>
           <div className="mnemo-hint">
-            колесо — масштаб · зажать — перемещение · клик по регулятору — панель
+            колесо — масштаб · зажать — перемещение · клик по оборудованию — панель
           </div>
         </div>
 
@@ -215,11 +281,53 @@ export function MnemoPanel({ live, refresh }: Props) {
               {ctrl.man ? <div className="fp-note">ручной клапан — управление только в режиме РУЧ</div> : null}
               {err ? <div className="fp-err">{err}</div> : null}
             </div>
+          ) : sel && pumpNode ? (
+            <div className="fp">
+              <div className="fp-title">НАСОС {sel.item.n}</div>
+              <div className="fp-desc">{pumpTelemetry?.name ?? 'Насос'}</div>
+              <div className="fp-unit">{pumpNode}</div>
+              <div className="fp-row">
+                <span className="fp-lbl">Статус</span>
+                <span className={`fp-pv fp-state st-${pumpState}`}>
+                  {pumpState === 'run' ? 'Работает' : pumpState === 'fail' ? 'ОТКАЗ' : pumpState === 'off' ? 'Остановлен' : '—'}
+                </span>
+              </div>
+              <div className="fp-actions">
+                <button
+                  className="fp-btn fp-btn-start"
+                  disabled={busy || pumpState === 'run'}
+                  onClick={() => void pumpAction('TURN_ON')}
+                >
+                  ПУСК
+                </button>
+                <button
+                  className="fp-btn fp-btn-stop"
+                  disabled={busy || pumpState !== 'run'}
+                  onClick={() => void pumpAction('TURN_OFF')}
+                >
+                  СТОП
+                </button>
+              </div>
+              <div className="fp-params-title">Показывать на схеме</div>
+              {PUMP_PARAMS.map(([key, label]) => {
+                const v = pumpTelemetry?.params?.[key];
+                const num = typeof v === 'number' && Number.isFinite(v) ? v : null;
+                const on = (disp[sel.item.n ?? ''] ?? []).includes(key);
+                return (
+                  <label key={key} className="fp-param">
+                    <input type="checkbox" checked={on} onChange={() => toggleDisp(sel.item.n ?? '', key)} />
+                    <span className="fp-lbl">{label}</span>
+                    <span className="fp-pv">{fmtVal(num)}</span>
+                  </label>
+                );
+              })}
+              {err ? <div className="fp-err">{err}</div> : null}
+            </div>
           ) : sel ? (
             <div className="fp-empty">Выбран объект без регулятора</div>
           ) : (
             <div className="fp-empty">
-              Выберите регулятор на схеме (бирюзовая рамка — кликабельный прибор) для открытия лицевой панели.
+              Выберите оборудование на схеме, чтобы открыть лицевую панель (Faceplate).
             </div>
           )}
         </div>
@@ -232,6 +340,54 @@ export function MnemoPanel({ live, refresh }: Props) {
             {v.n}
           </span>
         ))}
+      </div>
+
+      <div className="mnemo-bottom">
+        <div className="mnemo-alarms">
+          <div className="panel-title">ALARM LIST</div>
+          {alarms.length === 0 ? (
+            <div className="mnemo-alarms-empty">Аварий нет</div>
+          ) : (
+            <div className="alarm-table-wrap">
+              <table className="alarm-table">
+                <thead>
+                  <tr>
+                    <th>Время</th>
+                    <th>Приоритет</th>
+                    <th>Тег</th>
+                    <th>Описание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alarms.map((a) => (
+                    <tr
+                      key={a.id}
+                      className={`alarm-row sev-${a.severity.toLowerCase()}`}
+                    >
+                      <td>{fmtSimTime(a.timestamp)}</td>
+                      <td>{a.severity}</td>
+                      <td>{a.parameter}</td>
+                      <td className="alarm-desc">{a.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="mnemo-trend">
+          <div className="panel-title">ТРЕНД</div>
+          <select
+            className="scenario-select full"
+            value={trendParam}
+            onChange={(e) => setTrendParam(e.target.value)}
+          >
+            {Object.entries(SERIES_META).map(([kk, m]) => (
+              <option key={kk} value={kk}>{m.label} ({m.unit})</option>
+            ))}
+          </select>
+          <TrendChart history={history} param={trendParam} height={150} />
+        </div>
       </div>
     </div>
   );
