@@ -186,6 +186,22 @@ function roughTextW(s: string, size: number): number {
   return w;
 }
 
+/** Точки стрелки направления потока на прямом штуцере (nozzle). */
+function nozzleArrow(a: { x: number; y: number }, b: { x: number; y: number }, dir: 'in' | 'out'): string {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = (dir === 'out' ? dx : -dx) / len;
+  const uy = (dir === 'out' ? dy : -dy) / len;
+  const tip = dir === 'out'
+    ? { x: b.x, y: b.y }
+    : { x: a.x - ux * 9, y: a.y - uy * 9 };
+  const back = { x: tip.x - ux * 6, y: tip.y - uy * 6 };
+  const px = -uy * 3.5;
+  const py = ux * 3.5;
+  return `${tip.x} ${tip.y} ${back.x + px} ${back.y + py} ${back.x - px} ${back.y - py}`;
+}
+
 /** Габариты детального символа: viewBox + вылеты ППК и экспликации. */
 export function colDetailBounds(d: MnemoColDetail): [number, number, number, number] {
   let x0 = 0;
@@ -311,6 +327,11 @@ function renderColDetail(e: MnemoItem, live: MnemoLive): ReactElement {
             ) : (
               <line key={`${k}f`} x1={nz.to.x - 6} y1={nz.to.y} x2={nz.to.x + 6} y2={nz.to.y} stroke="#000" strokeWidth={3} />
             ),
+          );
+        }
+        if (nz.dir) {
+          el.push(
+            <polygon key={`${k}a`} points={nozzleArrow(nz.from, nz.to, nz.dir)} fill="#000" />,
           );
         }
       }

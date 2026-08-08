@@ -44,6 +44,7 @@ export const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
   duty_w: { label: 'Тепловая нагрузка', unit: 'МВт' },
   fuel_flow: { label: 'Расход топлива', unit: 'кг/с' },
   distillate_flow: { label: 'Дистиллят', unit: 'кг/с' },
+  side_draw_flow: { label: 'Боковой отбор', unit: 'кг/с' },
   bottoms_flow: { label: 'Кубовый остаток', unit: 'кг/с' },
   level_m: { label: 'Уровень', unit: 'м' },
   level_setpoint_m: { label: 'Уставка уровня', unit: 'м' },
@@ -92,6 +93,12 @@ export function nodeSizeFor(n: { type: string; params?: Record<string, unknown> 
     const nw = d.nodeW;
     return { w: nw + 8, h: Math.round((nw * d.vb.h) / d.vb.w) + 26 };
   }
+  const preset = n.params?.preset as string | undefined;
+  const p = preset ? PRESET_COLUMNS[preset] : undefined;
+  if (n.type === 'column' && p?.config?.vb?.w && p.config.nodeW) {
+    const nw = p.config.nodeW;
+    return { w: nw + 8, h: Math.round((nw * p.config.vb.h) / p.config.vb.w) + 26 };
+  }
   return nodeSize(n.type);
 }
 
@@ -99,6 +106,9 @@ export function nodeSizeFor(n: { type: string; params?: Record<string, unknown> 
 export function mnemoForNode(params: Record<string, unknown>): Partial<MnemoItem> | undefined {
   const d = params.mnemo as MnemoColDetail | undefined;
   if (d?.vb?.w && d?.nodeW) return { t: 'col', w: d.nodeW, detail: d };
+  const preset = params.preset as string | undefined;
+  const p = preset ? PRESET_COLUMNS[preset] : undefined;
+  if (p?.config?.vb?.w && p.config.nodeW) return { t: 'col', w: p.config.nodeW, detail: p.config };
   return undefined;
 }
 

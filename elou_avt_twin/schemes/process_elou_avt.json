@@ -573,6 +573,7 @@
       "x": 1900.0,
       "y": 420.0,
       "params": {
+        "preset": "k1",
         "num_stages": 28,
         "feed_stage": 16,
         "nominal_pressure": 196133.0,

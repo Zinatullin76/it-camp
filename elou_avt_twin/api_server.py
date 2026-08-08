@@ -197,10 +197,14 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["outlet_temp_c"] = round(eq.outlet_temp - 273.15, 2) if eq else None
         elif ntype == "column":
             dist = out.get("distillate")
+            side = out.get("side_draw")
             bott = out.get("bottoms")
             p["distillate_flow"] = dist.mass_flow if dist else 0.0
+            p["side_draw_flow"] = side.mass_flow if side else 0.0
             p["bottoms_flow"] = bott.mass_flow if bott else 0.0
-            p["flow_kg_s"] = (dist.mass_flow if dist else 0.0) + (bott.mass_flow if bott else 0.0)
+            p["flow_kg_s"] = ((dist.mass_flow if dist else 0.0)
+                              + (side.mass_flow if side else 0.0)
+                              + (bott.mass_flow if bott else 0.0))
             p["top_temp_c"] = round(dist.temperature - 273.15, 2) if dist else None
             p["bottom_temp_c"] = round(bott.temperature - 273.15, 2) if bott else None
             p["pressure_bar"] = round(dist.pressure / 1e5, 3) if dist else None

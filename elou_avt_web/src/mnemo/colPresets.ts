@@ -45,103 +45,19 @@ const k1Section: ColDetailSection = {
   ],
   tag: { x: 320, y: 398, s: 'К-1', size: 26 },
   nozzles: [
-    nz(270, 226, 254, 226, { flange: true }),
-    nz(270, 292, 254, 292, { flange: true }),
-    nz(270, 332, 254, 332, { flange: true }),
-    nz(270, 372, 254, 372, { flange: true }),
-    nz(270, 400, 254, 400, { flange: true }),
-    nz(370, 96, 386, 96, { flange: true }),
-    nz(370, 112, 386, 112, { flange: true }),
-    nz(370, 150, 386, 150, { flange: true }),
-    nz(370, 372, 386, 372, { flange: true }),
-    nz(305, 46, 305, 28, { flange: true }),
-    nz(320, 472, 320, 492, { flange: true }),
+    nz(270, 226, 254, 226, { flange: true, dir: 'in', port: 'in' }),
+    nz(270, 292, 254, 292, { flange: true, dir: 'in', port: 'feed1' }),
+    nz(270, 332, 254, 332, { flange: true, dir: 'in', port: 'feed2' }),
+    nz(270, 372, 254, 372, { flange: true, dir: 'in', port: 'feed3' }),
+    nz(270, 400, 254, 400, { flange: true, dir: 'in', port: 'feed4' }),
+    nz(370, 96, 386, 96, { flange: true, dir: 'in', port: 'reflux' }),
+    nz(370, 112, 386, 112, { flange: true, dir: 'in', port: 'circ' }),
+    nz(370, 150, 386, 150, { flange: true, dir: 'out', port: 'side_draw' }),
+    nz(370, 372, 386, 372, { flange: true, dir: 'in', port: 'steam' }),
+    nz(305, 46, 305, 28, { flange: true, dir: 'out', port: 'distillate' }),
+    nz(320, 472, 320, 492, { flange: true, dir: 'out', port: 'bottoms' }),
   ],
 };
-
-const k1Expl = [
-  {
-    x: 248, y: 223, anchor: 'end' as const,
-    lead: [252, 220, 264, 220] as [number, number, number, number],
-    lines: [{ s: 'Отбор на 22 тар.' }],
-  },
-  {
-    x: 248, y: 289, anchor: 'end' as const,
-    lead: [252, 286, 264, 286] as [number, number, number, number],
-    lines: [{ s: 'Отбор на 17 тар.' }],
-  },
-  {
-    x: 248, y: 325, anchor: 'end' as const,
-    lead: [252, 328, 264, 328] as [number, number, number, number],
-    lines: [
-      { s: 'Обессоленная нефть с Т-17, Т-19, Т-22/1' },
-      { s: 'ввод на 16 тар.', sub: true },
-    ],
-  },
-  {
-    x: 248, y: 365, anchor: 'end' as const,
-    lead: [252, 368, 264, 368] as [number, number, number, number],
-    lines: [
-      { s: 'Отбензиненная нефть из П-2' },
-      { s: 'горячая струя', sub: true },
-    ],
-  },
-  {
-    x: 248, y: 393, anchor: 'end' as const,
-    lead: [252, 396, 264, 396] as [number, number, number, number],
-    lines: [
-      { s: 'Отбензиненная нефть из П-3' },
-      { s: 'горячая струя', sub: true },
-    ],
-  },
-  {
-    x: 392, y: 93, anchor: 'start' as const,
-    lead: [388, 96, 376, 96] as [number, number, number, number],
-    lines: [
-      { s: 'Острое орошение из Е-1' },
-      { s: 'TRC 2 / FRC 408', sub: true },
-    ],
-  },
-  {
-    x: 392, y: 121, anchor: 'start' as const,
-    lead: [388, 124, 376, 124] as [number, number, number, number],
-    lines: [
-      { s: 'Циркулирующее орошение на 28 тар.' },
-      { s: 'возврат через Т-1/5, FRC 3К-32', sub: true },
-    ],
-  },
-  {
-    x: 392, y: 147, anchor: 'start' as const,
-    lead: [388, 150, 376, 150] as [number, number, number, number],
-    lines: [
-      { s: 'Отбор фр. 40-180 °С с 26 тар.' },
-      { s: 'глухая тарелка, на Н-6К (Н-6К/1)', sub: true },
-    ],
-  },
-  {
-    x: 392, y: 369, anchor: 'start' as const,
-    lead: [388, 372, 376, 372] as [number, number, number, number],
-    lines: [
-      { s: 'Перегретый пар из П-1, П-2, П-3' },
-      { s: 'не более 1200 кг/ч, FR 803', sub: true },
-    ],
-  },
-  {
-    x: 305, y: 16, anchor: 'middle' as const,
-    lead: [305, 22, 305, 28] as [number, number, number, number],
-    lines: [{ s: 'Пары фр. НК-180 °С и воды на АВЗ-3' }],
-  },
-  {
-    x: 440, y: 16, anchor: 'middle' as const,
-    lead: [440, 22, 440, 34] as [number, number, number, number],
-    lines: [{ s: 'ППК, сброс в атмосферу' }],
-  },
-  {
-    x: 320, y: 512, anchor: 'middle' as const,
-    lead: [320, 500, 320, 492] as [number, number, number, number],
-    lines: [{ s: 'Отбензин. нефть с низа колонны' }],
-  },
-];
 
 const k1: ColPreset = {
   name: 'К-1',
@@ -152,7 +68,6 @@ const k1: ColPreset = {
     vb: { w: 640, h: 530 },
     nodeW: 380,
     sections: [k1Section],
-    expl: k1Expl,
     ppk: [{ x: 341.1, y: 47.3, scale: 0.45, kind: 'atmos' }],
   },
 };

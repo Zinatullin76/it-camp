@@ -94,6 +94,10 @@ export interface ColDetailNozzle {
   flange?: boolean;
   /** Толщина линии (К-3: патрубки 1.2, боковые врезки 2). */
   width?: number;
+  /** Направление потока: 'in' — в колонну, 'out' — из колонны. */
+  dir?: 'in' | 'out';
+  /** Имя порта схемы для подключения потока (иначе генерируется по геометрии). */
+  port?: string;
 }
 
 export interface ColExpl {

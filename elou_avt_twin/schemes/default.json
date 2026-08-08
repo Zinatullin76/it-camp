@@ -57,14 +57,6 @@
       "target_port": "hot_in"
     },
     {
-      "id": "source_12-hea_10-1786165475738",
-      "kind": "oil",
-      "source": "source_12",
-      "source_port": "out",
-      "target": "hea_10",
-      "target_port": "cold_in"
-    },
-    {
       "id": "hea_10-sink_13-1786165478462",
       "kind": "oil",
       "source": "hea_10",
@@ -89,35 +81,107 @@
       "target_port": "in"
     },
     {
-      "id": "val_6-sink_3-1786177575556",
+      "id": "source_10-col_2-1786198134796",
+      "kind": "oil",
+      "source": "source_10",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "feed1"
+    },
+    {
+      "id": "source_11-col_2-1786198138287",
+      "kind": "oil",
+      "source": "source_11",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "feed2"
+    },
+    {
+      "id": "source_13-col_2-1786198140972",
+      "kind": "oil",
+      "source": "source_13",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "feed3"
+    },
+    {
+      "id": "source_15-col_2-1786198154203",
+      "kind": "oil",
+      "source": "source_15",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "feed4"
+    },
+    {
+      "id": "col_2-sink_8-1786198165866",
+      "kind": "oil",
+      "source": "col_2",
+      "source_port": "bottoms",
+      "target": "sink_8",
+      "target_port": "in"
+    },
+    {
+      "id": "source_14-col_2-1786198177258",
+      "kind": "oil",
+      "source": "source_14",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "reflux"
+    },
+    {
+      "id": "col_2-sink_5-1786198181665",
+      "kind": "oil",
+      "source": "col_2",
+      "source_port": "distillate",
+      "target": "sink_5",
+      "target_port": "in"
+    },
+    {
+      "id": "col_2-sink_6-1786198201200",
+      "kind": "oil",
+      "source": "col_2",
+      "source_port": "side_draw",
+      "target": "sink_6",
+      "target_port": "in"
+    },
+    {
+      "id": "source_16-col_2-1786198213196",
+      "kind": "oil",
+      "source": "source_16",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "circ"
+    },
+    {
+      "id": "source_17-col_2-1786198236593",
+      "kind": "oil",
+      "source": "source_17",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "steam"
+    },
+    {
+      "id": "val_5-col_2-1786198992415",
+      "kind": "oil",
+      "source": "val_5",
+      "source_port": "out",
+      "target": "col_2",
+      "target_port": "in"
+    },
+    {
+      "id": "source_1-hea_10-1786199062605",
+      "kind": "oil",
+      "source": "source_1",
+      "source_port": "out",
+      "target": "hea_10",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "val_6-sink_3-1786199071832",
       "kind": "oil",
       "source": "val_6",
       "source_port": "out",
       "target": "sink_3",
-      "target_port": "in"
-    },
-    {
-      "id": "val_5-col_1-1786177578296",
-      "kind": "oil",
-      "source": "val_5",
-      "source_port": "out",
-      "target": "col_1",
-      "target_port": "in"
-    },
-    {
-      "id": "col_1-sink_4-1786177581006",
-      "kind": "oil",
-      "source": "col_1",
-      "source_port": "bottoms",
-      "target": "sink_4",
-      "target_port": "in"
-    },
-    {
-      "id": "col_1-sink_7-1786177589535",
-      "kind": "oil",
-      "source": "col_1",
-      "source_port": "distillate",
-      "target": "sink_7",
       "target_port": "in"
     }
   ],
@@ -217,18 +281,6 @@
       "y": -99.0
     },
     {
-      "id": "source_12",
-      "name": "Источник сырья",
-      "params": {
-        "flow_kg_s": 100,
-        "pressure_bar": 1.01325,
-        "temperature_c": 120
-      },
-      "type": "source",
-      "x": 1044.0,
-      "y": 125.0
-    },
-    {
       "id": "sink_13",
       "name": "Продукт / отбор",
       "params": {
@@ -237,33 +289,6 @@
       "type": "sink",
       "x": 1220.0,
       "y": -263.0
-    },
-    {
-      "id": "col_1",
-      "name": "Колонна ректификации",
-      "params": {
-        "feed_stage": 10,
-        "num_stages": 20
-      },
-      "type": "column",
-      "x": 1600.0,
-      "y": -46.0
-    },
-    {
-      "id": "sink_3",
-      "name": "Продукт / отбор",
-      "params": {},
-      "type": "sink",
-      "x": 1770.0,
-      "y": -217.0
-    },
-    {
-      "id": "sink_4",
-      "name": "Продукт / отбор",
-      "params": {},
-      "type": "sink",
-      "x": 1801.0,
-      "y": 55.0
     },
     {
       "id": "val_5",
@@ -290,12 +315,355 @@
       "y": -150.0
     },
     {
-      "id": "sink_7",
+      "id": "col_2",
+      "name": "К-1 · Атмосферная колонна",
+      "params": {
+        "feed_stage": 18,
+        "mnemo": {
+          "nodeW": 380,
+          "ppk": [
+            {
+              "kind": "atmos",
+              "scale": 0.45,
+              "x": 341.1,
+              "y": 47.3
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#D7D7D7",
+              "leftX": 270,
+              "level": {
+                "color": "#8B5E3C",
+                "lv": "lv",
+                "y0": 472,
+                "y100": 336
+              },
+              "nozzles": [
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 226
+                  },
+                  "port": "in",
+                  "to": {
+                    "x": 254,
+                    "y": 226
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 292
+                  },
+                  "port": "feed1",
+                  "to": {
+                    "x": 254,
+                    "y": 292
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 332
+                  },
+                  "port": "feed2",
+                  "to": {
+                    "x": 254,
+                    "y": 332
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 372
+                  },
+                  "port": "feed3",
+                  "to": {
+                    "x": 254,
+                    "y": 372
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 400
+                  },
+                  "port": "feed4",
+                  "to": {
+                    "x": 254,
+                    "y": 400
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 96
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 386,
+                    "y": 96
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 112
+                  },
+                  "port": "circ",
+                  "to": {
+                    "x": 386,
+                    "y": 112
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 150
+                  },
+                  "port": "side_draw",
+                  "to": {
+                    "x": 386,
+                    "y": 150
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 372
+                  },
+                  "port": "steam",
+                  "to": {
+                    "x": 386,
+                    "y": 372
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 305,
+                    "y": 46
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 305,
+                    "y": 28
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 320,
+                    "y": 472
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 320,
+                    "y": 492
+                  }
+                }
+              ],
+              "rightX": 370,
+              "shell": "M 292 46 L 348 46 L 370 90 L 370 428 L 348 472 L 292 472 L 270 428 L 270 90 Z",
+              "tag": {
+                "s": "К-1",
+                "size": 26,
+                "x": 320,
+                "y": 398
+              },
+              "trays": [
+                {
+                  "label": "28 тар.",
+                  "y": 112
+                },
+                {
+                  "blind": true,
+                  "label": "26 тар.",
+                  "y": 150
+                },
+                {
+                  "label": "25 тар.",
+                  "y": 190
+                },
+                {
+                  "label": "22 тар.",
+                  "y": 226
+                },
+                {
+                  "label": "18 тар.",
+                  "y": 256
+                },
+                {
+                  "label": "17 тар.",
+                  "y": 292
+                },
+                {
+                  "label": "16 тар.",
+                  "y": 332
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 530,
+            "w": 640
+          }
+        },
+        "num_stages": 28,
+        "preset": "k1"
+      },
+      "type": "column",
+      "x": 606.0,
+      "y": 165.0
+    },
+    {
+      "id": "sink_5",
       "name": "Продукт / отбор",
       "params": {},
       "type": "sink",
-      "x": 1846.0,
-      "y": -81.0
+      "x": 865.0,
+      "y": 44.0
+    },
+    {
+      "id": "sink_6",
+      "name": "Продукт / отбор",
+      "params": {},
+      "type": "sink",
+      "x": 1073.0,
+      "y": 325.0
+    },
+    {
+      "id": "sink_8",
+      "name": "Продукт / отбор",
+      "params": {},
+      "type": "sink",
+      "x": 895.0,
+      "y": 525.0
+    },
+    {
+      "id": "source_10",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 410.0,
+      "y": 358.0
+    },
+    {
+      "id": "source_11",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 418.0,
+      "y": 408.0
+    },
+    {
+      "id": "source_13",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 418.0,
+      "y": 466.0
+    },
+    {
+      "id": "source_14",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 931.0,
+      "y": 126.0
+    },
+    {
+      "id": "source_15",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 476.0,
+      "y": 520.0
+    },
+    {
+      "id": "source_16",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 980.0,
+      "y": 239.0
+    },
+    {
+      "id": "source_17",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1109.0,
+      "y": 417.0
+    },
+    {
+      "id": "source_1",
+      "name": "Источник сырья",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 927.0,
+      "y": -223.0
+    },
+    {
+      "id": "sink_3",
+      "name": "Продукт / отбор",
+      "params": {},
+      "type": "sink",
+      "x": 1501.0,
+      "y": -129.0
     }
   ],
   "schema_version": "1.1"

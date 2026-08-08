@@ -26,6 +26,8 @@ class DistillationColumn(BaseEquipment):
         
         self.reflux_ratio = 2.0
         self.boilup_ratio = 1.5
+        self.side_draw_fraction = float(self.params.get("side_draw_fraction", 0.10))
+        self._side_cut = self.params.get("side_draw_cut") or []
         self._warm_L = None
         self._warm_V = None
         self._warm_x = None
@@ -37,6 +39,32 @@ class DistillationColumn(BaseEquipment):
         self.num_stages = self.params.get("num_stages", 20)
         self.feed_stage = self.params.get("feed_stage", 10)
         self.pressure = self.params.get("nominal_pressure", 101325.0)
+
+    def _side_split(self, feed, distillate_mass):
+        """Mass of the side draw and its composition (a share of the feed).
+
+        Uses the ``side_draw_cut`` fraction list when given (side draw takes
+        exactly those fractions present in the feed); otherwise the constant
+        ``side_draw_fraction`` (default 0.10).  The side draw never exceeds
+        what is left of the feed after the distillate, so the overall balance
+        D + S + B = F always holds.
+        """
+        cut = self._side_cut
+        if cut:
+            d = {c: feed.composition.get(c, 0.0) for c in cut}
+            ds = sum(d.values())
+            if ds > 1e-12:
+                frac = ds
+                comp = {c: v / ds for c, v in d.items()}
+            else:
+                frac = 0.0
+                comp = dict(feed.composition)
+        else:
+            frac = self.side_draw_fraction
+            comp = dict(feed.composition)
+        side_mass = max(0.0, feed.mass_flow * frac)
+        side_mass = min(side_mass, max(0.0, feed.mass_flow - max(0.0, distillate_mass)))
+        return side_mass, comp
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
         """
@@ -160,21 +188,29 @@ class DistillationColumn(BaseEquipment):
                 return feed.temperature
             t_fb = _fb_temp(0)
             t_fb_bot = _fb_temp(-1)
+            side_mass, comp_sd = self._side_split(feed, distillate_mass)
+            bottoms_mass = max(0.0, feed.mass_flow - distillate_mass - side_mass)
+            t_mid = 0.5 * (t_fb + t_fb_bot)
             distillate = self._make_product(
                 thermo, feed, t_fb, self.pressure, distillate_mass, comp_d, Phase.VAPOR,
             )
             bottoms = self._make_product(
                 thermo, feed, t_fb_bot, self.pressure, bottoms_mass, comp_b, Phase.LIQUID,
             )
+            side = self._make_product(
+                thermo, feed, t_mid, self.pressure, side_mass, comp_sd, Phase.LIQUID,
+            )
             self._cached = {
-                "t_top": t_fb, "t_bottom": t_fb_bot,
-                "d_mass": distillate_mass, "b_mass": bottoms_mass,
-                "comp_dist": comp_d, "comp_bott": comp_b,
+                "t_top": t_fb, "t_bottom": t_fb_bot, "t_side": t_mid,
+                "d_mass": distillate_mass, "b_mass": bottoms_mass, "s_mass": side_mass,
+                "comp_dist": comp_d, "comp_bott": comp_b, "comp_side": comp_sd,
                 "h_dist": distillate.enthalpy, "h_bott": bottoms.enthalpy,
+                "h_side": side.enthalpy,
                 "converged": result.get("converged", False),
             }
             return {
                 "distillate": distillate,
+                "side_draw": side,
                 "bottoms": bottoms,
                 "t_profile": self.t_profile.tolist(),
                 "converged": result.get("converged", False),
@@ -198,21 +234,32 @@ class DistillationColumn(BaseEquipment):
         t_top = float(self.t_profile[0])
         t_bottom = float(self.t_profile[-1])
 
+        side_mass, comp_sd = self._side_split(feed, distillate_mass)
+        bottoms_mass = max(0.0, feed.mass_flow - distillate_mass - side_mass)
+        if bottoms_mass <= 0.0 and feed.mass_flow > 0.0:
+            distillate_mass = max(0.0, feed.mass_flow - side_mass)
+        t_mid = 0.5 * (t_top + t_bottom)
+
         distillate = self._make_product(
             thermo, feed, t_top, self.pressure, distillate_mass, comp_dist, Phase.VAPOR,
         )
         bottoms = self._make_product(
             thermo, feed, t_bottom, self.pressure, bottoms_mass, comp_bott, Phase.LIQUID,
         )
+        side = self._make_product(
+            thermo, feed, t_mid, self.pressure, side_mass, comp_sd, Phase.LIQUID,
+        )
         self._cached = {
-            "t_top": t_top, "t_bottom": t_bottom,
-            "d_mass": distillate_mass, "b_mass": bottoms_mass,
-            "comp_dist": comp_dist, "comp_bott": comp_bott,
+            "t_top": t_top, "t_bottom": t_bottom, "t_side": t_mid,
+            "d_mass": distillate_mass, "b_mass": bottoms_mass, "s_mass": side_mass,
+            "comp_dist": comp_dist, "comp_bott": comp_bott, "comp_side": comp_sd,
             "h_dist": distillate.enthalpy, "h_bott": bottoms.enthalpy,
+            "h_side": side.enthalpy,
             "converged": True,
         }
         return {
             "distillate": distillate,
+            "side_draw": side,
             "bottoms": bottoms,
             "t_profile": self.t_profile.tolist(),
             "converged": result.get("converged", False),
@@ -231,8 +278,14 @@ class DistillationColumn(BaseEquipment):
             mass_flow=c["b_mass"], composition=c["comp_bott"], phase=Phase.LIQUID,
             enthalpy=c.get("h_bott", feed.enthalpy),
         )
+        side = feed.copy_with(
+            name="SideDraw", temperature=c["t_side"], pressure=self.pressure,
+            mass_flow=c["s_mass"], composition=c["comp_side"], phase=Phase.LIQUID,
+            enthalpy=c.get("h_side", feed.enthalpy),
+        )
         return {
             "distillate": distillate,
+            "side_draw": side,
             "bottoms": bottoms,
             "t_profile": self.t_profile.tolist(),
             "converged": c["converged"],

@@ -237,7 +237,7 @@ def build_scheme() -> ProcessScheme:
     # Columns
     # ----------------------------------------------------------------
     scheme.add_node(node("column_K1", "column", "К-1 атмосферная ректификация", 1900, 420, {
-        "num_stages": 28, "feed_stage": 16, "nominal_pressure": kgf(2.0), "sump_area": 15.9, "initial_level": 2.5,
+        "preset": "k1", "num_stages": 28, "feed_stage": 16, "nominal_pressure": kgf(2.0), "sump_area": 15.9, "initial_level": 2.5,
         "top_cut": ["frac_nk62", "frac_62_105", "water"],
         "solver_n_iter": 80,
         "limits": {

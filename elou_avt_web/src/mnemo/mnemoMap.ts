@@ -14,7 +14,6 @@ const IDX: Record<string, number> = {
   pump_H1: 0,
   hx_T1: 1,
   furnace_P1: 2,
-  column_K1: 3,
 };
 
 export interface MnemoPlacement {

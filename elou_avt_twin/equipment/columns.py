@@ -195,14 +195,28 @@ COLUMN_CLASSES: Dict[str, type] = {
 }
 
 
-def column_class_for(node_id: str) -> type:
-    """Pick the dedicated column class for a scheme node id.
+def column_class_for(node_id: str, params: Optional[Dict[str, Any]] = None) -> type:
+    """Pick the dedicated column class for a scheme node.
 
-    Matches the ELOU-AVT node ids (``column_K1``, ``column_K2``,
-    ``column_K31``..``column_K33``, ``column_K4``); the K-3 stripping
-    variants share :class:`StrippingColumnK3`. Falls back to the generic
-    :class:`DistillationColumn` for unknown nodes.
+    A ``preset`` parameter (``k1``..``k4``, as written by the scheme editor for
+    detailed columns) takes precedence, so a node carrying the K-1 preset gets
+    the full :class:`AtmosphericColumnK1` even when its id is a generic
+    ``col_N``.  Otherwise the ELOU-AVT node ids are matched (``column_K1``,
+    ``column_K2``, ``column_K31``..``column_K33``, ``column_K4``); the K-3
+    stripping variants share :class:`StrippingColumnK3`.  Falls back to the
+    generic :class:`DistillationColumn` for unknown nodes.
     """
+    preset = (params or {}).get("preset")
+    if preset:
+        p = str(preset).lower()
+        if p.startswith("k1"):
+            return AtmosphericColumnK1
+        if p.startswith("k2"):
+            return ColumnK2
+        if p.startswith("k3"):
+            return StrippingColumnK3
+        if p.startswith("k4"):
+            return StabilizerColumnK4
     nid = (node_id or "").lower()
     if nid.startswith("column_k1"):
         return AtmosphericColumnK1

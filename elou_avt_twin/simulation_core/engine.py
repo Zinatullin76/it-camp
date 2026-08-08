@@ -359,7 +359,9 @@ class SimulationEngine:
                     continue
                 out = eq.step(dt, inlet_stream=inlet, thermo=self.thermo)
             elif ntype == "column":
-                feed = self._merge_streams(incoming.get("in"))
+                feed = self._merge_streams(
+                    [s for lst in incoming.values() for s in lst]
+                )
                 if feed is None:
                     continue
                 out = eq.step(dt, feed_stream=feed, thermo=self.thermo)
@@ -422,7 +424,7 @@ class SimulationEngine:
                 # pressure anchors both the distillate and the bottoms stream.
                 hcol = hyd.get(nid)
                 if hcol is not None:
-                    for port in ("distillate", "bottoms"):
+                    for port in ("distillate", "side_draw", "bottoms"):
                         if out.get(port) is not None:
                             out[port] = out[port].copy_with(pressure=hcol["p_out"])
             # Restriction clamp: a downstream valve caps the flow this node may
@@ -582,7 +584,7 @@ class SimulationEngine:
             elif node.type == "heater":
                 self._equipment[node.id] = Heater(node.id, node.params)
             elif node.type == "column":
-                self._equipment[node.id] = column_class_for(node.id)(node.id, node.params)
+                self._equipment[node.id] = column_class_for(node.id, node.params)(node.id, node.params)
             elif node.type == "separator":
                 self._equipment[node.id] = Tank(node.id, node.params)
 
@@ -1266,11 +1268,20 @@ class SimulationEngine:
             state.level[nid] = out["level"]
             return
         inlet = self._merge_streams(incoming.get("in") or incoming.get("cold_in"))
+        if node.type == "column":
+            # A multi-feed column (K-1 with in/feed1..4/reflux/circ/steam) must
+            # balance ALL its incoming ports, not only the main 'in' feed.
+            inlet = self._merge_streams(
+                [s for lst in incoming.values() for s in lst]
+            )
         density = inlet.density if inlet else 850.0
         if node.type == "column":
             dist = out.get("distillate")
+            side = out.get("side_draw")
             bott = out.get("bottoms")
-            out_flow = (dist.mass_flow if dist else 0.0) + (bott.mass_flow if bott else 0.0)
+            out_flow = ((dist.mass_flow if dist else 0.0)
+                        + (side.mass_flow if side else 0.0)
+                        + (bott.mass_flow if bott else 0.0))
         elif node.type == "elou":
             s = out.get("outlet_stream")
             brine = out.get("brine_stream")
@@ -1306,6 +1317,8 @@ class SimulationEngine:
         elif ntype == "column":
             if out.get("distillate") is not None:
                 streams[f"{nid}:distillate"] = out["distillate"]
+            if out.get("side_draw") is not None:
+                streams[f"{nid}:side_draw"] = out["side_draw"]
             if out.get("bottoms") is not None:
                 streams[f"{nid}:bottoms"] = out["bottoms"]
         elif ntype == "elou" and out.get("brine_stream") is not None:
@@ -1393,11 +1406,14 @@ class SimulationEngine:
         # Extract Stream objects
         s_elou = elou.get("outlet_stream")
         s_col_dist = col.get("distillate")
+        s_col_side = col.get("side_draw")
         s_col_bott = col.get("bottoms")
         s_furnace = furnace.get("outlet_stream")
 
         feed_flow = s_elou.mass_flow if s_elou else 0.0
-        product_flow = (s_col_dist.mass_flow if s_col_dist else 0.0) + (s_col_bott.mass_flow if s_col_bott else 0.0)
+        product_flow = ((s_col_dist.mass_flow if s_col_dist else 0.0)
+                        + (s_col_side.mass_flow if s_col_side else 0.0)
+                        + (s_col_bott.mass_flow if s_col_bott else 0.0))
 
         # Dynamic column pressure from actual process stream (stream-derived, not hardcoded).
         column_pressure = s_col_dist.pressure if s_col_dist else prev_state.pressure.get("column", 101325.0)

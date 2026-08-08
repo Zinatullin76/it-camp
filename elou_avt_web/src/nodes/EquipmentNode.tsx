@@ -1,9 +1,9 @@
-import { memo, createContext, useContext } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { memo, createContext, useContext, useMemo } from 'react';
+import type { ReactElement, PointerEvent as ReactPointerEvent } from 'react';
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { NodeTelemetry, AlarmData } from '../types';
-import type { MnemoItem } from '../mnemo/mnemoTypes';
+import type { MnemoItem, MnemoColDetail, ColDetailNozzle } from '../mnemo/mnemoTypes';
 import type { MnemoLive } from '../mnemo/sources';
 import { itemBBox, renderItem } from '../mnemo/symbols';
 import { TYPE_COLORS, nodeSize, PARAM_LABELS, fmtValue } from '../schemeConfig';
@@ -135,6 +135,44 @@ const handles = (type: string) => {
   }
 };
 
+/**
+ * Хэндлы детальной колонны по отросткам пресета: каждый штуцер — точка
+ * подключения потока ровно на его конце (фланце). Направление берётся из
+ * `dir` отростка (3 выхода, остальные — входы).
+ */
+function columnHandles(
+  nozzles: ColDetailNozzle[],
+  g: { s: number; viewScale: number; offX: number; offY: number; cardH: number; nodeW: number; offLeft: number; offTop: number; bx0: number; by0: number; itemX: number; itemY: number },
+): ReactElement[] {
+  const el: ReactElement[] = [];
+  for (let i = 0; i < nozzles.length; i++) {
+    const nz = nozzles[i];
+    if (!nz.from || !nz.to) continue;
+    const { from, to } = nz;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const horizontal = Math.abs(dx) >= Math.abs(dy);
+    const out = nz.dir === 'out';
+    const sx = g.itemX + to.x * g.s;
+    const sy = g.itemY + to.y * g.s;
+    const left = ((g.offLeft + g.offX + (sx - g.bx0) * g.viewScale) / g.nodeW) * 100;
+    const top = ((g.offTop + g.offY + (sy - g.by0) * g.viewScale) / g.cardH) * 100;
+    const pos = horizontal
+      ? to.x > from.x ? Position.Right : Position.Left
+      : to.y > from.y ? Position.Bottom : Position.Top;
+    el.push(
+      <Handle
+        key={`c${i}`}
+        type={out ? 'source' : 'target'}
+        position={pos}
+        id={nz.port ?? 'in'}
+        style={{ ...HANDLE_STYLE, left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+      />,
+    );
+  }
+  return el;
+}
+
 const TAG_STACK = 52;
 
 function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
@@ -156,6 +194,28 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
   const live = buildLive(telemetry, color);
   const svgW = box.w - 6;
   const svgH = Math.max(box.h - 6, (bb[3] * svgW) / bb[2]);
+  const detail = item.detail as MnemoColDetail | undefined;
+  const presetNozzles = detail?.sections?.flatMap((s) => s.nozzles ?? []) ?? [];
+  const usePresetHandles = presetNozzles.some((n) => n.port);
+  const geom = useMemo(() => {
+    const nodeW = item.w || detail?.nodeW || 130;
+    const s = nodeW / (detail?.vb.w || 640);
+    const viewScale = Math.min(svgW / bb[2], svgH / bb[3]);
+    return {
+      s,
+      viewScale,
+      offX: (svgW - bb[2] * viewScale) / 2,
+      offY: (svgH - bb[3] * viewScale) / 2,
+      cardH: svgH + 6,
+      nodeW,
+      offLeft: (box.w - svgW) / 2,
+      offTop: (svgH + 6 - svgH) / 2,
+      bx0: bb[0],
+      by0: bb[1],
+      itemX: item.x,
+      itemY: item.y,
+    };
+  }, [svgW, svgH, bb, item.w, item.x, item.y, detail, box.w]);
   const dispParams = (disp ?? []).filter((k) => telemetry?.params?.[k] !== null && telemetry?.params?.[k] !== undefined);
 
   const failed = !!telemetry?.failed;
@@ -270,7 +330,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
       {telemetry?.failed ? (
         <span className="mn-node-alarm">АВАРИЯ</span>
       ) : null}
-      {handles(nodeType)}
+      {usePresetHandles ? columnHandles(presetNozzles, geom) : handles(nodeType)}
     </div>
   );
 }

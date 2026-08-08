@@ -47,7 +47,10 @@ PROCESS_TYPES = NODE_TYPES - SOURCE_TYPES - SINK_TYPES - {"junction", "stream"}
 DEFAULT_PORTS = {"in", "out"}
 PORT_SPECS: Dict[str, Set[str]] = {
     "heat_exchanger": {"in", "out", "hot_in", "hot_out", "cold_in", "cold_out"},
-    "column": {"in", "out", "distillate", "bottoms", "feed"},
+    "column": {
+        "in", "out", "distillate", "bottoms", "feed", "overhead", "side_draw",
+        "reflux", "circ", "steam", "feed1", "feed2", "feed3", "feed4",
+    },
     "elou": {"in", "out", "brine", "water_in"},
     "tank": {"in", "out", "gas"},
     "separator": {"in", "out", "gas"},
@@ -111,6 +114,16 @@ class SchemeValidationResult(BaseModel):
 
 def _ports_for(node: SchemeNode) -> Set[str]:
     return PORT_SPECS.get(node.type, DEFAULT_PORTS)
+
+
+def _valid_port(node: SchemeNode, port: str, direction: str) -> bool:
+    if port in _ports_for(node):
+        return True
+    # Многоотростковые колонны принимают произвольные входные порты
+    # (in, in_2, ...), согласованные с хэндлами детальной мнемосхемы.
+    if node.type == "column" and direction == "target" and port.startswith("in"):
+        return True
+    return False
 
 
 def _missing_required_params(node: SchemeNode) -> List[str]:
@@ -179,7 +192,7 @@ def validate_scheme(scheme: ProcessScheme) -> SchemeValidationResult:
                 message=f"Edge '{e.id}' references missing source node '{e.source}'.",
             ))
         else:
-            if e.source_port not in _ports_for(src):
+            if not _valid_port(src, e.source_port, "source"):
                 issues.append(ValidationIssue(
                     severity="error", code="INVALID_SOURCE_PORT", edge_id=e.id,
                     node_id=e.source,
@@ -193,7 +206,7 @@ def validate_scheme(scheme: ProcessScheme) -> SchemeValidationResult:
                 message=f"Edge '{e.id}' references missing target node '{e.target}'.",
             ))
         else:
-            if e.target_port not in _ports_for(tgt):
+            if not _valid_port(tgt, e.target_port, "target"):
                 issues.append(ValidationIssue(
                     severity="error", code="INVALID_TARGET_PORT", edge_id=e.id,
                     node_id=e.target,
