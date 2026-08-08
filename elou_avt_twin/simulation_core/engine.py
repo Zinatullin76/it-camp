@@ -14,7 +14,8 @@ Responsibilities:
 
 import copy
 import logging
-from typing import Callable, Dict, List, Optional, Any
+import math
+from typing import Callable, Dict, List, Optional, Any, Tuple
 
 from models.base import (
     SimulationState,
@@ -28,6 +29,7 @@ from models.scenario import Scenario, ScenarioEvent
 from equipment import (
     Pump, Valve, GateValve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
 )
+from equipment.columns import AtmosphericColumnK1, column_class_for
 from calculation_core.hydraulics.pressure_drop import calculate_pipe_pressure_drop
 from scheme import ProcessScheme, SchemeNode, load_scheme
 from safety.alarm_system import AlarmSystem
@@ -69,6 +71,12 @@ class SimulationEngine:
         self._last_surge_alerts: Dict[str, float] = {}
         self._surge_close_threshold = 0.5
 
+        self._hyd_tau = float(getattr(config, "hydraulics_tau", 8.0))
+        self._hyd_state: Dict[str, Dict[str, float]] = {}
+        self._vessel_state: Dict[str, Dict[str, Any]] = {}
+        self._vessel_q: Dict[str, Dict[str, float]] = {}
+        self._vessel_active: set = set()
+
         # Build equipment
         self._equipment: Dict[str, Any] = self._build_equipment()
 
@@ -105,7 +113,7 @@ class SimulationEngine:
             "elou_E001": ELOU("elou_E001", ep.get("elou_E001", {})),
             "hx_E101": HeatExchanger("hx_E101", ep.get("hx_E101", {})),
             "furnace_F101": Heater("furnace_F101", ep.get("furnace_F101", {})),
-            "column_C101": DistillationColumn("column_C101", ep.get("column_C101", {})),
+            "column_C101": AtmosphericColumnK1("column_C101", ep.get("column_C101", {})),
         }
 
     def _build_initial_state(self) -> SimulationState:
@@ -236,6 +244,18 @@ class SimulationEngine:
         # upstream hold back flow (levels/pressures respond instead).
         flow_limits = self._compute_flow_limits(self._last_outputs)
         hyd = self._solve_line_hydraulics()
+        if self._hyd_tau > 0.0 and hyd:
+            factor = 1.0 - math.exp(-dt / self._hyd_tau)
+            for nid, h in hyd.items():
+                prev = self._hyd_state.get(nid)
+                if prev is None:
+                    self._hyd_state[nid] = {"flow": h["flow"], "p_in": h["p_in"], "p_out": h["p_out"]}
+                    continue
+                h["flow"] = prev["flow"] + (h["flow"] - prev["flow"]) * factor
+                h["p_in"] = prev["p_in"] + (h["p_in"] - prev["p_in"]) * factor
+                h["p_out"] = prev["p_out"] + (h["p_out"] - prev["p_out"]) * factor
+                self._hyd_state[nid] = {"flow": h["flow"], "p_in": h["p_in"], "p_out": h["p_out"]}
+        self._integrate_levels(dt)
 
         for nid in self._topo_order:
             node = self._node_map.get(nid)
@@ -285,7 +305,9 @@ class SimulationEngine:
                         # Use the hydraulic branch flow when available so a fork
                         # splits according to each branch's resistance instead
                         # of dividing the incoming stream evenly.
-                        h_br = hyd.get(edge.target)
+                        h_br = hyd.get(edge.target) or hyd.get(
+                            f"{edge.target}:{edge.target_port or 'in'}"
+                        )
                         if h_br is not None:
                             branch_flow = max(0.0, h_br["flow"])
                         branch = base.copy_with(
@@ -375,6 +397,34 @@ class SimulationEngine:
                     if inlet is not None:
                         out["power"] = (h["flow"] / max(inlet.density, 1e-6)) * dp_hyd / max(eq.efficiency, 1e-6)
                         eq.power = out["power"]
+            if ntype == "heat_exchanger":
+                # Each channel (hot / cold) is its own hydraulic line: apply
+                # the per-channel solved flow and outlet pressure to the
+                # corresponding outlet stream.  The exchanger itself never
+                # changes the flow of either pass.
+                for ch_port, out_port, label in (
+                    ("hot_in", "hot_out", "hot"),
+                    ("cold_in", "cold_out", "cold"),
+                ):
+                    hch = hyd.get(f"{nid}:{ch_port}")
+                    if hch is None or out.get(out_port) is None:
+                        continue
+                    out[out_port] = out[out_port].copy_with(
+                        mass_flow=max(0.0, hch["flow"]), pressure=hch["p_out"]
+                    )
+                    out[f"flow_{label}"] = hch["flow"]
+                    out[f"p_{label}_in"] = hch["p_in"]
+                    out[f"p_{label}_out"] = hch["p_out"]
+                    out[f"dp_{label}"] = max(0.0, hch["p_in"] - hch["p_out"])
+            elif ntype == "column":
+                # The column is a pass-through node in the line solver: its
+                # branches share the junction pressure, so the solved outlet
+                # pressure anchors both the distillate and the bottoms stream.
+                hcol = hyd.get(nid)
+                if hcol is not None:
+                    for port in ("distillate", "bottoms"):
+                        if out.get(port) is not None:
+                            out[port] = out[port].copy_with(pressure=hcol["p_out"])
             # Restriction clamp: a downstream valve caps the flow this node may
             # deliver (dead-headed line). Applied AFTER step so level-bearing
             # equipment still reflects the hold-back through max_out above;
@@ -440,6 +490,10 @@ class SimulationEngine:
     def set_scheme(self, scheme: ProcessScheme) -> None:
         """Apply a new scheme topology to the engine (runtime reconfiguration)."""
         self._scheme = scheme
+        self._hyd_state.clear()
+        self._vessel_state.clear()
+        self._vessel_q.clear()
+        self._vessel_active.clear()
         self._extend_equipment_from_scheme(scheme)
         self._rebuild_topology(scheme)
         self._configure_alarm_setpoints(scheme)
@@ -528,7 +582,7 @@ class SimulationEngine:
             elif node.type == "heater":
                 self._equipment[node.id] = Heater(node.id, node.params)
             elif node.type == "column":
-                self._equipment[node.id] = DistillationColumn(node.id, node.params)
+                self._equipment[node.id] = column_class_for(node.id)(node.id, node.params)
             elif node.type == "separator":
                 self._equipment[node.id] = Tank(node.id, node.params)
 
@@ -641,47 +695,187 @@ class SimulationEngine:
     # Branched-line hydraulics
     # ------------------------------------------------------------------
 
-    _COMPLEX_NODE_TYPES = ("heat_exchanger", "column", "elou")
+    # Heat exchanger channels: an inlet port pairs with its own outlet, so a
+    # two-stream exchanger is two independent hydraulic lines (hot and cold)
+    # that share one node but never mix their flows.
+    _HX_PORT_PAIRS = {"hot_in": "hot_out", "cold_in": "cold_out", "in": "out"}
+    # Fallback per-channel resistance of a heat exchanger when the scheme
+    # carries no delta_p: 0.1 atm (Pa) at the reference flow.
+    _HX_DEFAULT_DP = 10132.5
+    # Hard cap on the pressure drop of one exchanger channel regardless of the
+    # flow through it (ТЗ: the exchanger never throttles more than 0.5 atm).
+    _HX_MAX_DP = 0.5 * 101325.0
+    # In-line vessels with a single oil outlet: transparent for the line solver
+    # (no own resistance), so the pump head stays anchored at the sink pressure
+    # instead of the full curve head riding through to the sink.
+    _TRANSIT_NODE_TYPES = ("elou", "separator", "tank")
+
+    def _vessel_boundary(self, nid: str) -> Dict[str, Any]:
+        """Per-vessel buffer state (level, pressure, drain resistance).
+
+        A separator / tank / ELOU is treated as an inventory boundary: its
+        pressure (base + hydrostatic head) anchors the upstream line as a sink
+        and the downstream line as a source, so the inflow and outflow are
+        decoupled and the level integrates their difference (alive levels).
+        """
+        vs = self._vessel_state.get(nid)
+        if vs is not None:
+            return vs
+        node = self._node_map.get(nid)
+        p = node.params if node is not None else {}
+        p_base = float(p.get("pressure_bar", 1.01325)) * 1e5
+        height = float(p.get("height_m", 6.0))
+        initial = float(p.get("initial_level", 2.0))
+        level = max(0.0, min(initial, height))
+        area = float(p.get("vessel_area") or p.get("sump_area") or 10.0)
+        diameter = p.get("diameter_m")
+        if diameter:
+            area = 3.141592653589793 * (float(diameter) / 2.0) ** 2
+        q_nom = float(p.get("nominal_flow") or p.get("flow_kg_s") or 100.0)
+        head_nom = 850.0 * 9.81 * max(level, 0.2)
+        k_drain = max(head_nom, 1.0) / max(q_nom * q_nom, 1e-6)
+        vs = {
+            "level": level,
+            "area": area,
+            "height": height,
+            "p_base": p_base,
+            "p_out": p_base + 850.0 * 9.81 * level,
+            "k_drain": k_drain,
+        }
+        self._vessel_state[nid] = vs
+        return vs
+
+    def _integrate_levels(self, dt: float) -> None:
+        """Advance each buffer vessel's level: dL/dt = (Q_in - Q_out)/(rho*A)."""
+        for nid, vs in self._vessel_state.items():
+            q = self._vessel_q.get(nid)
+            if q is None:
+                continue
+            qi = max(0.0, q.get("in", 0.0))
+            qo = max(0.0, q.get("out", 0.0))
+            lvl = vs["level"] + (qi - qo) / max(850.0 * vs["area"], 1e-6) * dt
+            if lvl > vs["height"]:
+                lvl = vs["height"]
+            if lvl < 0.0:
+                lvl = 0.0
+            vs["level"] = lvl
+            vs["p_out"] = vs["p_base"] + 850.0 * 9.81 * lvl
 
     def _build_line_trees(self) -> List[Dict[str, Any]]:
         """Split the scheme into branched hydraulic trees source -> ... -> sinks.
 
-        A tree starts at a 'source' and fans out through simple elements (pump,
-        valve, pass-through).  Complex multi-stream devices (heat exchanger,
-        column, ELOU) and merge points (in-degree > 1) break the tree.  A tree
-        is usable only when it reaches at least one sink through at least one
-        element; a branch with no resistance has no definable flow and is left
-        to the legacy stream propagation.
+        A tree starts at a 'source' (or a buffer vessel acting as a source) and
+        fans out through simple elements (pump, valve, pass-through).  Complex
+        multi-stream devices (heat exchanger, column) and merge points (in-degree
+        > 1) break the tree.  A separator / tank / ELOU is an inventory
+        boundary: it ends the upstream tree as a sink at its own pressure and
+        starts a NEW tree as a source with a drain resistance, so its level can
+        accumulate.  A tree is usable only when it reaches at least one sink
+        through at least one element; a branch with no resistance has no
+        definable flow and is left to the legacy stream propagation.
         """
         from calculation_core.hydraulics.line_hydraulics import valve_resistance, _K_EPS
         indeg: Dict[str, int] = {nid: 0 for nid in self._node_map}
         for edge in self._edges:
             indeg[edge.target] = indeg.get(edge.target, 0) + 1
+        by_source: Dict[str, List[Any]] = {}
+        for edge in self._edges:
+            by_source.setdefault(edge.source, []).append(edge)
         density = 850.0
         trees: List[Dict[str, Any]] = []
         claimed: set = set()
-        for nid, node in self._node_map.items():
-            if node.type != "source" or nid in claimed:
-                continue
-            tree_nodes: Dict[str, Dict[str, Any]] = {nid: {"type": "source"}}
+        queue: List[str] = []
+
+        def lookahead_sink(cur: str, seen: set, via_port: Optional[str] = None) -> bool:
+            for edge in by_source.get(cur, []):
+                if via_port is not None and edge.source_port != via_port:
+                    continue
+                nxt = edge.target
+                if nxt in seen or nxt not in self._node_map or nxt in claimed:
+                    continue
+                nt = self._node_map[nxt].type
+                if nt == "heat_exchanger":
+                    pair = self._HX_PORT_PAIRS.get(edge.target_port)
+                    if pair and lookahead_sink(nxt, seen | {nxt}, pair):
+                        return True
+                    continue
+                if nt == "column":
+                    if indeg.get(nxt, 0) > 1:
+                        continue  # multiple feeds -> merge point, breaks the tree
+                    if lookahead_sink(nxt, seen | {nxt}):
+                        return True
+                    continue
+                if indeg.get(nxt, 0) > 1:
+                    continue
+                if nt == "sink":
+                    return True
+                if lookahead_sink(nxt, seen | {nxt}):
+                    return True
+            return False
+
+        def build_tree(
+            root_nid: str,
+            is_vessel: bool = False,
+        ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, List[str]], List[str], List[str]]:
+            tree_nodes: Dict[str, Dict[str, Any]] = {}
             children: Dict[str, List[str]] = {}
             sink_ids: List[str] = []
+            vessel_roots: List[str] = []
             element_count = 0
+            tree_nodes[root_nid] = {"type": "source"}
 
-            def visit(cur: str, seen: set) -> None:
+            def visit(cur: str, seen: set, edges: List[Any], via_port: Optional[str] = None) -> None:
                 nonlocal element_count
-                for edge in self._edges:
-                    if edge.source != cur:
+                for edge in edges:
+                    if via_port is not None and edge.source_port != via_port:
                         continue
                     nxt = edge.target
                     if nxt in seen or nxt not in self._node_map or nxt in claimed:
                         continue
+                    nxt_node = self._node_map[nxt]
+                    ntype = nxt_node.type
+                    if ntype == "heat_exchanger":
+                        # Two independent channels (hot / cold), each its own
+                        # line from the paired inlet to the paired outlet.  The
+                        # channel node is keyed by port so the two streams never
+                        # collide and each keeps its own flow and pressure drop.
+                        pair = self._HX_PORT_PAIRS.get(edge.target_port)
+                        if pair is None or not lookahead_sink(nxt, {nxt}, pair):
+                            continue
+                        ch_key = f"{nxt}:{edge.target_port}"
+                        children.setdefault(cur, []).append(ch_key)
+                        tree_nodes[ch_key] = self._hx_channel_info(nxt)
+                        element_count += 1
+                        visit(ch_key, seen | {ch_key}, by_source.get(nxt, []), pair)
+                        continue
                     if indeg.get(nxt, 0) > 1:
                         continue  # merge point breaks the tree
-                    nxt_node = self._node_map[nxt]
-                    if nxt_node.type in self._COMPLEX_NODE_TYPES:
+                    if ntype == "column":
+                        # A column is a single-inlet vessel: the line passes
+                        # through it (no own resistance) and fans out into the
+                        # distillate / bottoms branches like any fork.
+                        if not lookahead_sink(nxt, {nxt}):
+                            continue
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {"type": "pass"}
+                        element_count += 1
+                        visit(nxt, seen | {nxt}, by_source.get(nxt, []))
                         continue
-                    if nxt_node.type == "sink":
+                    if ntype in self._TRANSIT_NODE_TYPES:
+                        vs = self._vessel_boundary(nxt)
+                        children.setdefault(cur, []).append(nxt)
+                        if lookahead_sink(nxt, {nxt}):
+                            # Inventory boundary: absorb the upstream flow here
+                            # and continue downstream from a NEW tree.
+                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt}
+                            sink_ids.append(nxt)
+                            vessel_roots.append(nxt)
+                        else:
+                            # No downstream line -> keep the legacy pass-through.
+                            tree_nodes[nxt] = {"type": "pass"}
+                            visit(nxt, seen | {nxt}, by_source.get(nxt, []))
+                        continue
+                    if ntype == "sink":
                         children.setdefault(cur, []).append(nxt)
                         tree_nodes[nxt] = {
                             "type": "sink",
@@ -689,18 +883,20 @@ class SimulationEngine:
                         }
                         sink_ids.append(nxt)
                         continue
-                    if nxt_node.type == "valve":
+                    if ntype == "valve":
                         eq = self._equipment.get(nxt)
                         if eq is None:
                             continue
+                        fully_open = eq.position >= 1.0
                         k = valve_resistance(density, eq.cv, eq.position)
                         children.setdefault(cur, []).append(nxt)
                         tree_nodes[nxt] = {
                             "type": "valve",
-                            "k": _K_EPS if k <= 0.0 else k,
+                            "k": _K_EPS if (k <= 0.0 or fully_open) else k,
                             "closed": eq.position <= 1e-6,
+                            "passthrough": fully_open,
                         }
-                    elif nxt_node.type == "gate_valve":
+                    elif ntype == "gate_valve":
                         eq = self._equipment.get(nxt)
                         if eq is None:
                             continue
@@ -710,7 +906,7 @@ class SimulationEngine:
                             "k": _K_EPS,
                             "closed": not getattr(eq, "is_open", True),
                         }
-                    elif nxt_node.type == "pump":
+                    elif ntype == "pump":
                         children.setdefault(cur, []).append(nxt)
                         tree_nodes[nxt] = {"type": "pump", "head": self._make_pump_head(nxt)}
                     else:
@@ -721,20 +917,82 @@ class SimulationEngine:
                         else:
                             tree_nodes[nxt] = {"type": "pass"}
                     element_count += 1
-                    visit(nxt, seen | {nxt})
+                    visit(nxt, seen | {nxt}, by_source.get(nxt, []))
 
-            visit(nid, {nid})
-            if not sink_ids or element_count == 0:
+            if is_vessel:
+                vs = self._vessel_boundary(root_nid)
+                drain_id = f"{root_nid}__drain"
+                tree_nodes[drain_id] = {"type": "res", "k": vs["k_drain"], "head": 0.0}
+                children[root_nid] = [drain_id]
+                element_count += 1
+                visit(drain_id, {root_nid, drain_id}, by_source.get(root_nid, []))
+            else:
+                visit(root_nid, {root_nid}, by_source.get(root_nid, []))
+
+            return tree_nodes, children, sink_ids, vessel_roots
+
+        for nid, node in self._node_map.items():
+            if node.type != "source" or nid in claimed:
+                continue
+            p_src = float(node.params.get("pressure_bar", 1.01325)) * 1e5
+            q_src_limit = node.params.get("flow_kg_s")
+            tree_nodes, children, sink_ids, vessel_roots = build_tree(nid)
+            if not sink_ids or not any(k != nid for k in tree_nodes):
                 continue
             claimed.update(tree_nodes)
             trees.append({
                 "root": nid,
-                "p_src": float(node.params.get("pressure_bar", 1.01325)) * 1e5,
-                "q_src_limit": node.params.get("flow_kg_s"),
+                "p_src": p_src,
+                "q_src_limit": q_src_limit,
                 "nodes": tree_nodes,
                 "children": children,
             })
+            queue.extend(vessel_roots)
+
+        processed: set = set()
+        while queue:
+            vnid = queue.pop(0)
+            if vnid in processed:
+                continue
+            processed.add(vnid)
+            vs = self._vessel_boundary(vnid)
+            tree_nodes, children, sink_ids, vessel_roots = build_tree(vnid, is_vessel=True)
+            if not sink_ids or not any(k != vnid for k in tree_nodes):
+                continue
+            claimed.update(tree_nodes)
+            trees.append({
+                "root": vnid,
+                "p_src": vs["p_out"],
+                "q_src_limit": None,
+                "root_vessel": vnid,
+                "nodes": tree_nodes,
+                "children": children,
+            })
+            queue.extend(v for v in vessel_roots if v != vnid)
         return trees
+
+    def _hx_channel_info(self, nid: str) -> Dict[str, Any]:
+        """Hydraulic model of one heat-exchanger channel (hot or cold pass).
+
+        A heat exchanger drops pressure like any resistance element: dP = k*Q^2.
+        The per-channel k is calibrated so the drop equals the node's ``delta_p``
+        (default 0.1 atm, Pa) at its reference flow.  ``delta_p = 0`` makes the
+        channel a plain pass-through.
+        """
+        node = self._node_map.get(nid)
+        p = node.params if node is not None else {}
+        dp = p.get("delta_p")
+        delta_p = float(dp) if dp is not None else self._HX_DEFAULT_DP
+        if delta_p <= 0.0:
+            return {"type": "pass"}
+        q_ref = float(p.get("nominal_flow") or p.get("flow_kg_s") or 100.0)
+        max_dp = float(p.get("max_delta_p") or self._HX_MAX_DP)
+        return {
+            "type": "res",
+            "k": delta_p / max(q_ref * q_ref, 1e-6),
+            "head": 0.0,
+            "max_dp": max_dp,
+        }
 
     def _pipe_resistance(self, nid: str, density: float) -> Optional[float]:
         """Quadratic pipe resistance k in ΔP = k·Q² for a scheme pipe node.
@@ -807,6 +1065,8 @@ class SimulationEngine:
         throttling or closed valve.
         """
         from calculation_core.hydraulics.line_hydraulics import solve_branched_network
+        self._vessel_q = {nid: {"in": 0.0, "out": 0.0} for nid in self._vessel_state}
+        self._vessel_active = set()
         result: Dict[str, Dict[str, float]] = {}
         for tree in self._build_line_trees():
             try:
@@ -822,7 +1082,27 @@ class SimulationEngine:
                     "Branch hydraulics failed for source '%s'; skipping.", tree["root"]
                 )
                 continue
+            for nid, info in tree["nodes"].items():
+                if info.get("type") == "sink" and info.get("vessel"):
+                    r = solved.get(nid)
+                    if r is not None:
+                        self._vessel_active.add(nid)
+                        q = self._vessel_q.setdefault(nid, {"in": 0.0, "out": 0.0})
+                        q["in"] = q.get("in", 0.0) + max(0.0, r["flow"])
+            rv = tree.get("root_vessel")
+            if rv:
+                r = solved.get(rv)
+                if r is not None:
+                    self._vessel_active.add(rv)
+                    q = self._vessel_q.setdefault(rv, {"in": 0.0, "out": 0.0})
+                    q["out"] = max(0.0, r["flow"])
             result.update(solved)
+        for nid in self._vessel_active:
+            vs = self._vessel_state.get(nid)
+            q = self._vessel_q.get(nid)
+            if vs is None or q is None:
+                continue
+            result[nid] = {"flow": q["out"], "p_in": vs["p_out"], "p_out": vs["p_out"]}
         return result
 
     # ------------------------------------------------------------------
@@ -967,8 +1247,20 @@ class SimulationEngine:
     ) -> None:
         """Compute a per-node liquid level via material balance (columns/tanks)."""
         from physics.process_physics import material_balance_level
-        if node.type not in ("column", "elou", "separator"):
+        if node.type not in ("column", "elou", "separator", "tank"):
             return
+        # Buffer vessels split by the line solver carry the engine's own
+        # inventory state (integrated from the solved inflow/outflow).
+        if nid in self._vessel_active:
+            vs = self._vessel_state.get(nid)
+            if vs is not None:
+                out["level"] = vs["level"]
+                state.level[nid] = vs["level"]
+                q = self._vessel_q.get(nid)
+                if q is not None:
+                    out["in_flow"] = q.get("in", 0.0)
+                    out["out_flow"] = q.get("out", 0.0)
+                return
         # Equipment with its own level state (buffer tanks) is authoritative.
         if "level" in out:
             state.level[nid] = out["level"]
@@ -1270,6 +1562,10 @@ class SimulationEngine:
         """Full reset of engine to initial state."""
         self._time = 0.0
         self._history.clear()
+        self._hyd_state.clear()
+        self._vessel_state.clear()
+        self._vessel_q.clear()
+        self._vessel_active.clear()
         self._active_failures.clear()
         self._alarm_system.reset()
         self._error_tracker.reset()

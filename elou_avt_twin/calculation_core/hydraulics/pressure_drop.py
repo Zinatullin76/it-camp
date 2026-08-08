@@ -123,12 +123,17 @@ def pipe_dp_by_volume(
 def valve_resistance(density: float, cv: float, opening: float, min_opening: float = 1e-4) -> float:
     """Quadratic resistance coefficient k in ΔP = k·m², m in kg/s.
 
-    k = 1/(ρ·Cv²·x²).  A control valve is a restriction at any opening; closing
-    the valve grows the resistance as 1/x².  ``cv`` is the SI flow coefficient
-    [m^3/s per sqrt(Pa/(kg/m^3))].
+    Physical control-valve characteristic: a fully open valve (x = 1) imposes
+    no drop at all, and the resistance grows steeply as the valve closes -- a
+    liquid through a nearly-open valve (x = 0.95) still sees almost no drop.
+
+        k(x) = (1/(ρ·Cv²)) · ((1-x)/x)²
+
+    ``cv`` is the SI flow coefficient [m^3/s per sqrt(Pa/(kg/m^3))].
     """
-    x = max(min_opening, float(opening))
-    return 1.0 / (max(density, 1e-9) * cv * cv * x * x)
+    x = min(max(min_opening, float(opening)), 1.0)
+    base = 1.0 / (max(density, 1e-9) * max(cv, 1e-12) * max(cv, 1e-12))
+    return base * ((1.0 - x) / x) ** 2.0
 
 
 def calculate_valve_flow(cv: float, opening: float, delta_p: float, density: float) -> float:

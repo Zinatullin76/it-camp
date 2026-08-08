@@ -52,6 +52,7 @@ class SimulationConfig(BaseModel):
     nominal_temperature: float = 293.15  # K
     nominal_flow: float = 100.0  # kg/s
     history_limit: int = Field(default=1000, ge=1)  # max retained states
+    hydraulics_tau: float = 4.0  # s, first-order inertia of flows/pressures
     equipment_parameters: Dict[str, Any] = Field(default_factory=dict)
 
 class SimulationState(BaseModel):

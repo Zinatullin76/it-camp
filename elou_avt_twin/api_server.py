@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import threading
 import time
 import logging
@@ -75,7 +75,7 @@ class EquipmentParamsRequest(BaseModel):
 class CommandRequest(BaseModel):
     tag: str
     action: CommandAction
-    value: Optional[float | str] = None
+    value: Optional[Union[float, str]] = None
     operator_id: str = "demo"
 
 class StartSessionRequest(BaseModel):
@@ -161,7 +161,7 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["efficiency"] = eq.efficiency if eq else None
             p["speed_rpm"] = round(eq.speed, 1) if eq else None
         elif ntype == "valve":
-            p["position"] = out.get("position", 0.0)
+            p["position"] = round(out.get("position", 0.0) * 100.0, 2)
             p["flow_kg_s"] = out.get("flow_out", 0.0)
             p["pressure_in_bar"] = round(out["inlet_pressure"] / 1e5, 3) if out.get("inlet_pressure") else None
             p["pressure_out_bar"] = round(out["outlet_pressure"] / 1e5, 3) if out.get("outlet_pressure") else None
@@ -254,7 +254,7 @@ def _build_history() -> Dict[str, Any]:
         valve_pos = st.valve_positions.get("valve_FV101")
         if valve_pos is None and st.valve_positions:
             valve_pos = next(iter(st.valve_positions.values()))
-        series["valve_fv101_position"].append(round(valve_pos or 0.0, 4))
+        series["valve_fv101_position"].append(round((valve_pos or 0.0) * 100.0, 2))
     return {"times": times, "series": series}
 
 
@@ -279,7 +279,7 @@ def _serialize_state():
             "heat_duty": {k: v for k, v in s.heat_duty.items()},
             "level": s.level,
             "pump_states": s.pump_states,
-            "valve_positions": s.valve_positions,
+            "valve_positions": {k: round(v * 100.0, 2) for k, v in s.valve_positions.items()},
             "equipment_states": s.equipment_states,
             "equipment": _build_node_telemetry(twin),
             "active_failures": s.active_failures,
@@ -524,13 +524,18 @@ def set_input(req: InputRequest):
 def action(req: ActionRequest):
     with lock:
         old = None
+        node = scheme_store.node(req.equipment_id)
+        value = req.value
+        if (req.action_type == "SET_VALUE" and value is not None and node is not None
+                and node.type == "valve" and value > 1.0):
+            value = value / 100.0
         action = OperatorAction(
             timestamp=twin._simulation_time,
             operator_id=req.operator_id,
             equipment_id=req.equipment_id,
             action_type=req.action_type,
             old_value=old,
-            new_value=req.value,
+            new_value=value,
             source="operator_panel",
         )
         if session_recorder is not None and session_recorder.active:

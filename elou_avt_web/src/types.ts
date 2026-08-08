@@ -118,6 +118,8 @@ export interface PaletteItem {
   label: string;
   category: 'boundary' | 'equipment';
   color: string;
+  /** Ключ пресета детальной колонны (К-1..К-4) из mnemo/colPresets. */
+  preset?: string;
 }
 
 // ---------------------------------------------------------------------------

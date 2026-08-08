@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement } from 'react';
-import type { MnemoItem } from './mnemoTypes';
+import type { MnemoItem, MnemoColDetail } from './mnemoTypes';
 import type { MnemoLive, ValveState } from './sources';
 import { fmtVal, pumpVisual, PUMP_COLORS } from './sources';
 
@@ -152,6 +152,231 @@ const VES_BLINK: Record<string, string> = {
 /** Полоса воды снизу во «флегме» (доля высоты шкалы). */
 const VES_WATER_BAND = 0.25;
 
+/* ---- Детализированная колонна (пресеты К-1..К-4) --------------------------
+   УГО по эталонам visual/Колонны: корпус с заливкой, тарелки «N тар.»,
+   штуцеры с фланцами, уровень в кубе, экспликация с выносками, ППК. */
+
+const PPK_ATMOS_D = [
+  'M 0,0 V -51',
+  'M 70,-83 V -165 a 22,22 0 0 0 -44,0 v 36',
+  'M 46,-83 h 24',
+  'M 0,-83 -20,-49 H 20 Z',
+  'M 0,-83 46,-22 v 44 z',
+  'M 0,-83 -18,-93 -6,-99 -20,-107',
+];
+
+const PPK_FLARE_D = [
+  'M 0,0 V -51',
+  'M 46,-83 h 64',
+  'M 0,-83 -20,-49 H 20 Z',
+  'M 0,-83 46,-22 v 44 z',
+  'M 0,-83 -18,-93 -6,-99 -20,-107',
+];
+
+const PPK_D: Record<string, string[]> = { atmos: PPK_ATMOS_D, flare: PPK_FLARE_D };
+
+function colShellD(shell: string | string[]): string {
+  return Array.isArray(shell) ? shell.join(' ') : shell;
+}
+
+/** Оценочная ширина текста (px) в шрифте Arial. */
+function roughTextW(s: string, size: number): number {
+  let w = 0;
+  for (const c of s) w += chW(c, size);
+  return w;
+}
+
+/** Габариты детального символа: viewBox + вылеты ППК и экспликации. */
+export function colDetailBounds(d: MnemoColDetail): [number, number, number, number] {
+  let x0 = 0;
+  let y0 = 0;
+  let x1 = d.vb.w;
+  let y1 = d.vb.h;
+  const grow = (a: number, b: number, c: number, dd: number) => {
+    x0 = Math.min(x0, a);
+    y0 = Math.min(y0, b);
+    x1 = Math.max(x1, c);
+    y1 = Math.max(y1, dd);
+  };
+  for (const pk of d.ppk ?? []) {
+    const s = pk.scale ?? 0.5;
+    const hx = pk.kind === 'flare' ? 110 : 70;
+    const bot = pk.kind === 'flare' ? -83 : 0;
+    grow(pk.x - 20 * s, pk.y - 165 * s, pk.x + hx * s, pk.y + bot * s);
+  }
+  for (const ex of d.expl ?? []) {
+    let wMax = 0;
+    for (const ln of ex.lines) wMax = Math.max(wMax, roughTextW(ln.s, ln.sub ? 10 : 12));
+    const left = ex.anchor === 'end' ? ex.x - wMax : ex.anchor === 'middle' ? ex.x - wMax / 2 : ex.x;
+    const right = ex.anchor === 'start' ? ex.x + wMax : ex.anchor === 'middle' ? ex.x + wMax / 2 : ex.x;
+    grow(left, ex.y - 12, right, ex.y + ex.lines.length * 12 + 2);
+  }
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+
+function renderColDetail(e: MnemoItem, live: MnemoLive): ReactElement {
+  const d = e.detail!;
+  const x = e.x;
+  const y = e.y;
+  const nodeW = e.w || d.nodeW || 130;
+  const s = nodeW / d.vb.w;
+  const [dx, dy, dw, dh] = colDetailBounds(d);
+  const labelX = x + dx * s + (dw * s) / 2;
+  const labelY = y + dy * s + dh * s + 16;
+  const el: ReactElement[] = [];
+  const clips: ReactElement[] = [];
+  let si = 0;
+  for (const sec of d.sections) {
+    const secIdx = si++;
+    const shellD = colShellD(sec.shell ?? '');
+    el.push(
+      <path
+        key={`sh${secIdx}`}
+        d={shellD}
+        fill={sec.fill ?? '#d9d9d9'}
+        stroke="#000"
+        strokeWidth={sec.fill === 'none' ? 2 : 2.5}
+        strokeLinejoin="miter"
+      />,
+    );
+    if (sec.level) {
+      const v = Math.max(0, Math.min(100, live.lvl(sec.level.lv)));
+      const hh = sec.level.y0 - sec.level.y100;
+      const top = sec.level.y0 - (hh * v) / 100;
+      const cid = `col-clip-${nodeW}-${secIdx}`;
+      clips.push(
+        <clipPath key={cid} id={cid}>
+          <path d={shellD} />
+        </clipPath>,
+      );
+      el.push(
+        <g key={`lv${secIdx}`} clipPath={`url(#${cid})`}>
+          <rect
+            x={(sec.leftX ?? 0) - 5}
+            y={top}
+            width={(sec.rightX ?? 0) - (sec.leftX ?? 0) + 10}
+            height={sec.level.y0 - top}
+            fill={sec.level.color ?? '#8b5e3c'}
+          />
+        </g>,
+      );
+    }
+    let ti = 0;
+    for (const t of sec.trays ?? []) {
+      const k = `t${secIdx}-${ti++}`;
+      el.push(
+        <line key={k} x1={sec.leftX ?? 0} y1={t.y} x2={sec.rightX ?? 0} y2={t.y} stroke="#000" strokeWidth={t.blind ? 3 : 1.5} />,
+      );
+      if (t.label) {
+        el.push(<Tx key={`${k}l`} x={(sec.leftX ?? 0) + 8} y={t.y - 4} s={t.label} size={11} fill="#000" anchor="start" />);
+      }
+    }
+    if (sec.tag) {
+      el.push(
+        <text
+          key={`tag${secIdx}`}
+          x={sec.tag.x}
+          y={sec.tag.y}
+          textAnchor={sec.tag.anchor ?? 'middle'}
+          fontSize={sec.tag.size ?? 26}
+          fontFamily="Arial, sans-serif"
+          style={{ fill: '#000' }}
+          pointerEvents="none"
+        >
+          {sec.tag.s}
+        </text>,
+      );
+      if (sec.tag.line) {
+        el.push(
+          <line key={`tagl${secIdx}`} x1={sec.tag.x} y1={sec.tag.y + 5} x2={sec.tag.line.x2} y2={sec.tag.line.y2} stroke="#000" strokeWidth={1} />,
+        );
+      }
+    }
+    let ni = 0;
+    for (const nz of sec.nozzles ?? []) {
+      const k = `nz${secIdx}-${ni++}`;
+      const w = nz.width ?? 2.5;
+      if (nz.pts) {
+        const dd = nz.pts.map((p, pi) => `${pi ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
+        el.push(<path key={k} d={dd} fill="none" stroke="#000" strokeWidth={w} strokeLinecap="butt" />);
+      } else if (nz.from && nz.to) {
+        el.push(
+          <line key={k} x1={nz.from.x} y1={nz.from.y} x2={nz.to.x} y2={nz.to.y} stroke="#000" strokeWidth={w} strokeLinecap="butt" />,
+        );
+        if (nz.flange) {
+          const horiz = Math.abs(nz.from.y - nz.to.y) < Math.abs(nz.from.x - nz.to.x);
+          el.push(
+            horiz ? (
+              <line key={`${k}f`} x1={nz.to.x} y1={nz.to.y - 6} x2={nz.to.x} y2={nz.to.y + 6} stroke="#000" strokeWidth={3} />
+            ) : (
+              <line key={`${k}f`} x1={nz.to.x - 6} y1={nz.to.y} x2={nz.to.x + 6} y2={nz.to.y} stroke="#000" strokeWidth={3} />
+            ),
+          );
+        }
+      }
+    }
+  }
+  let si2 = 0;
+  for (const sh of d.shell ?? []) {
+    el.push(<path key={`dsh${si2++}`} d={sh} fill="none" stroke="#1a1a1a" strokeWidth={2} />);
+  }
+  let ei = 0;
+  for (const ex of d.expl ?? []) {
+    const eid = ei++;
+    if (ex.lead) {
+      el.push(
+        <line key={`lead${eid}`} x1={ex.lead[0]} y1={ex.lead[1]} x2={ex.lead[2]} y2={ex.lead[3]} stroke="#000" strokeWidth={0.75} />,
+      );
+    }
+    ex.lines.forEach((ln, li) => {
+      el.push(
+        <text
+          key={`ex${eid}-${li}`}
+          x={ex.x}
+          y={ex.y + li * 12}
+          textAnchor={ex.anchor ?? 'start'}
+          fontSize={ln.sub ? 10 : 12}
+          fontFamily="Arial, sans-serif"
+          style={{ fill: ln.sub ? '#404040' : '#000' }}
+          pointerEvents="none"
+        >
+          {ln.s}
+        </text>,
+      );
+    });
+  }
+  let pi = 0;
+  for (const pk of d.ppk ?? []) {
+    const s = pk.scale ?? 0.5;
+    const paths = PPK_D[pk.kind ?? 'atmos'];
+    el.push(
+      <g key={`ppk${pi++}`} transform={`translate(${pk.x},${pk.y}) scale(${s})`}>
+        {paths.map((pd, pdi) => (
+          <path
+            key={pdi}
+            d={pd}
+            fill={pdi >= 3 && pdi < 5 ? '#d7d7d7' : 'none'}
+            stroke="#000"
+            strokeWidth={pdi >= 5 ? 2 : 2.5}
+            strokeLinejoin="miter"
+            strokeLinecap="butt"
+          />
+        ))}
+      </g>,
+    );
+  }
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <g transform={`scale(${s})`}>
+        {clips}
+        {el}
+      </g>
+      <Txt x={labelX - x} y={labelY - y} s={e.n || ''} size={11} fill="var(--mn-text)" maxW={nodeW + 8} />
+      {e.s ? <Txt x={labelX - x} y={dy * s - 10} up s={e.s} size={9.5} fill="var(--mn-text-dim)" maxW={nodeW + 30} /> : null}
+    </g>
+  );
+}
+
 export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
   const x = e.x;
   const y = e.y;
@@ -160,6 +385,7 @@ export function renderItem(e: MnemoItem, live: MnemoLive): ReactElement {
 
   switch (e.t) {
     case 'col': {
+      if (e.detail) return renderColDetail(e, live);
       const r = w / 2;
       const hd = r * 0.55;
       const sump = e.sump || 0;
@@ -674,6 +900,15 @@ export function itemBBox(e: MnemoItem): [number, number, number, number] {
     return [e.x - 3, e.y - 14, (e.w || 60) + 6, 14 + bot];
   }
   if (e.t === 'col') {
+    if (e.detail) {
+      const [dx, dy, dw, dh] = colDetailBounds(e.detail);
+      const s = (e.w || e.detail.nodeW || 130) / e.detail.vb.w;
+      const nL = labelLines(e.n, 11, e.detail.vb.w * s + 8);
+      const sL = labelLines(e.s, 9.5, e.detail.vb.w * s + 30);
+      const top = 10 + (sL ? (sL - 1) * 11.21 : 0);
+      const bot = dh * s + 16 + nL * 12.98 + 4;
+      return [e.x + dx * s, e.y + dy * s - top, dw * s, top + bot];
+    }
     const w = e.w || 60;
     const nL = labelLines(e.n, 11, w + 8);
     const sL = labelLines(e.s, 9.5, w + 30);

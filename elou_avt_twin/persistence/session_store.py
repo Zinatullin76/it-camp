@@ -27,7 +27,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from models.base import Alarm, ErrorEvent, OperatorAction, SimulationState
 
@@ -211,7 +211,7 @@ class SessionStore:
     explicit session_id so a single store can accumulate a training corpus.
     """
 
-    def __init__(self, path: Optional[Path | str] = None, create_dir: bool = True):
+    def __init__(self, path: Optional[Union[Path, str]] = None, create_dir: bool = True):
         self._path = Path(path) if path else DEFAULT_DB_PATH
         if create_dir:
             self._path.parent.mkdir(parents=True, exist_ok=True)

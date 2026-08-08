@@ -13,7 +13,7 @@ export interface NodePlacement {
   mnemo?: Partial<MnemoItem>;
 }
 
-type Sizes = (type: string) => { w: number; h: number };
+type Sizes = (n: SchemeNodeData) => { w: number; h: number };
 
 const FALLBACK_GAP = 18;
 
@@ -111,7 +111,7 @@ export function mnemoLayout(
       }
       cx /= nb.length;
       cy /= nb.length;
-      const size = sizes(n.type);
+      const size = sizes(n);
       const pos = findFreeSlot(cx - size.w / 2, cy - size.h / 2, size.w, size.h, placed);
       placed.set(n.id, { pos, size });
     }
@@ -125,7 +125,7 @@ export function mnemoLayout(
     let x = 0;
     let rowH = 0;
     for (const n of remaining) {
-      const size = sizes(n.type);
+      const size = sizes(n);
       if (x + size.w > 1600) {
         x = 0;
         minY += rowH + FALLBACK_GAP;

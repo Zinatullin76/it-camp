@@ -16,7 +16,7 @@ Command validation helpers:
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -41,7 +41,7 @@ class Command(BaseModel):
 
     tag: str                                   # equipment id or controller tag
     action: CommandAction
-    value: Optional[float | str] = None
+    value: Optional[Union[float, str]] = None
     operator_id: str = "operator"
     timestamp: Optional[float] = None
     source: str = "hmi"

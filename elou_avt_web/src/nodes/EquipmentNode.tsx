@@ -91,7 +91,7 @@ function buildLive(t: NodeTelemetry | null, color: string): MnemoLive {
       if (t?.type === 'gate_valve') return t.params?.open === true ? 'open' : 'closed';
       const pos = t?.params?.position;
       if (typeof pos !== 'number' || !Number.isFinite(pos)) return 'mid';
-      return pos >= 0.99 ? 'open' : pos <= 0.01 ? 'closed' : 'mid';
+      return pos >= 99 ? 'open' : pos <= 1 ? 'closed' : 'mid';
     },
     param: () => null,
     fireOn: fuel > 0.15,
@@ -143,12 +143,13 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
   const { getZoom } = useReactFlow();
   const box = size ?? nodeSize(nodeType);
   const color = telemetry?.failed ? '#f87171' : TYPE_COLORS[nodeType] ?? '#38bdf8';
+  const presetMnemo = schemeParams?.mnemo as Partial<MnemoItem> | undefined;
   const item: MnemoItem = {
     t: 'box',
     x: 0,
     y: 0,
     n: name,
-    ...(mnemo ?? SYMBOL[nodeType] ?? {}),
+    ...(mnemo ?? presetMnemo ?? SYMBOL[nodeType] ?? {}),
   };
   if (nodeType === 'gate_valve' || nodeType === 'valve') item.gate = id;
   const bb = itemBBox(item);

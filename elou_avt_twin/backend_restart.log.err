@@ -1,0 +1,214 @@
+2026-08-08 02:30:58,596 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 02:30:58,596 INFO elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 02:30:58,605 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 02:30:58,605 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 02:30:58,607 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:30:58,607 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:30:58,608 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 02:30:58,608 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 02:30:58,614 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 02:30:58,614 INFO elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 02:30:58,758 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 02:30:58,758 INFO elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 02:30:58,762 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 02:30:58,762 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 02:30:58,763 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:30:58,763 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:30:58,764 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 02:30:58,764 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 02:30:58,770 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 02:30:58,770 INFO elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+INFO:     Started server process [23956]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55708 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55710 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55803 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55808 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+2026-08-08 02:31:55,523 [INFO] elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,523 INFO elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,526 [INFO] elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,526 INFO elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,531 [INFO] elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,531 INFO elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,534 [INFO] elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,534 INFO elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,538 [INFO] elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,538 INFO elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,599 [INFO] elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,599 INFO elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,599 [INFO] elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,599 INFO elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,602 [INFO] elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,602 INFO elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,602 [INFO] elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 02:31:55,602 INFO elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+INFO:     127.0.0.1:55819 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+2026-08-08 02:32:02,456 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 02:32:02,456 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 02:32:02,465 [INFO] elou_avt.engine: Scheme updated: 8 nodes, 7 edges.
+2026-08-08 02:32:02,465 INFO elou_avt.engine: Scheme updated: 8 nodes, 7 edges.
+2026-08-08 02:32:02,466 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:32:02,466 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:32:02,466 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 02:32:02,466 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 02:32:12,625 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:32:12,625 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:32:12,635 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:32:12,635 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:32:26,402 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:32:26,402 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:32:26,427 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:32:26,427 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:32:27,982 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:32:27,982 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:32:27,983 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:32:27,983 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:32:28,942 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:32:28,942 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:32:28,974 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:32:28,974 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:32:32,071 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:32:32,071 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:32:32,075 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:32:32,075 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:32:33,334 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:32:33,334 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:32:33,347 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:32:33,347 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:32:34,599 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:32:34,599 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:32:34,609 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:32:34,609 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:32:51,359 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:32:51,359 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:32:51,381 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:32:51,381 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:33:28,776 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:33:28,776 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:33:28,788 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:33:28,788 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:33:30,312 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:33:30,312 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:33:30,322 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:33:30,322 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:34:06,796 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:34:06,796 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:34:06,804 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:34:06,804 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:34:09,277 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:34:09,277 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:34:09,278 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:34:09,278 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.9
+2026-08-08 02:34:27,839 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:34:27,839 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:34:27,871 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:34:27,871 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:34:45,071 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:34:45,071 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:34:45,106 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:34:45,106 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:34:45,984 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:34:45,984 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:34:46,019 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:34:46,019 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.95
+2026-08-08 02:35:02,348 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:35:02,348 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:35:02,350 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:35:02,350 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 02:35:03,369 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:03,369 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:03,371 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:03,371 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:03,867 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:03,867 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:03,877 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:03,877 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:05,223 [INFO] elou_avt.scheme: Scheme saved to D:\itcamp_git\it camp\elou_avt_twin\schemes\default.json (8 nodes, 7 edges).
+2026-08-08 02:35:05,223 INFO elou_avt.scheme: Scheme saved to D:\itcamp_git\it camp\elou_avt_twin\schemes\default.json (8 nodes, 7 edges).
+2026-08-08 02:35:05,231 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 02:35:05,231 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 02:35:05,234 [INFO] elou_avt.engine: Scheme updated: 8 nodes, 7 edges.
+2026-08-08 02:35:05,234 INFO elou_avt.engine: Scheme updated: 8 nodes, 7 edges.
+2026-08-08 02:35:05,236 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:35:05,236 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 02:35:05,238 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 02:35:05,238 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 02:35:05,340 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:35:05,340 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:35:05,342 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:35:05,342 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.85
+2026-08-08 02:35:14,335 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:14,335 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:14,371 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:14,371 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:14,820 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:14,820 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:14,830 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:14,830 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:16,257 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:16,257 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:16,258 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:16,258 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:17,183 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.55
+2026-08-08 02:35:17,183 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.55
+2026-08-08 02:35:17,194 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.55
+2026-08-08 02:35:17,194 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.55
+2026-08-08 02:35:17,662 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:17,662 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:17,673 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:17,673 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:18,049 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.4
+2026-08-08 02:35:18,049 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.4
+2026-08-08 02:35:18,059 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.4
+2026-08-08 02:35:18,059 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.4
+2026-08-08 02:35:19,664 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:35:19,664 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:35:19,675 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:35:19,675 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.5
+2026-08-08 02:35:20,230 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 02:35:20,230 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 02:35:20,240 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 02:35:20,240 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 02:35:21,059 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:21,059 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:21,070 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:21,070 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.35
+2026-08-08 02:35:21,472 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.3
+2026-08-08 02:35:21,472 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.3
+2026-08-08 02:35:21,482 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.3
+2026-08-08 02:35:21,482 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.3
+2026-08-08 02:35:21,814 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.25
+2026-08-08 02:35:21,814 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.25
+2026-08-08 02:35:21,824 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.25
+2026-08-08 02:35:21,824 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.25
+2026-08-08 02:35:23,880 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:23,880 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:23,880 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:23,880 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:25,623 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:35:25,623 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:35:25,624 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:35:25,624 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.75
+2026-08-08 02:35:26,288 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:26,288 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:26,317 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:26,317 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.8
+2026-08-08 02:35:27,259 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:27,259 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:27,269 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:27,269 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.65
+2026-08-08 02:35:28,869 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:28,869 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:28,878 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:28,878 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 02:35:29,730 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:29,730 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:29,741 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7
+2026-08-08 02:35:29,741 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.7

@@ -27,7 +27,7 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from .models import LoginResponse, PermissionView, Principal, RoleView, UserCreate, UserView
 from .security import create_token, hash_password, verify_password, verify_token
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 class AuthStore:
     """SQLite-backed RBAC store (roles, permissions, users, bindings)."""
 
-    def __init__(self, path: Optional[Path | str] = None):
+    def __init__(self, path: Optional[Union[Path, str]] = None):
         self._path = Path(path) if path else DEFAULT_DB_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()

@@ -107,6 +107,10 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
             "label": "Площадь теплообмена", "unit": "м²", "scale": 1.0,
             "min": 1.0, "max": 5000.0, "step": 10.0, "default": 200.0,
         },
+        "delta_p": {
+            "label": "Перепад давления", "unit": "атм", "scale": 101325,
+            "min": 0.0, "max": 5.0, "step": 0.05, "default": 0.1,
+        },
     },
     "column": {
         "diameter_m": {

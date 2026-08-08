@@ -160,18 +160,17 @@ class DistillationColumn(BaseEquipment):
                 return feed.temperature
             t_fb = _fb_temp(0)
             t_fb_bot = _fb_temp(-1)
-            distillate = feed.copy_with(
-                name="Distillate", temperature=t_fb, pressure=self.pressure,
-                mass_flow=distillate_mass, composition=comp_d, phase=Phase.VAPOR,
+            distillate = self._make_product(
+                thermo, feed, t_fb, self.pressure, distillate_mass, comp_d, Phase.VAPOR,
             )
-            bottoms = feed.copy_with(
-                name="Bottoms", temperature=t_fb_bot, pressure=self.pressure,
-                mass_flow=bottoms_mass, composition=comp_b, phase=Phase.LIQUID,
+            bottoms = self._make_product(
+                thermo, feed, t_fb_bot, self.pressure, bottoms_mass, comp_b, Phase.LIQUID,
             )
             self._cached = {
                 "t_top": t_fb, "t_bottom": t_fb_bot,
                 "d_mass": distillate_mass, "b_mass": bottoms_mass,
                 "comp_dist": comp_d, "comp_bott": comp_b,
+                "h_dist": distillate.enthalpy, "h_bott": bottoms.enthalpy,
                 "converged": result.get("converged", False),
             }
             return {
@@ -199,26 +198,17 @@ class DistillationColumn(BaseEquipment):
         t_top = float(self.t_profile[0])
         t_bottom = float(self.t_profile[-1])
 
-        distillate = feed.copy_with(
-            name="Distillate",
-            temperature=t_top,
-            pressure=self.pressure,
-            mass_flow=distillate_mass,
-            composition=comp_dist,
-            phase=Phase.VAPOR,
+        distillate = self._make_product(
+            thermo, feed, t_top, self.pressure, distillate_mass, comp_dist, Phase.VAPOR,
         )
-        bottoms = feed.copy_with(
-            name="Bottoms",
-            temperature=t_bottom,
-            pressure=self.pressure,
-            mass_flow=bottoms_mass,
-            composition=comp_bott,
-            phase=Phase.LIQUID,
+        bottoms = self._make_product(
+            thermo, feed, t_bottom, self.pressure, bottoms_mass, comp_bott, Phase.LIQUID,
         )
         self._cached = {
             "t_top": t_top, "t_bottom": t_bottom,
             "d_mass": distillate_mass, "b_mass": bottoms_mass,
             "comp_dist": comp_dist, "comp_bott": comp_bott,
+            "h_dist": distillate.enthalpy, "h_bott": bottoms.enthalpy,
             "converged": True,
         }
         return {
@@ -234,10 +224,12 @@ class DistillationColumn(BaseEquipment):
         distillate = feed.copy_with(
             name="Distillate", temperature=c["t_top"], pressure=self.pressure,
             mass_flow=c["d_mass"], composition=c["comp_dist"], phase=Phase.VAPOR,
+            enthalpy=c.get("h_dist", feed.enthalpy),
         )
         bottoms = feed.copy_with(
             name="Bottoms", temperature=c["t_bottom"], pressure=self.pressure,
             mass_flow=c["b_mass"], composition=c["comp_bott"], phase=Phase.LIQUID,
+            enthalpy=c.get("h_bott", feed.enthalpy),
         )
         return {
             "distillate": distillate,
@@ -245,6 +237,28 @@ class DistillationColumn(BaseEquipment):
             "t_profile": self.t_profile.tolist(),
             "converged": c["converged"],
         }
+
+    @staticmethod
+    def _make_product(thermo, feed: Stream, temperature: float, pressure: float,
+                      mass_flow: float, composition: dict, phase: Phase) -> Stream:
+        """Build a product stream with an enthalpy consistent with T/P/comp.
+
+        copy_with() keeps the feed's enthalpy, which is wrong for a distillate
+        or bottoms stream (different temperature and composition).  Recompute
+        it from the PR EOS so downstream energy balances (condensers, heat
+        exchangers) see a consistent stream.
+        """
+        enthalpy = feed.enthalpy
+        try:
+            enthalpy = float(thermo.calculate_enthalpy(temperature, pressure, composition, phase))
+        except Exception:
+            pass
+        return feed.copy_with(
+            name="Distillate" if phase == Phase.VAPOR else "Bottoms",
+            temperature=temperature, pressure=pressure,
+            mass_flow=mass_flow, composition=composition, phase=phase,
+            enthalpy=enthalpy,
+        )
 
     def get_state(self) -> EquipmentState:
         self.state.extra["top_temperature"] = self.t_profile[0] if len(self.t_profile) > 0 else 0

@@ -17,7 +17,7 @@ import '@xyflow/react/dist/style.css';
 
 import { api } from '../api';
 import type { ApiState, HistoryResponse, Scheme, ScadaLogEventType } from '../types';
-import { nodeSize, phaseMeta, normalizePhase, PHASE_TYPES } from '../schemeConfig';
+import { nodeSizeFor, mnemoForNode, phaseMeta, normalizePhase, PHASE_TYPES } from '../schemeConfig';
 import { mnemoLayout } from '../layout';
 import EquipmentNodeComponent from '../nodes/EquipmentNode';
 import type { EquipmentNode, EquipmentNodeData } from '../nodes/EquipmentNode';
@@ -58,7 +58,7 @@ function saveDisp(d: Record<string, string[]>) {
 }
 
 function toRfNodes(scheme: Scheme): EquipmentNode[] {
-  const layout = mnemoLayout(scheme.nodes, scheme.edges, nodeSize);
+  const layout = mnemoLayout(scheme.nodes, scheme.edges, (nd) => nodeSizeFor(nd));
   return scheme.nodes.map((n) => {
     const p = layout.get(n.id);
     return {
@@ -70,8 +70,8 @@ function toRfNodes(scheme: Scheme): EquipmentNode[] {
         name: n.name,
         telemetry: null,
         schemeParams: n.params,
-        size: p?.size,
-        mnemo: p?.mnemo,
+        size: p?.size ?? nodeSizeFor(n),
+        mnemo: p?.mnemo ?? mnemoForNode(n.params),
       },
     };
   });

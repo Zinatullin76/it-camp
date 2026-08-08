@@ -13,24 +13,40 @@ class GateValve(BaseEquipment):
     """
     On/off gate valve: either passes the flow through or isolates the line.
 
-    Unlike the throttling control Valve, the gate valve has no intermediate
-    positions: it is either fully open or fully closed.
+    The opening is driven by a stroke rate (response_rate), so the valve
+    opens/closes gradually instead of snapping instantly, keeping the
+    simulated system inertial like HYSYS Dynamics.
     """
 
     def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
         super().__init__(equipment_id, params or {})
-        self.is_open = bool(self.params.get("initial_open", 1.0))
-        self.state.running = self.is_open
+        self._apply_params()
 
     def _apply_params(self) -> None:
-        self.is_open = bool(self.params.get("initial_open", 1.0))
-        self.state.running = self.is_open
+        init = 1.0 if float(self.params.get("initial_open", 1.0)) >= 0.5 else 0.0
+        self.opening = init
+        self.target_opening = init
+        self.stroke_rate = float(self.params.get("response_rate", 0.4))
+        self.state.running = self.opening >= 0.5
+
+    @property
+    def is_open(self) -> bool:
+        return self.opening >= 0.5
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
         if self.state.failed:
-            # Fail-closed safety: a faulty задвижка isolates the line.
-            self.is_open = False
+            self.opening = 0.0
+            self.target_opening = 0.0
             self.state.running = False
+        else:
+            diff = self.target_opening - self.opening
+            move = self.stroke_rate * dt
+            if abs(diff) <= move:
+                self.opening = self.target_opening
+            else:
+                self.opening += move * (1 if diff > 0 else -1)
+            self.opening = max(0.0, min(1.0, self.opening))
+            self.state.running = self.opening >= 0.5
         inlet: Optional[Stream] = inputs.get("inlet_stream")
         if not self.is_open:
             self.state.running = False
@@ -53,14 +69,13 @@ class GateValve(BaseEquipment):
         if self.state.failed:
             return
         if action_type in ("TURN_ON", "OPEN"):
-            self.is_open = True
+            self.target_opening = 1.0
         elif action_type in ("TURN_OFF", "CLOSE"):
-            self.is_open = False
+            self.target_opening = 0.0
         elif action_type == "SET_VALUE" and value is not None:
-            self.is_open = value >= 0.5
-        self.state.running = self.is_open
+            self.target_opening = 1.0 if value >= 0.5 else 0.0
+        self.state.running = self.opening >= 0.5
 
     def reset(self) -> None:
         super().reset()
-        self.is_open = bool(self.params.get("initial_open", 1.0))
-        self.state.running = self.is_open
+        self._apply_params()

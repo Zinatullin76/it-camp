@@ -79,8 +79,13 @@ class Heater(BaseEquipment):
             # temperature must never exceed the limit.  Instead of silently
             # capping T (which would break the energy balance), trim the
             # delivered duty so H_out(T_max) = H_in + Q_delivered / m holds
-            # exactly.
-            max_outlet_temp = self.params.get("max_outlet_temp", 1000.0)
+            # exactly.  When the scheme defines the furnace's temperature
+            # alarm limit (limits.temperature_high) it is used as the hard
+            # metallurgical cap; an explicit max_outlet_temp overrides it.
+            max_outlet_temp = self.params.get(
+                "max_outlet_temp",
+                (self.params.get("limits") or {}).get("temperature_high", 1000.0),
+            )
             if self.outlet_temp > max_outlet_temp:
                 self.outlet_temp = max_outlet_temp
                 h_out = float(thermo.calculate_enthalpy(

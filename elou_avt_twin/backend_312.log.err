@@ -1,0 +1,90 @@
+2026-08-08 01:30:57,723 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 01:30:57,723 INFO elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 01:30:57,731 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 01:30:57,731 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 01:30:57,732 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:30:57,732 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:30:57,733 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 01:30:57,733 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 01:30:57,738 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 01:30:57,738 INFO elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 01:30:57,814 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 01:30:57,814 INFO elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-08 01:30:57,831 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 01:30:57,831 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 01:30:57,833 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:30:57,833 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:30:57,833 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 01:30:57,833 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 01:30:57,837 [INFO] elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+2026-08-08 01:30:57,837 INFO elou_avt.engine: Scheme updated: 68 nodes, 80 edges.
+INFO:     Started server process [16432]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51841 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:51843 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:51889 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+2026-08-08 01:31:33,650 [INFO] elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 01:31:33,650 INFO elou_avt.lms_content: LmsContentStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+INFO:     127.0.0.1:51894 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+2026-08-08 01:31:33,657 [INFO] elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 01:31:33,657 INFO elou_avt.lms: LmsStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+INFO:     connection open
+2026-08-08 01:31:33,661 [INFO] elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+2026-08-08 01:31:33,661 INFO elou_avt.auth: AuthStore opened: D:\itcamp_git\it camp\elou_avt_twin\sessions.db
+INFO:     127.0.0.1:51902 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+2026-08-08 01:31:39,711 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 01:31:39,711 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 01:31:39,721 [INFO] elou_avt.engine: Scheme updated: 6 nodes, 5 edges.
+2026-08-08 01:31:39,721 INFO elou_avt.engine: Scheme updated: 6 nodes, 5 edges.
+2026-08-08 01:31:39,722 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:31:39,722 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:31:39,722 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 01:31:39,722 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 01:31:56,176 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 01:31:56,176 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 01:31:56,185 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 01:31:56,185 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.45
+2026-08-08 01:32:02,817 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:32:02,817 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:32:02,827 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:32:02,827 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:32:10,071 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 01:32:10,071 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 01:32:10,084 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 01:32:10,084 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 1.0
+2026-08-08 01:37:59,387 [INFO] elou_avt.scheme: Scheme saved to D:\itcamp_git\it camp\elou_avt_twin\schemes\default.json (6 nodes, 5 edges).
+2026-08-08 01:37:59,387 INFO elou_avt.scheme: Scheme saved to D:\itcamp_git\it camp\elou_avt_twin\schemes\default.json (6 nodes, 5 edges).
+2026-08-08 01:37:59,404 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-08 01:37:59,404 INFO elou_avt.digital_twin: Simulation created.
+2026-08-08 01:37:59,404 [INFO] elou_avt.engine: Scheme updated: 6 nodes, 5 edges.
+2026-08-08 01:37:59,404 INFO elou_avt.engine: Scheme updated: 6 nodes, 5 edges.
+2026-08-08 01:37:59,404 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:37:59,404 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-08 01:37:59,404 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-08 01:37:59,404 INFO elou_avt.digital_twin: Simulation started.
+2026-08-08 01:38:05,419 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 01:38:05,419 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 01:38:05,436 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 01:38:05,436 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_1 = 0.6
+2026-08-08 01:38:11,465 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:38:11,465 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:38:11,475 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_2 = 1.0
+2026-08-08 01:38:11,475 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_2 = 1.0
+INFO:     127.0.0.1:53554 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53561 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53570 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53657 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53666 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53678 - "WebSocket /ws/simulation?token=eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc4NjEzMzk4MCwiZXhwIjoxNzg2MTYyNzgwfQ.c79ab28c41b98c3bcb5f41d24bad8def78ed03cce4bd8fb73b5713bf6cdcabc1" [accepted]
+INFO:     connection open

@@ -26,7 +26,7 @@ class Valve(BaseEquipment):
 
     def _apply_params(self) -> None:
         self.cv = self.params.get("cv", 0.01)
-        self.response_rate = self.params.get("response_rate", 0.2)
+        self.response_rate = self.params.get("response_rate", 0.4)
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
         inlet: Stream = inputs.get("inlet_stream")
@@ -100,18 +100,11 @@ class Valve(BaseEquipment):
 
     def apply_action(self, action_type: str, value: Optional[float] = None) -> None:
         if action_type == "SET_VALUE" and value is not None:
-            v = max(0.0, min(1.0, value))
-            self.target_position = v
-            if not self.state.failed:
-                self.position = self._position = v
+            self.target_position = max(0.0, min(1.0, value))
         elif action_type == "TURN_OFF":
             self.target_position = 0.0
-            if not self.state.failed:
-                self.position = self._position = 0.0
         elif action_type == "TURN_ON":
             self.target_position = 1.0
-            if not self.state.failed:
-                self.position = self._position = 1.0
 
     def reset(self) -> None:
         super().reset()

@@ -102,7 +102,7 @@ def node_telemetry() -> Dict[str, Dict[str, Any]]:
             p["speed_rpm"] = round(eq.speed, 1) if eq else None
             p["power_w"] = out.get("power", 0.0)
         elif ntype == "valve":
-            p["position"] = out.get("position", 0.0)
+            p["position"] = round(out.get("position", 0.0) * 100.0, 2)
             p["flow_kg_s"] = out.get("flow_out", 0.0)
         elif ntype in ("separator", "tank"):
             p["level_m"] = out.get("level")
@@ -140,7 +140,7 @@ def node_telemetry() -> Dict[str, Dict[str, Any]]:
         "pressure": {k: v for k, v in state.pressure.items()},
         "temperature": {k: v for k, v in state.temperature.items()},
         "level": {k: v for k, v in state.level.items()},
-        "valve_positions": {k: v for k, v in state.valve_positions.items()},
+        "valve_positions": {k: round(v * 100.0, 2) for k, v in state.valve_positions.items()},
         "pump_states": {k: v for k, v in state.pump_states.items()},
         "active_failures": list(state.active_failures or []),
         "simulation_time": twin._simulation_time,

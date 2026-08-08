@@ -18,7 +18,7 @@ import '@xyflow/react/dist/style.css';
 import { api, connectWs } from '../api';
 import type { ApiState, HistoryResponse, Scheme, SchemeNodeData, SchemeEdgeData, NodeTelemetry, ScadaLogEventType } from '../types';
 import { useAuth } from '../auth';
-import { PALETTE, createNode, nodeSize, phaseMeta, normalizePhase, PHASE_TYPES, DEFAULT_PHASE } from '../schemeConfig';
+import { PALETTE, createNode, nodeSizeFor, mnemoForNode, phaseMeta, normalizePhase, PHASE_TYPES, DEFAULT_PHASE } from '../schemeConfig';
 import { mnemoLayout } from '../layout';
 import EquipmentNodeComponent, { SchemeEditorContext } from '../nodes/EquipmentNode';
 import type { EquipmentNode, EquipmentNodeData, TagCfg } from '../nodes/EquipmentNode';
@@ -109,7 +109,7 @@ function saveTags(t: Record<string, Record<string, TagCfg>>) {
 }
 
 function toRfNodes(scheme: Scheme): EquipmentNode[] {
-  const layout = mnemoLayout(scheme.nodes, scheme.edges, nodeSize);
+  const layout = mnemoLayout(scheme.nodes, scheme.edges, (nd) => nodeSizeFor(nd));
   return scheme.nodes.map((n) => {
     const p = layout.get(n.id);
     return {
@@ -121,8 +121,8 @@ function toRfNodes(scheme: Scheme): EquipmentNode[] {
         name: n.name,
         telemetry: null,
         schemeParams: n.params,
-        size: p?.size,
-        mnemo: p?.mnemo,
+        size: p?.size ?? nodeSizeFor(n),
+        mnemo: p?.mnemo ?? mnemoForNode(n.params),
       },
     };
   });
@@ -370,8 +370,9 @@ function HmiInner() {
     }
   }, [applyTelemetry]);
 
-  const onDragStart = (e: React.DragEvent, type: string) => {
+  const onDragStart = (e: React.DragEvent, type: string, preset?: string) => {
     e.dataTransfer.setData('application/elou-type', type);
+    if (preset) e.dataTransfer.setData('application/elou-preset', preset);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -380,15 +381,25 @@ function HmiInner() {
       e.preventDefault();
       const type = e.dataTransfer.getData('application/elou-type');
       if (!type) return;
+      const preset = e.dataTransfer.getData('application/elou-preset') || undefined;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const node = createNode(type, pos.x, pos.y);
+      const node = createNode(type, pos.x, pos.y, preset);
       setNodes((nds) => [
         ...nds,
         {
           id: node.id,
           type: 'equipment',
           position: { x: node.x, y: node.y },
-          data: { nodeType: node.type, name: node.name, telemetry: null, schemeParams: node.params, disp: [], tags: {} },
+          data: {
+            nodeType: node.type,
+            name: node.name,
+            telemetry: null,
+            schemeParams: node.params,
+            size: nodeSizeFor(node),
+            mnemo: mnemoForNode(node.params),
+            disp: [],
+            tags: {},
+          },
         },
       ]);
       setSelectedId(node.id);
@@ -520,7 +531,7 @@ function HmiInner() {
         name: (n.data as unknown as EquipmentNodeData).name,
         x: n.position.x,
         y: n.position.y,
-        params: {},
+        params: (n.data as unknown as EquipmentNodeData).schemeParams ?? {},
       })),
       edges.map((e) => ({
         id: e.id,
@@ -530,7 +541,7 @@ function HmiInner() {
         target_port: e.targetHandle ?? 'in',
         kind: 'process',
       })),
-      nodeSize,
+      (nd) => nodeSizeFor(nd),
     );
     setNodes((nds) =>
       nds.map((n) => {
@@ -712,10 +723,10 @@ function HmiInner() {
             <div className="palette-group">Границы</div>
             {PALETTE.filter((p) => p.category === 'boundary').map((p) => (
               <div
-                key={p.type}
+                key={`${p.type}-${p.preset ?? ''}`}
                 className="palette-item"
                 draggable
-                onDragStart={(e) => onDragStart(e, p.type)}
+                onDragStart={(e) => onDragStart(e, p.type, p.preset)}
               >
                 <span className="palette-dot" style={{ background: p.color }} />
                 {p.label}
@@ -724,10 +735,10 @@ function HmiInner() {
             <div className="palette-group">Оборудование</div>
             {PALETTE.filter((p) => p.category === 'equipment').map((p) => (
               <div
-                key={p.type}
+                key={`${p.type}-${p.preset ?? ''}`}
                 className="palette-item"
                 draggable
-                onDragStart={(e) => onDragStart(e, p.type)}
+                onDragStart={(e) => onDragStart(e, p.type, p.preset)}
               >
                 <span className="palette-dot" style={{ background: p.color }} />
                 {p.label}

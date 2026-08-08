@@ -24,7 +24,7 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from .models import (
     Competency,
@@ -170,7 +170,7 @@ def _unjson(text: Optional[str], default: Any = None) -> Any:
 class LmsStore:
     """SQLite-backed store for the LMS layer."""
 
-    def __init__(self, path: Optional[Path | str] = None):
+    def __init__(self, path: Optional[Union[Path, str]] = None):
         self._path = Path(path) if path else DEFAULT_DB_PATH
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()

@@ -230,7 +230,7 @@ export function buildLive(state: ApiState | null): MnemoLive {
     if (eq.type === 'gate_valve') return eq.params?.open ? 'open' : 'closed';
     const pos = eq.params?.position;
     if (typeof pos !== 'number' || !Number.isFinite(pos)) return 'mid';
-    return pos >= 0.99 ? 'open' : pos <= 0.01 ? 'closed' : 'mid';
+    return pos >= 99 ? 'open' : pos <= 1 ? 'closed' : 'mid';
   };
 
   return {

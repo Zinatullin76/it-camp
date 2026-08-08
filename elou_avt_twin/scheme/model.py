@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 from pydantic import BaseModel, Field
 
@@ -111,7 +111,7 @@ def migrate_scheme_data(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def load_scheme(path: Optional[Path | str] = None) -> ProcessScheme:
+def load_scheme(path: Optional[Union[Path, str]] = None) -> ProcessScheme:
     """Load a scheme from a JSON file (falls back to the default scheme).
 
     Applies ``migrate_scheme_data`` so legacy schemes load cleanly.
@@ -130,7 +130,7 @@ def load_scheme(path: Optional[Path | str] = None) -> ProcessScheme:
         return ProcessScheme()
 
 
-def save_scheme(scheme: ProcessScheme, path: Optional[Path | str] = None) -> Path:
+def save_scheme(scheme: ProcessScheme, path: Optional[Union[Path, str]] = None) -> Path:
     """Persist a scheme to a JSON file (atomic, deterministic, UTF-8).
 
     The file is written to a temporary sibling and atomically replaced, so a

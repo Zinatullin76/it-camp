@@ -1,4 +1,6 @@
 import type { PaletteItem, SchemeNodeData } from './types';
+import type { MnemoItem, MnemoColDetail } from './mnemo/mnemoTypes';
+import { PRESET_COLUMNS } from './mnemo/colPresets';
 
 export const PALETTE: PaletteItem[] = [
   { type: 'source', label: 'Источник сырья', category: 'boundary', color: '#35d399' },
@@ -10,6 +12,10 @@ export const PALETTE: PaletteItem[] = [
   { type: 'heat_exchanger', label: 'Теплообменник', category: 'equipment', color: '#38bdf8' },
   { type: 'heater', label: 'Печь', category: 'equipment', color: '#fb923c' },
   { type: 'column', label: 'Колонна ректификации', category: 'equipment', color: '#67e8f9' },
+  { type: 'column', label: 'К-1 · Атмосферная колонна', category: 'equipment', color: '#67e8f9', preset: 'k1' },
+  { type: 'column', label: 'К-2 · Атмосферная колонна', category: 'equipment', color: '#67e8f9', preset: 'k2' },
+  { type: 'column', label: 'К-3 · Отпарная колонна', category: 'equipment', color: '#67e8f9', preset: 'k3' },
+  { type: 'column', label: 'К-4 · Стабилизатор', category: 'equipment', color: '#67e8f9', preset: 'k4' },
   { type: 'separator', label: 'Сепаратор', category: 'equipment', color: '#38bdf8' },
 ];
 
@@ -79,6 +85,23 @@ export function nodeSize(type: string) {
   return NODE_SIZES[type] ?? { w: 120, h: 80 };
 }
 
+/** Габарит карточки узла с учётом пресета детальной колонны. */
+export function nodeSizeFor(n: { type: string; params?: Record<string, unknown> }): { w: number; h: number } {
+  const d = n.params?.mnemo as MnemoColDetail | undefined;
+  if (n.type === 'column' && d?.vb?.w && d?.nodeW) {
+    const nw = d.nodeW;
+    return { w: nw + 8, h: Math.round((nw * d.vb.h) / d.vb.w) + 26 };
+  }
+  return nodeSize(n.type);
+}
+
+/** Символ мнемосхемы для узла (пресет детальной колонны). */
+export function mnemoForNode(params: Record<string, unknown>): Partial<MnemoItem> | undefined {
+  const d = params.mnemo as MnemoColDetail | undefined;
+  if (d?.vb?.w && d?.nodeW) return { t: 'col', w: d.nodeW, detail: d };
+  return undefined;
+}
+
 export function defaultName(type: string): string {
   const p = PALETTE.find((x) => x.type === type);
   return p ? p.label : type;
@@ -91,16 +114,32 @@ export function nextId(type: string): string {
   return `${prefix}_${counter}`;
 }
 
-export function createNode(type: string, x: number, y: number): SchemeNodeData {
-  const { w, h } = nodeSize(type);
-  return {
+/** Создать узел. Для детальных колонн передаётся ключ пресета (k1..k4):
+ *  в params кладётся конфиг мнемосимвола (detail), число тарелок и стадия питания. */
+export function createNode(type: string, x: number, y: number, preset?: string): SchemeNodeData {
+  const node: SchemeNodeData = {
     id: nextId(type),
     type,
     name: defaultName(type),
-    x: Math.round(x - w / 2),
-    y: Math.round(y - h / 2),
+    x: 0,
+    y: 0,
     params: { ...(DEFAULT_PARAMS[type] ?? {}) },
   };
+  if (preset && PRESET_COLUMNS[preset]) {
+    const p = PRESET_COLUMNS[preset];
+    node.name = p.label;
+    node.params = {
+      ...node.params,
+      preset,
+      num_stages: p.numStages,
+      feed_stage: p.feedStage,
+      mnemo: p.config,
+    };
+  }
+  const { w, h } = nodeSizeFor(node);
+  node.x = Math.round(x - w / 2);
+  node.y = Math.round(y - h / 2);
+  return node;
 }
 
 // Human-readable display of a telemetry value with units.

@@ -39,17 +39,22 @@ P_FLOOR = 1000.0
 
 
 def valve_resistance(density: float, cv: float, opening: float, min_opening: float = MIN_OPENING) -> float:
-    """Quadratic resistance coefficient k in dP = k * Q^2, Q in kg/s, dP in Pa.
+    """Quadratic resistance coefficient k in dP = k*Q^2, Q in kg/s, dP in Pa.
 
-    A control valve is a flow restriction at ANY opening, including fully open:
-    its discharge coefficient Cv fixes a minimum resistance k = 1/(rho * Cv^2)
-    at x = 1, and closing the valve grows the resistance as 1/x^2.  This keeps
-    the pressure-driven network bounded and well-conditioned (a real valve at
-    100% still needs a finite pressure drop to push a given flow).  The
-    min_opening floor keeps k finite near full closure.
+    Physical control-valve characteristic: a fully open valve (x = 1) imposes
+    no drop at all, and the resistance grows steeply as the valve closes -- but
+    a liquid flowing through a nearly-open valve (e.g. x = 0.95) still sees
+    almost no drop, so the network pressure is balanced by the pump and the
+    source rather than by an arbitrarily large valve loss.
+
+        k(x) = (1 / (rho * Cv^2)) * ((1 - x) / x)^2
+
+    The factor ((1-x)/x)^2 is 0 at x = 1, ~1 at x = 0.5, and grows without
+    bound as x -> 0, so closing the valve raises the resistance smoothly.
     """
-    x = max(min_opening, opening)
-    return 1.0 / (density * cv * cv * x * x)
+    x = min(max(min_opening, float(opening)), 1.0)
+    base = 1.0 / (max(density, 1e-9) * max(cv, 1e-12) * max(cv, 1e-12))
+    return base * ((1.0 - x) / x) ** 2.0
 
 
 def bisection_root(
@@ -131,6 +136,42 @@ def solve_serial_line(
     return q, dP
 
 
+def _sink_behind_pass(
+    nodes: Dict[str, Dict[str, Any]],
+    children: Dict[str, List[str]],
+    nid: str,
+) -> Optional[float]:
+    """sink_p reachable from ``nid`` through pass-through nodes only.
+
+    A sink is a hard boundary, so an element feeding a chain of pass-throughs
+    (vessels with no own resistance) must end exactly at that sink pressure.
+    """
+    info = nodes[nid]
+    ntype = info["type"]
+    if ntype == "sink":
+        return info["sink_p"]
+    if ntype != "pass":
+        return None
+    for c in children.get(nid, []):
+        v = _sink_behind_pass(nodes, children, c)
+        if v is not None:
+            return v
+    return None
+
+
+def _reachable_sink_p(
+    nodes: Dict[str, Dict[str, Any]],
+    children: Dict[str, List[str]],
+    kids: List[str],
+) -> Optional[float]:
+    """First sink pressure reachable from any of ``kids`` (direct or via passes)."""
+    for c in kids:
+        v = _sink_behind_pass(nodes, children, c)
+        if v is not None:
+            return v
+    return None
+
+
 def solve_branched_network(
     p_src: float,
     q_src_limit: Optional[float],
@@ -173,7 +214,57 @@ def solve_branched_network(
     nid -> {"flow": kg/s, "p_in": Pa, "p_out": Pa} for every node of the tree
     (sources, sinks and elements).
     """
+    # Memoization for the recursive tree solver.  Nested bisections re-evaluate
+    # subtree_flow / sink lookups with identical arguments millions of times
+    # when valves are nearly closed (flow -> 0), so caching the pure results
+    # turns the exponential blow-up into linear work.  subtree_flow is a pure
+    # function of (nid, p_in) and the static nodes/children structure.
+    _sink_cache: Dict[str, Optional[float]] = {}
+    _reach_cache: Dict[Tuple[str, ...], Optional[float]] = {}
+    _flow_cache: Dict[Tuple[str, float], float] = {}
+
+    def _sink_behind_pass_cached(nid: str) -> Optional[float]:
+        if nid in _sink_cache:
+            return _sink_cache[nid]
+        info = nodes[nid]
+        ntype = info["type"]
+        if ntype == "sink":
+            v: Optional[float] = info["sink_p"]
+        elif ntype != "pass":
+            v = None
+        else:
+            v = None
+            for c in children.get(nid, []):
+                r = _sink_behind_pass_cached(c)
+                if r is not None:
+                    v = r
+                    break
+        _sink_cache[nid] = v
+        return v
+
+    def _reachable_sink_p_cached(kids: List[str]) -> Optional[float]:
+        key = tuple(kids)
+        if key in _reach_cache:
+            return _reach_cache[key]
+        v: Optional[float] = None
+        for c in key:
+            r = _sink_behind_pass_cached(c)
+            if r is not None:
+                v = r
+                break
+        _reach_cache[key] = v
+        return v
+
     def subtree_flow(nid: str, p_in: float) -> float:
+        key = (nid, round(p_in, 1))
+        r = _flow_cache.get(key)
+        if r is not None:
+            return r
+        r = _subtree_flow_impl(nid, p_in)
+        _flow_cache[key] = r
+        return r
+
+    def _subtree_flow_impl(nid: str, p_in: float) -> float:
         """Total flow through the subtree rooted at nid given its inlet pressure."""
         info = nodes[nid]
         ntype = info["type"]
@@ -190,10 +281,9 @@ def solve_branched_network(
                 # Fully-open valve with zero resistance behaves as a
                 # pass-through (children do not depend on its own flow).
                 return sum(subtree_flow(c, p_in) for c in kids)
-            sink_kids = [c for c in kids if nodes[c]["type"] == "sink"]
-            if sink_kids:
-                p_pin = nodes[sink_kids[0]]["sink_p"]
-                return math.sqrt(max(0.0, (p_in - p_pin) / k))
+            sink_p = _reachable_sink_p_cached(kids)
+            if sink_p is not None:
+                return math.sqrt(max(0.0, (p_in - sink_p) / k))
 
             def residual(q: float) -> float:
                 p_out = p_in - k * q * q
@@ -202,12 +292,10 @@ def solve_branched_network(
             return bisection_root(residual, 0.0, 1.0)
         if ntype == "pump":
             head = info.get("head") or (lambda q: 0.0)
-            sink_kids = [c for c in kids if nodes[c]["type"] == "sink"]
-            if sink_kids:
-                p_pin = nodes[sink_kids[0]]["sink_p"]
-
+            sink_p = _reachable_sink_p_cached(kids)
+            if sink_p is not None:
                 def res_pump(q: float) -> float:
-                    return head(q) + p_in - p_pin
+                    return head(q) + p_in - sink_p
 
                 return bisection_root(res_pump, 0.0, 1.0)
 
@@ -217,18 +305,27 @@ def solve_branched_network(
             return bisection_root(residual_pump, 0.0, 1.0)
         if ntype == "res":
             # Pipe / equipment resistance element: quadratic drop k·q^2 plus a
-            # constant static-head term (ТЗ sections 15-17).
+            # constant static-head term (ТЗ sections 15-17).  An optional
+            # "max_dp" caps the drop (a heat-exchanger channel never throttles
+            # more than 0.5 atm), so past the cap the element behaves like a
+            # fixed-drop restriction whose flow is set by the nodes upstream.
             k = info.get("k", 0.0)
             head = info.get("head", 0.0)
-            sink_kids = [c for c in kids if nodes[c]["type"] == "sink"]
-            if sink_kids:
-                p_pin = nodes[sink_kids[0]]["sink_p"]
-                if k > 0.0:
-                    return math.sqrt(max(0.0, (p_in + head - p_pin) / k))
-                return 0.0
+            max_dp = info.get("max_dp")
+            sink_p = _reachable_sink_p_cached(kids)
+            if sink_p is not None:
+                delta = p_in + head - sink_p
+                if delta <= 0.0 or k <= 0.0:
+                    return 0.0
+                if max_dp is not None and delta >= max_dp:
+                    return math.sqrt(max_dp / k)
+                return math.sqrt(delta / k)
 
             def residual_res(q: float) -> float:
-                p_out = p_in + head - k * q * q
+                dp = k * q * q
+                if max_dp is not None:
+                    dp = min(dp, max_dp)
+                p_out = p_in + head - dp
                 return sum(subtree_flow(c, p_out) for c in kids) - q
 
             return bisection_root(residual_res, 0.0, 1.0)
@@ -316,7 +413,8 @@ def solve_branched_network(
                 result[nid] = {"flow": 0.0, "p_in": p_in, "p_out": max_sink_p(nid)}
                 walk_isolated(nid)
                 return
-            p_out = p_in - info["k"] * q * q
+            k = 0.0 if info.get("passthrough") else info["k"]
+            p_out = p_in - k * q * q
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
         elif ntype == "pump":
             head = info.get("head") or (lambda qq: 0.0)
@@ -325,11 +423,15 @@ def solve_branched_network(
         elif ntype == "res":
             k = info.get("k", 0.0)
             head = info.get("head", 0.0)
+            max_dp = info.get("max_dp")
             if q <= ZERO_FLOW:
                 result[nid] = {"flow": 0.0, "p_in": p_in, "p_out": max_sink_p(nid)}
                 walk_isolated(nid)
                 return
-            p_out = p_in + head - k * q * q
+            dp = k * q * q
+            if max_dp is not None:
+                dp = min(dp, max_dp)
+            p_out = p_in + head - dp
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
         else:
             p_out = p_in
@@ -339,14 +441,22 @@ def solve_branched_network(
             return
 
         def branch_demand(c: str, p: float) -> float:
-            if nodes[c]["type"] == "sink":
-                # A sink fed directly through this node: demand is the flow the
-                # node's own resistance would deliver to that sink pressure.
+            sink_p = _sink_behind_pass_cached(c)
+            if sink_p is not None:
+                # A sink fed directly (or through pass-through vessels): demand
+                # is the flow the node's own resistance would deliver to that
+                # sink pressure.
                 k = info.get("k", 0.0)
                 head = info.get("head", 0.0)
+                max_dp = info.get("max_dp")
                 if ntype in ("valve", "res") and k > 0.0:
-                    return math.sqrt(max(0.0, (p + head - nodes[c]["sink_p"]) / k))
-                return max(1.0, (p + head - nodes[c]["sink_p"]) / 1e5)
+                    delta = p + head - sink_p
+                    if delta <= 0.0:
+                        return 0.0
+                    if max_dp is not None and delta >= max_dp:
+                        return math.sqrt(max_dp / k)
+                    return math.sqrt(delta / k)
+                return max(1.0, (p + head - sink_p) / 1e5)
             return subtree_flow(c, p)
 
         def demand(p: float) -> float:
@@ -421,7 +531,8 @@ def solve_branched_network(
     for c in children.get(root, []):
         total = max(q_total, root_flow(p_eff))
         if total <= 1e-12:
-            continue  # nothing flows (dead-headed tree)
+            distribute(c, p_eff, 0.0)
+            continue  # nothing flows (dead-headed tree), but still fill it
         weight = subtree_flow(c, p_eff)
         share = q_total * (weight / total)
         distribute(c, p_eff, share)

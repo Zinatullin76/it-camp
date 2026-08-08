@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, onUpdateSchemeParam, canEditScheme = true, canManageTwin = true }: Props) {
-  const [valvePos, setValvePos] = useState(0.6);
+  const [valvePos, setValvePos] = useState(60);
   const [fuel, setFuel] = useState(0.8);
   const [reflux, setReflux] = useState(2.0);
   const [feedFlow, setFeedFlow] = useState(100);
@@ -107,7 +107,9 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
           ● НА СХЕМЕ · ТЕЛЕМЕТРИИ НЕТ
         </div>
         <div className="param-list">
-          {Object.entries(schemeParams).map(([k, v]) => (
+          {Object.entries(schemeParams)
+            .filter(([k]) => k !== 'mnemo' && k !== 'preset')
+            .map(([k, v]) => (
             <div className="param-row" key={k}>
               <span>{PARAM_LABELS[k]?.label ?? k}</span>
               <span>{typeof v === 'number' ? fmtValue(v, PARAM_LABELS[k]?.unit ?? '') : String(v)}</span>
@@ -158,33 +160,27 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
                 max={2900}
                 step={50}
                 value={pumpSpeed}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setPumpSpeed(v);
-                  void onAction(nodeId, 'SET_SPEED', v);
-                }}
+                onChange={(e) => setPumpSpeed(Number(e.target.value))}
               />
             </label>
+            <button className="btn btn-start" onClick={() => void onAction(nodeId, 'SET_SPEED', pumpSpeed)}>Применить частоту</button>
           </div>
         );
       case 'valve':
         return (
           <div className="ctrl-group">
             <label className="ctrl-label">
-              Позиция клапана: {(valvePos * 100).toFixed(0)}%
+              Позиция клапана: {valvePos.toFixed(0)}%
               <input
                 type="range"
                 min={0}
-                max={1}
-                step={0.05}
+                max={100}
+                step={5}
                 value={valvePos}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setValvePos(v);
-                  void onAction(nodeId, 'SET_VALUE', v);
-                }}
+                onChange={(e) => setValvePos(Number(e.target.value))}
               />
             </label>
+            <button className="btn btn-start" onClick={() => void onAction(nodeId, 'SET_VALUE', valvePos)}>Применить открытие</button>
             {canManageTwin && (
               <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинил)</button>
             )}
@@ -211,13 +207,10 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
                 max={1.2}
                 step={0.02}
                 value={fuel}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setFuel(v);
-                  void onAction(nodeId, 'SET_VALUE', v);
-                }}
+                onChange={(e) => setFuel(Number(e.target.value))}
               />
             </label>
+            <button className="btn btn-start" onClick={() => void onAction(nodeId, 'SET_VALUE', fuel)}>Применить расход</button>
             <button className="btn btn-danger" onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Сброс топлива</button>
           </div>
         );
@@ -232,13 +225,10 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
                 max={5}
                 step={0.1}
                 value={reflux}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setReflux(v);
-                  void onAction(nodeId, 'SET_VALUE', v);
-                }}
+                onChange={(e) => setReflux(Number(e.target.value))}
               />
             </label>
+            <button className="btn btn-start" onClick={() => void onAction(nodeId, 'SET_VALUE', reflux)}>Применить флегмовое число</button>
           </div>
         );
       case 'source': {
