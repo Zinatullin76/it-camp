@@ -32,8 +32,8 @@ export interface MnemoItem {
   unacked?: boolean;
   /** Обозначение уровня в сепараторе: 'reflux' | 'water'. */
   lmode?: string;
-  /** Детализированный конфиг колонны (пресеты К-1..К-4). */
-  detail?: MnemoColDetail;
+  /** Детализированный конфиг колонны (пресеты К-1..К-4) либо печи (П-1..П-5). */
+  detail?: MnemoColDetail | MnemoFurDetail;
 }
 
 /**
@@ -98,6 +98,64 @@ export interface ColDetailNozzle {
   dir?: 'in' | 'out';
   /** Имя порта схемы для подключения потока (иначе генерируется по геометрии). */
   port?: string;
+  /** Номер/обозначение потока (печи: «1», «ПП», «ПП-1»). */
+  label?: string;
+}
+
+/** Дымовая труба / конвекционная камера / под печи. */
+export interface FurBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Потолочный экран печи (П-3 — рибойлирующая струя ПЭ). */
+export interface FurCeil {
+  xs: number[];
+  y: number;
+  label?: { x: number; y: number; s: string };
+}
+
+/** Прибор, нанесённый на печь (П-1 — QR 5001 на дымовой трубе). */
+export interface FurInst {
+  lead: [number, number, number, number];
+  cx: number;
+  cy: number;
+  lines: [string, string];
+}
+
+/**
+ * Детализированная печь (П-1..П-5) — УГО как в visual/Печи.
+ * Все координаты — в системе полотна символа (viewBox ``vb``).
+ */
+export interface MnemoFurDetail {
+  /** Габариты полотна символа. */
+  vb: { w: number; h: number };
+  /** Целевая ширина узла на схеме (px). */
+  nodeW?: number;
+  /** Обозначение печи на корпусе (П-1 и т.п.). */
+  tag: { x: number; y: number; s: string; size?: number };
+  /** Дымовая труба. */
+  stack?: FurBox[];
+  /** Конвекционная камера. */
+  conv?: FurBox;
+  /** Камеры пароперегревателей внутри конвекции. */
+  pp?: (FurBox & { s?: string })[];
+  /** Свод (перевал). */
+  arch: string;
+  /** Радиантная камера. */
+  rad: FurBox;
+  /** Потолочный экран. */
+  ceil?: FurCeil;
+  /** Под и опоры. */
+  base?: { floor: FurBox; legs: FurBox[] };
+  /** Дополнительные надписи (КОНВ. и т.п.). */
+  caps?: { x: number; y: number; s: string; anchor?: 'start' | 'end' | 'middle'; size?: number }[];
+  /** Приборы на печи. */
+  inst?: FurInst[];
+  /** Потоки: штуцеры-фланцы для подключения рёбер. */
+  flows: ColDetailNozzle[];
 }
 
 export interface ColExpl {

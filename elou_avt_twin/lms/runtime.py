@@ -104,10 +104,12 @@ def node_telemetry() -> Dict[str, Dict[str, Any]]:
         elif ntype == "valve":
             p["position"] = round(out.get("position", 0.0) * 100.0, 2)
             p["flow_kg_s"] = out.get("flow_out", 0.0)
-        elif ntype in ("separator", "tank"):
+        elif ntype in ("separator", "separator_s1k", "tank"):
             p["level_m"] = out.get("level")
             p["in_flow"] = round(out.get("in_flow", 0.0), 3)
             p["out_flow"] = round(out.get("out_flow", 0.0), 3)
+        elif ntype == "mixer":
+            p["flow_kg_s"] = round(s.mass_flow, 3) if s else 0.0
         elif ntype == "elou":
             p["level_m"] = state.level.get("elou")
             p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None

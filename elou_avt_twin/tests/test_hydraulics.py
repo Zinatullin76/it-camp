@@ -218,3 +218,28 @@ class TestNetworkSolverRes:
         children = {"SRC": ["PIPE"], "PIPE": ["SNK"]}
         res = solve_branched_network(1.2e5, None, nodes, children, "SRC")
         assert res["PIPE"]["flow"] > 0.0
+
+    def test_pump_fed_vessel_branch_solves(self):
+        """A pump whose branch leads straight to a vessel sink must solve.
+
+        The pump 'head' is a Q -> Pa characteristic (a callable); the branch
+        demand code used to treat it as a scalar and crashed with a TypeError
+        for topologies like pump -> separator / tank.
+        """
+        from calculation_core.hydraulics.line_hydraulics import solve_branched_network
+
+        def pump_head(q: float) -> float:
+            return max(0.0, 6.0e5 - 1.0e6 * q)
+
+        nodes = {
+            "SRC": {"type": "source"},
+            "PMP": {"type": "pump", "head": pump_head},
+            "VSL": {"type": "sink", "sink_p": 1.7e5},
+        }
+        children = {"SRC": ["PMP"], "PMP": ["VSL"]}
+        res = solve_branched_network(1.01325e5, None, nodes, children, "SRC")
+        assert res["PMP"]["flow"] > 0.0
+        # The pump discharge sits exactly at the vessel boundary pressure.
+        assert res["PMP"]["p_out"] == pytest.approx(1.7e5, rel=1e-6)
+        assert res["VSL"]["p_in"] == pytest.approx(1.7e5, rel=1e-6)
+        assert res["VSL"]["flow"] == pytest.approx(res["PMP"]["flow"])

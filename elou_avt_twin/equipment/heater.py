@@ -23,6 +23,14 @@ class Heater(BaseEquipment):
         self.duty = 0.0
         self.outlet_temp = 293.15
         self.duty_limited = False
+        # A furnace may heat several independent sections (tube passes).  Each
+        # channel is a dedicated inlet -> outlet port pair; the combustion duty
+        # is shared between the channels present in the current step.
+        self._channel_pairs = {
+            "in": "out", "in2": "out2", "in3": "out3",
+            "in4": "out4", "pp_in": "pp_out",
+        }
+        self._channel_ports = list(self._channel_pairs.keys())
         self._apply_params()
 
     def _apply_params(self) -> None:
@@ -33,78 +41,86 @@ class Heater(BaseEquipment):
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
         """
         Inputs:
-            inlet_stream: Stream
+            in, in2, in3, in4, pp_in: Stream (one per furnace section)
             thermo: ThermodynamicModel
+
+        The furnace heats every section that has a connected inlet; the total
+        combustion duty is split evenly between the active sections.  Returns
+        one outlet stream per active section under its outlet port name.
         """
-        inlet: Stream = inputs.get("inlet_stream")
         thermo = inputs.get("thermo")
-        
-        if not inlet or not thermo:
-            return {"outlet_stream": None}
+        channel_ports = [p for p in self._channel_ports if inputs.get(p) is not None]
+        if not channel_ports or not thermo:
+            return {}
 
         if self.state.failed:
-            # Flame-out: no combustion, outlet at inlet temperature.
+            # Flame-out: no combustion, every section exits at its inlet
+            # temperature.
             self.fuel_flow = 0.0
             self.duty = 0.0
-            self.outlet_temp = inlet.temperature
-            return {"outlet_stream": inlet, "duty": 0.0, "failed": True}
+            return {self._channel_pairs[p]: inputs[p] for p in channel_ports}
 
         # Fuel flow dynamics
         tau = self.params.get("response_tau", 60.0)
         self.fuel_flow += (self.target_fuel_flow - self.fuel_flow) / tau * dt
         self.fuel_flow = max(0.0, self.fuel_flow)
-        
-        # Calculate heat duty: Q = m_fuel * LHV * η
-        self.duty = self.fuel_flow * self.lhv * self.efficiency
-        self.duty = min(self.duty, self.max_duty)
-        
-        # Energy balance: H_out = H_in + Q / m_process
-        if inlet.mass_flow > 0:
-            h_in = inlet.enthalpy
-            h_out = h_in + self.duty / inlet.mass_flow
-            if hasattr(thermo, "temperature_from_enthalpy"):
-                # Rigorous inversion H(T) -> T for the mixture (handles the
-                # PR residual-enthalpy reference that the Cp shortcut breaks).
-                self.outlet_temp = float(
-                    thermo.temperature_from_enthalpy(
-                        h_out, inlet.pressure, inlet.composition, Phase.LIQUID
-                    )
-                )
-            else:
-                # H = Cp * (T - T_ref) => T = T_ref + H / Cp
-                cp = thermo.calculate_cp(inlet.temperature, inlet.pressure, inlet.composition)
-                self.outlet_temp = 298.15 + h_out / cp
 
-            # Physical material limit (tube skin / metallurgy): the process
-            # temperature must never exceed the limit.  Instead of silently
-            # capping T (which would break the energy balance), trim the
-            # delivered duty so H_out(T_max) = H_in + Q_delivered / m holds
-            # exactly.  When the scheme defines the furnace's temperature
-            # alarm limit (limits.temperature_high) it is used as the hard
-            # metallurgical cap; an explicit max_outlet_temp overrides it.
-            max_outlet_temp = self.params.get(
-                "max_outlet_temp",
-                (self.params.get("limits") or {}).get("temperature_high", 1000.0),
-            )
-            if self.outlet_temp > max_outlet_temp:
-                self.outlet_temp = max_outlet_temp
+        # Calculate total heat duty: Q = m_fuel * LHV * η, shared by the
+        # active sections.
+        duty_total = self.fuel_flow * self.lhv * self.efficiency
+        duty_total = min(duty_total, self.max_duty)
+        duty_per = duty_total / len(channel_ports)
+
+        max_outlet_temp = self.params.get(
+            "max_outlet_temp",
+            (self.params.get("limits") or {}).get("temperature_high", 1000.0),
+        )
+
+        out: Dict[str, Any] = {}
+        delivered = 0.0
+        temps: List[float] = []
+        for port in channel_ports:
+            inlet = inputs[port]
+            out_port = self._channel_pairs[port]
+            if inlet.mass_flow <= 0:
+                temps.append(inlet.temperature)
+                out[out_port] = inlet.copy_with(
+                    temperature=inlet.temperature, enthalpy=inlet.enthalpy
+                )
+                continue
+            # Energy balance: H_out = H_in + Q / m_process
+            h_in = inlet.enthalpy
+            h_out = h_in + duty_per / inlet.mass_flow
+            if hasattr(thermo, "temperature_from_enthalpy"):
+                try:
+                    t_out = float(
+                        thermo.temperature_from_enthalpy(
+                            h_out, inlet.pressure, inlet.composition, Phase.LIQUID
+                        )
+                    )
+                except Exception:
+                    cp = thermo.calculate_cp(inlet.temperature, inlet.pressure, inlet.composition)
+                    t_out = 298.15 + h_out / cp
+            else:
+                cp = thermo.calculate_cp(inlet.temperature, inlet.pressure, inlet.composition)
+                t_out = 298.15 + h_out / cp
+            # Metallurgical cap: trim the delivered duty instead of silently
+            # capping T (keeps the energy balance exact).
+            if t_out > max_outlet_temp:
+                t_out = max_outlet_temp
                 h_out = float(thermo.calculate_enthalpy(
                     max_outlet_temp, inlet.pressure, inlet.composition
                 ))
-                self.duty = max(0.0, (h_out - h_in) * inlet.mass_flow)
-                self.duty_limited = True
+                delivered += max(0.0, (h_out - h_in)) * inlet.mass_flow
             else:
-                self.duty_limited = False
-        else:
-            self.outlet_temp = inlet.temperature
-            h_out = inlet.enthalpy
+                delivered += duty_per
+            temps.append(t_out)
+            out[out_port] = inlet.copy_with(temperature=t_out, enthalpy=h_out)
 
-        outlet = inlet.copy_with(
-            temperature=self.outlet_temp,
-            enthalpy=h_out
-        )
-        
-        return {"outlet_stream": outlet, "duty": self.duty}
+        self.duty = delivered
+        self.outlet_temp = sum(temps) / len(temps) if temps else 293.15
+        self.duty_limited = delivered < duty_total - 1e-6
+        return out
 
     def get_state(self) -> EquipmentState:
         self.state.extra["fuel_flow"] = self.fuel_flow

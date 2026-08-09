@@ -178,27 +178,36 @@ def solve_branched_network(
     nodes: Dict[str, Dict[str, Any]],
     children: Dict[str, List[str]],
     root: str,
+    p_src_max: Optional[float] = None,
 ) -> Dict[str, Dict[str, float]]:
     """Solve the steady-state flow of a branched (tree) hydraulic network.
 
-    The tree starts at a ``source`` (fixed pressure boundary) and fans out to
-    one or more ``sink`` nodes, each at its own fixed (hard) pressure.  Elements
-    in between are valves (quadratic resistance k), pumps (head H(Q)) or
-    pass-throughs.  At every junction the pressure is common and the outgoing
-    mass flows sum to the incoming one, so a fork splits its flow between the
-    branches in inverse proportion to their resistance instead of evenly.
+    The tree starts at a ``source`` and fans out to one or more ``sink`` nodes,
+    each at its own fixed (hard) pressure.  Elements in between are valves
+    (quadratic resistance k), pumps (head H(Q)) or pass-throughs.  At every
+    junction the pressure is common and the outgoing mass flows sum to the
+    incoming one, so a fork splits its flow between the branches in inverse
+    proportion to their resistance instead of evenly.
 
-    The source is a hard pressure boundary: it always holds ``p_src`` and the
-    network draws whatever flow its resistances allow.  ``q_src_limit`` caps
-    that flow: past the limit the source pressure sags until the network draws
-    exactly the limit.  A closed valve isolates everything downstream: the pump
-    head stands in front of it and the downstream side sits at its own sink
-    pressure.
+    Two source modes are supported:
+
+    * **Pressure source** (``q_src_limit`` is None): the source is a hard
+      pressure boundary holding ``p_src``, and the network draws whatever flow
+      its resistances allow.
+    * **Flow source** (``q_src_limit`` is given): the source supplies only the
+      demanded flow, and its discharge pressure is flexible -- it rises up to
+      ``p_src_max`` until the network draws exactly the demand.  If even the
+      maximum pressure cannot force the flow (closed / heavily throttled valve),
+      the source dead-heads at ``p_src_max`` and delivers whatever little the
+      network can take (mass-conserving, physically sound).
+
+    A closed valve isolates everything downstream: the pump head stands in front
+    of it and the downstream side sits at its own sink pressure.
 
     Parameters
     ----------
-    p_src         : source boundary pressure [Pa].
-    q_src_limit   : accepted for interface compatibility; not enforced (see above).
+    p_src         : source boundary pressure [Pa] (nominal).
+    q_src_limit   : demanded source flow [kg/s]; None selects pressure-source mode.
     nodes         : node_id -> element info dict.  Recognised types:
                         {"type": "source"}
                         {"type": "sink",  "sink_p": pressure [Pa]}
@@ -208,6 +217,8 @@ def solve_branched_network(
                         {"type": "pass"}
     children      : node_id -> list of child node ids (sinks included).
     root          : the source node id.
+    p_src_max     : maximum source discharge pressure [Pa] for flow-source mode
+                    (defaults to ``p_src``).
 
     Returns
     -------
@@ -269,6 +280,11 @@ def solve_branched_network(
         info = nodes[nid]
         ntype = info["type"]
         if ntype == "sink":
+            if info.get("absorb"):
+                # Absorbing inventory boundary (a column): it swallows whatever
+                # the upstream can deliver once the pressure exceeds its own
+                # operating pressure, and demands nothing below it.
+                return 0.0 if p_in <= float(info["sink_p"]) else 1e12
             return 0.0
         kids = children.get(nid, [])
         if not kids:
@@ -329,6 +345,14 @@ def solve_branched_network(
                 return sum(subtree_flow(c, p_out) for c in kids) - q
 
             return bisection_root(residual_res, 0.0, 1.0)
+        # A bare pass-through that ends directly in a sink has no resistance, so
+        # the pressure below it is just the sink pressure: above it the sink
+        # swallows everything (absorbing boundary), below it nothing can flow.
+        # Without this a pass -> sink line reports zero flow at any pressure, so
+        # a flow-constrained source could never deliver its setpoint.
+        if len(kids) == 1 and nodes[kids[0]].get("type") == "sink":
+            sp = float(nodes[kids[0]].get("sink_p", 0.0))
+            return 0.0 if p_in <= sp else 1e12
         # Pass-through: the total flow is the sum of the children flows, which
         # do not depend on this node's own flow.
         return sum(subtree_flow(c, p_in) for c in kids)
@@ -336,33 +360,55 @@ def solve_branched_network(
     def root_flow(P: float) -> float:
         return sum(subtree_flow(c, P) for c in children.get(root, []))
 
-    # Operating point: the source is a hard pressure boundary, so it always
-    # holds its nominal pressure and the network draws whatever flow its
-    # resistances allow.
+    # Operating point.  Two modes:
+    #
+    # 1. Pressure source (no flow demand): the source holds its nominal pressure
+    #    and the network draws whatever flow its resistances allow.
+    # 2. Flow source (flow demand given): the source must deliver q_src_limit.
+    #    Its discharge pressure is flexible and rises (from the nominal p_src up
+    #    to p_src_max) until the network draws exactly the demanded flow.  If
+    #    even p_src_max cannot force the flow (e.g. a closed valve dead-heads
+    #    the line), the source delivers what little the network can take, so the
+    #    flow sags below the demand instead of the pressure blowing up.
     p_eff = p_src
     q_total = root_flow(p_src)
+    if q_src_limit is None and q_total > 1e9:
+        # An absorbing sink with no back-pressure and no demand in front of it
+        # has no definable flow: the source holds its pressure, flow is 0.
+        q_total = 0.0
 
-    # Source capacity: the source holds its pressure only while demand does not
-    # exceed its throughput limit.  Past the limit it physically sags -- a feed
-    # of fixed capacity cannot deliver more, so the pressure drops to the value
-    # at which the network draws exactly the limit (mass-conserving).
     if q_src_limit is not None:
         q_lim = max(0.0, float(q_src_limit))
-        if q_total > q_lim:
-            if root_flow(P_FLOOR) <= q_lim:
-                lo, hi = P_FLOOR, p_src
-                for _ in range(100):
-                    mid = 0.5 * (lo + hi)
-                    if root_flow(mid) <= q_lim:
-                        lo = mid
-                    else:
-                        hi = mid
-                    if hi - lo <= 1e-6:
-                        break
-                p_eff = 0.5 * (lo + hi)
+        p_max = max(p_src, float(p_src_max) if p_src_max else p_src)
+        if q_lim <= 0.0:
+            p_eff = p_src
+            q_total = 0.0
+        else:
+            # Flow demanded but physically unreachable at the maximum source
+            # pressure: dead-head at p_src_max and deliver the max achievable
+            # flow (mass-conserving; the sink side stays at its own pressure).
+            if root_flow(p_max) < q_lim:
+                p_eff = p_max
+                q_total = root_flow(p_max)
             else:
-                p_eff = P_FLOOR
-            q_total = q_lim
+                # Find the smallest source pressure whose network flow reaches
+                # exactly the demand (root_flow is monotone non-decreasing in
+                # the source pressure).
+                lo, hi = p_src, p_max
+                if root_flow(lo) >= q_lim:
+                    p_eff = p_src
+                    q_total = q_lim
+                else:
+                    for _ in range(100):
+                        mid = 0.5 * (lo + hi)
+                        if root_flow(mid) <= q_lim:
+                            lo = mid
+                        else:
+                            hi = mid
+                        if hi - lo <= 1e-6:
+                            break
+                    p_eff = 0.5 * (lo + hi)
+                    q_total = q_lim
 
     result: Dict[str, Dict[str, float]] = {
         root: {"flow": q_total, "p_in": p_eff, "p_out": p_eff},
@@ -391,6 +437,44 @@ def solve_branched_network(
                 result[c] = {"flow": 0.0, "p_in": p, "p_out": p}
                 walk_isolated(c)
 
+    def required_pressure(nid: str, q: float) -> float:
+        """Pressure the network below ``nid`` needs on ``nid``'s outlet [Pa].
+
+        Working bottom-up, every path must still reach its sink boundary, so
+        the required outlet pressure is the largest (sink_p + drops) over all
+        downstream branches.  A closed valve isolates its branch: nothing can
+        flow there, so the required pressure is unbounded and an upstream pump
+        dead-heads on its curve instead of over-pressurising the closed valve.
+        """
+        info = nodes[nid]
+        ntype = info["type"]
+        if ntype == "sink":
+            return float(info["sink_p"])
+        if ntype == "valve" and info.get("closed"):
+            return float("inf")
+        kids = children.get(nid, [])
+        if not kids:
+            return float(info.get("sink_p", P_FLOOR))
+        best = 0.0
+        for c in kids:
+            if nodes[c]["type"] == "sink":
+                r = float(nodes[c]["sink_p"])
+            else:
+                r = required_pressure(c, q)
+            if r > best:
+                best = r
+        if ntype == "res":
+            k = info.get("k", 0.0)
+            head = info.get("head", 0.0)
+            dp = k * q * q
+            max_dp = info.get("max_dp")
+            if max_dp is not None:
+                dp = min(dp, max_dp)
+            best = best + dp - float(head)
+        elif ntype == "valve" and not info.get("passthrough"):
+            best = best + info.get("k", 0.0) * q * q
+        return best
+
     def distribute(nid: str, p_in: float, q_in: float) -> None:
         """Distribute the source flow down a tree (mass-conserving).
 
@@ -405,6 +489,13 @@ def solve_branched_network(
         info = nodes[nid]
         ntype = info["type"]
         if ntype == "sink":
+            # Record the sink boundary itself so callers see what landed on it
+            # (a root-level direct sink never passes through a fork branch).
+            result[nid] = {
+                "flow": max(0.0, q_in),
+                "p_in": float(info["sink_p"]),
+                "p_out": float(info["sink_p"]),
+            }
             return
         kids = children.get(nid, [])
         q = max(0.0, q_in)
@@ -418,7 +509,21 @@ def solve_branched_network(
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
         elif ntype == "pump":
             head = info.get("head") or (lambda qq: 0.0)
-            p_out = p_in + head(q)
+            # A pump in a line only has to lift the pressure the downstream
+            # network actually needs (sink pressure + its drops) above the inlet.
+            # Driving its full curve head here would leave the surplus nowhere to
+            # go when the line is fully open -- every element downstream would
+            # show a false pressure drop.  The curve stays the hard upper bound,
+            # so a closed/throttled branch dead-heads at the shut-off head while
+            # an open line stays at the sink pressure.
+            head_curve = max(0.0, head(q))
+            required = required_pressure(nid, q)
+            head_eff = head_curve
+            if required < float("inf"):
+                head_need = max(0.0, required - p_in)
+                if head_need < head_curve:
+                    head_eff = head_need
+            p_out = p_in + head_eff
             result[nid] = {"flow": q, "p_in": p_in, "p_out": p_out}
         elif ntype == "res":
             k = info.get("k", 0.0)
@@ -450,19 +555,25 @@ def solve_branched_network(
                 head = info.get("head", 0.0)
                 max_dp = info.get("max_dp")
                 if ntype in ("valve", "res") and k > 0.0:
-                    delta = p + head - sink_p
+                    delta = p + float(head) - sink_p
                     if delta <= 0.0:
                         return 0.0
                     if max_dp is not None and delta >= max_dp:
                         return math.sqrt(max_dp / k)
                     return math.sqrt(delta / k)
-                return max(1.0, (p + head - sink_p) / 1e5)
+                if ntype == "pump":
+                    head_q = info.get("head") or (lambda q: 0.0)
+                    return bisection_root(lambda q: head_q(q) + p - sink_p, 0.0, 1.0)
+                return max(1.0, (p + float(head) - sink_p) / 1e5)
             return subtree_flow(c, p)
 
         def demand(p: float) -> float:
             return sum(branch_demand(c, p) for c in kids)
 
-        # The branches share a common junction pressure.  The pump-level solve
+        # A single sink child: the node outlet is joined directly to the sink,
+        # so pressure is continuous -- the outlet sits exactly at the sink
+        # pressure (the whole q goes into that one sink).  Otherwise the
+        # branches share a common junction pressure.  The pump-level solve
         # already places it at p_out (branch demands summed to q by
         # construction), but that balance is knife-edge when a branch sits
         # exactly at a sink pressure, so re-derive it robustly here: the
@@ -470,19 +581,23 @@ def solve_branched_network(
         # draw exactly q.  demand(p) is monotone increasing, so bisect the
         # decreasing q - demand(p) with an absolute tolerance (the pressure
         # margins involved are tiny for near-zero-resistance branches).
-        p_fork = p_out
-        if demand(p_out) < q - 1e-9 and demand(p_in) > q + 1e-9:
-            lo, hi = p_out, p_in
-            for _ in range(300):
-                mid = 0.5 * (lo + hi)
-                if q - demand(mid) > 0.0:
-                    lo = mid
-                else:
-                    hi = mid
-                if hi - lo <= 1e-8:
-                    break
-            p_fork = 0.5 * (lo + hi)
-        result[nid]["p_out"] = p_fork
+        if len(kids) == 1 and nodes[kids[0]].get("type") == "sink":
+            result[nid]["p_out"] = float(nodes[kids[0]].get("sink_p", p_out))
+            p_fork = result[nid]["p_out"]
+        else:
+            p_fork = p_out
+            if demand(p_out) < q - 1e-9 and demand(p_in) > q + 1e-9:
+                lo, hi = p_out, p_in
+                for _ in range(300):
+                    mid = 0.5 * (lo + hi)
+                    if q - demand(mid) > 0.0:
+                        lo = mid
+                    else:
+                        hi = mid
+                    if hi - lo <= 1e-8:
+                        break
+                p_fork = 0.5 * (lo + hi)
+            result[nid]["p_out"] = p_fork
         w_total = demand(p_fork)
         if w_total > 1e-12:
             for c in kids:

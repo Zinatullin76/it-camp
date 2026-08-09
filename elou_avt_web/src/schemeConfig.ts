@@ -1,22 +1,36 @@
 import type { PaletteItem, SchemeNodeData } from './types';
-import type { MnemoItem, MnemoColDetail } from './mnemo/mnemoTypes';
+import type { MnemoItem, MnemoColDetail, MnemoFurDetail } from './mnemo/mnemoTypes';
 import { PRESET_COLUMNS } from './mnemo/colPresets';
+import { PRESET_FURNACES } from './mnemo/furPresets';
 
 export const PALETTE: PaletteItem[] = [
   { type: 'source', label: 'Источник сырья', category: 'boundary', color: '#35d399' },
   { type: 'sink', label: 'Продукт / отбор', category: 'boundary', color: '#64748b' },
   { type: 'pump', label: 'Насос', category: 'equipment', color: '#35d399' },
   { type: 'valve', label: 'Регулирующий клапан', category: 'equipment', color: '#38bdf8' },
+  { type: 'angle_valve', label: 'Угловой клапан', category: 'equipment', color: '#38bdf8' },
   { type: 'gate_valve', label: 'Задвижка', category: 'equipment', color: '#38bdf8' },
+  { type: 'mixer', label: 'Смеситель', category: 'equipment', color: '#38bdf8' },
   { type: 'elou', label: 'ЭЛОУ (электродегидратор)', category: 'equipment', color: '#38bdf8' },
   { type: 'heat_exchanger', label: 'Теплообменник', category: 'equipment', color: '#38bdf8' },
   { type: 'heater', label: 'Печь', category: 'equipment', color: '#fb923c' },
+  { type: 'heater', label: 'П-1 · Нагрев отбензиненной нефти', category: 'equipment', color: '#fb923c', preset: 'p1' },
+  { type: 'heater', label: 'П-2 · Нефть в К-2 + подогрев низа К-1', category: 'equipment', color: '#fb923c', preset: 'p2' },
+  { type: 'heater', label: 'П-3 · Подогрев низа К-1 (рибойлер К-4)', category: 'equipment', color: '#fb923c', preset: 'p3' },
+  { type: 'heater', label: 'П-4 · Вторичная перегонка бензина', category: 'equipment', color: '#fb923c', preset: 'p4' },
+  { type: 'heater', label: 'П-5 · Перегрев пара для регенерации', category: 'equipment', color: '#fb923c', preset: 'p5' },
   { type: 'column', label: 'Колонна ректификации', category: 'equipment', color: '#67e8f9' },
   { type: 'column', label: 'К-1 · Атмосферная колонна', category: 'equipment', color: '#67e8f9', preset: 'k1' },
   { type: 'column', label: 'К-2 · Атмосферная колонна', category: 'equipment', color: '#67e8f9', preset: 'k2' },
   { type: 'column', label: 'К-3 · Отпарная колонна', category: 'equipment', color: '#67e8f9', preset: 'k3' },
   { type: 'column', label: 'К-4 · Стабилизатор', category: 'equipment', color: '#67e8f9', preset: 'k4' },
+  { type: 'column', label: 'К-7 · Газосепаратор', category: 'equipment', color: '#67e8f9', preset: 'k7' },
+  { type: 'column', label: 'К-9 · Вторичная перегонка бензина', category: 'equipment', color: '#67e8f9', preset: 'k9' },
+  { type: 'column', label: 'К-10 · Вторичная перегонка бензина', category: 'equipment', color: '#67e8f9', preset: 'k10' },
+  { type: 'column', label: 'К-12/2-3б · Демеркаптанизация', category: 'equipment', color: '#67e8f9', preset: 'k12' },
+  { type: 'column', label: 'К-12/4 · Реактор демеркаптанизации', category: 'equipment', color: '#67e8f9', preset: 'k12_4' },
   { type: 'separator', label: 'Сепаратор', category: 'equipment', color: '#38bdf8' },
+  { type: 'separator_s1k', label: 'Сепаратор С-1К', category: 'equipment', color: '#38bdf8' },
 ];
 
 export const TYPE_COLORS: Record<string, string> = Object.fromEntries(PALETTE.map((p) => [p.type, p.color]));
@@ -54,18 +68,30 @@ export const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
   converged: { label: 'Сходимость', unit: '' },
 };
 
+// Параметры потока (линии), которые можно показывать квадратиком на схеме.
+// Значения берутся из телеметрии узла-источника; `phase` — среда в линии.
+export const STREAM_PARAMS: Record<string, { label: string; unit: string }> = {
+  phase: { label: 'Среда', unit: '' },
+  flow_kg_s: { label: 'Расход', unit: 'кг/с' },
+  temperature_c: { label: 'Температура', unit: '°C' },
+  pressure_bar: { label: 'Давление', unit: 'бар' },
+};
+
 // Default parameters for a freshly created node.
 export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   source: { flow_kg_s: 100, temperature_c: 25, pressure_bar: 1.01325 },
   sink: {},
   pump: { nominal_flow: 100.0, efficiency_nominal: 0.75 },
   valve: { cv: 0.01, response_rate: 0.2 },
+  angle_valve: { cv: 0.01, response_rate: 0.2 },
   gate_valve: { initial_open: 1 },
   elou: { vessel_area: 30.0 },
   heat_exchanger: { u: 300.0, area: 200.0 },
   heater: { max_heat_duty: 50000000.0, response_tau: 60.0 },
   column: { num_stages: 20, feed_stage: 10 },
   separator: { level_mode: 'reflux' },
+  separator_s1k: { level_mode: 'reflux' },
+  mixer: { num_inputs: 2 },
 };
 
 // Node card size per type (width x height) — compact, matches the symbol.
@@ -74,41 +100,52 @@ export const NODE_SIZES: Record<string, { w: number; h: number }> = {
   sink: { w: 132, h: 70 },
   pump: { w: 104, h: 64 },
   valve: { w: 40, h: 56 },
+  angle_valve: { w: 84, h: 76 },
   gate_valve: { w: 40, h: 56 },
+  mixer: { w: 144, h: 114 },
   elou: { w: 120, h: 66 },
   heat_exchanger: { w: 132, h: 70 },
   heater: { w: 118, h: 88 },
   column: { w: 52, h: 128 },
   separator: { w: 140, h: 70 },
+  separator_s1k: { w: 140, h: 70 },
 };
 
 export function nodeSize(type: string) {
   return NODE_SIZES[type] ?? { w: 120, h: 80 };
 }
 
-/** Габарит карточки узла с учётом пресета детальной колонны. */
+/** Габарит карточки узла с учётом пресета детальной колонны/печи. */
 export function nodeSizeFor(n: { type: string; params?: Record<string, unknown> }): { w: number; h: number } {
-  const d = n.params?.mnemo as MnemoColDetail | undefined;
-  if (n.type === 'column' && d?.vb?.w && d?.nodeW) {
+  const d = n.params?.mnemo as MnemoColDetail | MnemoFurDetail | undefined;
+  if (d?.vb?.w && d?.nodeW) {
     const nw = d.nodeW;
     return { w: nw + 8, h: Math.round((nw * d.vb.h) / d.vb.w) + 26 };
   }
   const preset = n.params?.preset as string | undefined;
-  const p = preset ? PRESET_COLUMNS[preset] : undefined;
-  if (n.type === 'column' && p?.config?.vb?.w && p.config.nodeW) {
-    const nw = p.config.nodeW;
-    return { w: nw + 8, h: Math.round((nw * p.config.vb.h) / p.config.vb.w) + 26 };
+  const pc = preset ? PRESET_COLUMNS[preset] : undefined;
+  const pf = preset ? PRESET_FURNACES[preset] : undefined;
+  const cfg = pc?.config ?? pf?.config;
+  if (cfg?.vb?.w && cfg.nodeW) {
+    const nw = cfg.nodeW;
+    return { w: nw + 8, h: Math.round((nw * cfg.vb.h) / cfg.vb.w) + 26 };
   }
   return nodeSize(n.type);
 }
 
-/** Символ мнемосхемы для узла (пресет детальной колонны). */
+/** Символ мнемосхемы для узла (пресет детальной колонны или печи). */
 export function mnemoForNode(params: Record<string, unknown>): Partial<MnemoItem> | undefined {
-  const d = params.mnemo as MnemoColDetail | undefined;
-  if (d?.vb?.w && d?.nodeW) return { t: 'col', w: d.nodeW, detail: d };
+  const d = params.mnemo as MnemoColDetail | MnemoFurDetail | undefined;
+  if (d?.vb?.w && d?.nodeW) {
+    const preset = params.preset as string | undefined;
+    const isFur = !!preset && !!PRESET_FURNACES[preset];
+    return { t: isFur ? 'fur' : 'col', w: d.nodeW, detail: d };
+  }
   const preset = params.preset as string | undefined;
-  const p = preset ? PRESET_COLUMNS[preset] : undefined;
-  if (p?.config?.vb?.w && p.config.nodeW) return { t: 'col', w: p.config.nodeW, detail: p.config };
+  const pc = preset ? PRESET_COLUMNS[preset] : undefined;
+  if (pc?.config?.vb?.w && pc.config.nodeW) return { t: 'col', w: pc.config.nodeW, detail: pc.config };
+  const pf = preset ? PRESET_FURNACES[preset] : undefined;
+  if (pf?.config?.vb?.w && pf.config.nodeW) return { t: 'fur', w: pf.config.nodeW, detail: pf.config };
   return undefined;
 }
 
@@ -135,16 +172,22 @@ export function createNode(type: string, x: number, y: number, preset?: string):
     y: 0,
     params: { ...(DEFAULT_PARAMS[type] ?? {}) },
   };
-  if (preset && PRESET_COLUMNS[preset]) {
-    const p = PRESET_COLUMNS[preset];
-    node.name = p.label;
-    node.params = {
-      ...node.params,
-      preset,
-      num_stages: p.numStages,
-      feed_stage: p.feedStage,
-      mnemo: p.config,
-    };
+  if (preset) {
+    const pc = PRESET_COLUMNS[preset];
+    const pf = PRESET_FURNACES[preset];
+    const p = pc ?? pf;
+    if (p) {
+      node.name = p.label;
+      node.params = {
+        ...node.params,
+        preset,
+        mnemo: p.config,
+      };
+      if (pc) {
+        node.params.num_stages = pc.numStages;
+        node.params.feed_stage = pc.feedStage;
+      }
+    }
   }
   const { w, h } = nodeSizeFor(node);
   node.x = Math.round(x - w / 2);

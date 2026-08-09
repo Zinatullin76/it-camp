@@ -106,7 +106,31 @@ inputs: Dict[str, float] = {"flow_kg_s": 100.0, "temperature_c": 25.0, "pressure
 
 # P&ID scheme owned by the API layer and pushed into the engine on changes.
 _DEFAULT_SCHEME = "process_elou_avt"
-scheme_store: ProcessScheme = load_scheme(Path(__file__).resolve().parent / "schemes" / f"{_DEFAULT_SCHEME}.json")
+SCHEME_DIR = Path(__file__).resolve().parent / "schemes"
+_LAST_SCHEME_FILE = SCHEME_DIR / ".last_scheme"
+
+
+def _last_used_scheme() -> str:
+    """Return the id of the most recently saved/loaded scheme (default otherwise)."""
+    try:
+        if _LAST_SCHEME_FILE.exists():
+            name = _LAST_SCHEME_FILE.read_text(encoding="utf-8-sig").strip()
+            if name and (SCHEME_DIR / f"{name}.json").exists():
+                return name
+    except Exception:
+        logger.exception("Failed to read last-used scheme marker.")
+    return _DEFAULT_SCHEME
+
+
+def _remember_scheme(name: str) -> None:
+    """Persist the id of the last active scheme so it re-opens on restart."""
+    try:
+        _LAST_SCHEME_FILE.write_text(name.strip(), encoding="utf-8")
+    except Exception:
+        logger.exception("Failed to write last-used scheme marker.")
+
+
+scheme_store: ProcessScheme = load_scheme(SCHEME_DIR / f"{_last_used_scheme()}.json")
 twin._engine.set_scheme(scheme_store)
 
 # The LMS content layer (lms/content_*.py) reads the simulator singletons
@@ -160,7 +184,7 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
             p["efficiency"] = eq.efficiency if eq else None
             p["speed_rpm"] = round(eq.speed, 1) if eq else None
-        elif ntype == "valve":
+        elif ntype in ("valve", "angle_valve"):
             p["position"] = round(out.get("position", 0.0) * 100.0, 2)
             p["flow_kg_s"] = out.get("flow_out", 0.0)
             p["pressure_in_bar"] = round(out["inlet_pressure"] / 1e5, 3) if out.get("inlet_pressure") else None
@@ -169,15 +193,20 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["open"] = bool(eq.is_open) if eq else None
             p["flow_kg_s"] = round(out.get("flow_out", 0.0), 3)
             p["blocked"] = bool(out.get("blocked", False))
-        elif ntype in ("separator", "tank"):
+        elif ntype in ("separator", "separator_s1k", "tank"):
+            s_ref = s or out.get("out_b") or out.get("out_t")
             p["level_m"] = out.get("level")
             p["level_setpoint_m"] = out.get("setpoint")
             p["in_flow"] = round(out.get("in_flow", 0.0), 3)
             p["out_flow"] = round(out.get("out_flow", 0.0), 3)
             p["flow_kg_s"] = round(out.get("out_flow", 0.0), 3)
-            p["pressure_bar"] = round(s.pressure / 1e5, 3) if s else None
-            p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
+            p["pressure_bar"] = round(s_ref.pressure / 1e5, 3) if s_ref else None
+            p["temperature_c"] = round(s_ref.temperature - 273.15, 2) if s_ref else None
             p["volume_m3"] = out.get("volume_m3")
+        elif ntype == "mixer":
+            p["flow_kg_s"] = round(s.mass_flow, 3) if s else 0.0
+            p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
+            p["pressure_bar"] = round(s.pressure / 1e5, 3) if s else None
         elif ntype == "elou":
             p["flow_kg_s"] = round(s.mass_flow, 3) if s else 0.0
             p["power_w"] = eq.power_consumption if eq else 0.0
@@ -192,9 +221,18 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["t_hot_in_c"] = round(out["t_hot_in"] - 273.15, 2) if out.get("t_hot_in") else None
             p["t_hot_out_c"] = round(out["t_hot_out"] - 273.15, 2) if out.get("t_hot_out") else None
         elif ntype == "heater":
-            p["duty_w"] = out.get("duty", 0.0)
+            p["duty_w"] = eq.duty if eq else 0.0
             p["fuel_flow"] = eq.fuel_flow if eq else 0.0
             p["outlet_temp_c"] = round(eq.outlet_temp - 273.15, 2) if eq else None
+            for in_port, out_port in (
+                ("in", "out"), ("in2", "out2"), ("in3", "out3"),
+                ("in4", "out4"), ("pp_in", "pp_out"),
+            ):
+                s_out = out.get(out_port)
+                if s_out is not None:
+                    p[f"flow_{out_port}"] = round(s_out.mass_flow, 3)
+                    p[f"t_{out_port}_c"] = round(s_out.temperature - 273.15, 2)
+            p["flow_kg_s"] = round(out.get("flow_out", 0.0), 3)
         elif ntype == "column":
             dist = out.get("distillate")
             side = out.get("side_draw")
@@ -315,7 +353,8 @@ def _node_type_for(equipment_id: str) -> Optional[str]:
     eq = twin._engine._equipment.get(equipment_id)
     if eq is not None:
         return {
-            "Pump": "pump", "Valve": "valve", "GateValve": "gate_valve",
+            "Pump": "pump", "Valve": "valve", "AngleValve": "angle_valve",
+            "GateValve": "gate_valve",
             "Heater": "heater",
             "ELOU": "elou", "Tank": "tank", "HeatExchanger": "heat_exchanger",
             "DistillationColumn": "column", "Separator": "separator",
@@ -531,7 +570,7 @@ def action(req: ActionRequest):
         node = scheme_store.node(req.equipment_id)
         value = req.value
         if (req.action_type == "SET_VALUE" and value is not None and node is not None
-                and node.type == "valve" and value > 1.0):
+                and node.type in ("valve", "angle_valve") and value > 1.0):
             value = value / 100.0
         action = OperatorAction(
             timestamp=twin._simulation_time,
@@ -658,12 +697,10 @@ def get_scheme():
     with lock:
         return scheme_store.model_dump(mode="json")
 
-SCHEME_DIR = Path(__file__).resolve().parent / "schemes"
-
-
 def _save_current_scheme() -> None:
     """Persist the current scheme to its own JSON file (not the default)."""
     save_scheme(scheme_store, SCHEME_DIR / f"{scheme_store.id}.json")
+    _remember_scheme(scheme_store.id)
 
 
 @app.get("/schemes", dependencies=[Depends(require_permission("view_scheme"))])
@@ -683,6 +720,7 @@ def _reconfigure(new_scheme: ProcessScheme) -> None:
     so the returned state reflects the new P&ID layout immediately."""
     global scheme_store
     scheme_store = new_scheme
+    _remember_scheme(new_scheme.id)
     twin.create_simulation()
     twin._engine.set_scheme(new_scheme)
     twin._engine.set_feed_override(inputs)
@@ -755,12 +793,15 @@ def scheme_templates():
             {"type": "sink", "label": "Продукт / отбор", "category": "boundary"},
             {"type": "pump", "label": "Насос", "category": "equipment"},
             {"type": "valve", "label": "Регулирующий клапан", "category": "equipment"},
+            {"type": "angle_valve", "label": "Угловой клапан", "category": "equipment"},
             {"type": "gate_valve", "label": "Задвижка", "category": "equipment"},
+            {"type": "mixer", "label": "Смеситель", "category": "equipment"},
             {"type": "elou", "label": "ЭЛОУ (электродегидратор)", "category": "equipment"},
             {"type": "heat_exchanger", "label": "Теплообменник", "category": "equipment"},
             {"type": "heater", "label": "Печь", "category": "equipment"},
             {"type": "column", "label": "Колонна ректификации", "category": "equipment"},
             {"type": "separator", "label": "Сепаратор", "category": "equipment"},
+            {"type": "separator_s1k", "label": "Сепаратор С-1К", "category": "equipment"},
         ]
     }
 

@@ -20,6 +20,7 @@ from scheme.model import ProcessScheme, SchemeEdge, SchemeNode
 NODE_TYPES = {
     "pump",
     "valve",
+    "angle_valve",
     "heater",
     "heat_exchanger",
     "furnace",
@@ -32,6 +33,8 @@ NODE_TYPES = {
     "stream",
     "gate_valve",
     "separator",
+    "separator_s1k",
+    "mixer",
 }
 
 # Boundary node types.
@@ -51,15 +54,18 @@ PORT_SPECS: Dict[str, Set[str]] = {
         "in", "out", "distillate", "bottoms", "feed", "overhead", "side_draw",
         "reflux", "circ", "steam", "feed1", "feed2", "feed3", "feed4",
     },
-    "elou": {"in", "out", "brine", "water_in"},
+    "elou": {"in", "out", "brine", "water_in", "oil_out"},
     "tank": {"in", "out", "gas"},
     "separator": {"in", "out", "gas"},
+    "separator_s1k": {"in_l", "in_r", "out_t", "out_b"},
+    "mixer": {"out"},
 }
 
 # Required equipment parameters per node type (ТЗ section 5 "Equipment").
 REQUIRED_PARAMS: Dict[str, List[str]] = {
     "pump": ["nominal_volumetric_flow_m3_s"],
     "valve": ["flow_coefficient_si"],
+    "angle_valve": ["flow_coefficient_si"],
     "heat_exchanger": ["u", "area"],
     "heater": ["max_heat_duty"],
     "furnace": ["max_heat_duty"],
@@ -67,6 +73,7 @@ REQUIRED_PARAMS: Dict[str, List[str]] = {
     "elou": ["vessel_area"],
     "tank": ["vessel_area"],
     "separator": ["vessel_area"],
+    "separator_s1k": ["vessel_area"],
 }
 
 # Legacy parameter aliases accepted in addition to the canonical names (so
@@ -74,6 +81,7 @@ REQUIRED_PARAMS: Dict[str, List[str]] = {
 LEGACY_ALIASES = {
     "pump": {"nominal_flow", "delta_p"},
     "valve": {"cv", "design_delta_p"},
+    "angle_valve": {"cv", "design_delta_p"},
 }
 
 
@@ -122,6 +130,9 @@ def _valid_port(node: SchemeNode, port: str, direction: str) -> bool:
     # Многоотростковые колонны принимают произвольные входные порты
     # (in, in_2, ...), согласованные с хэндлами детальной мнемосхемы.
     if node.type == "column" and direction == "target" and port.startswith("in"):
+        return True
+    # Смеситель объединяет n потоков: входы in0, in1, ...
+    if node.type == "mixer" and direction == "target" and port.startswith("in"):
         return True
     return False
 

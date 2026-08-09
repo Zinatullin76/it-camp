@@ -116,7 +116,16 @@ def curve_from_params(params: dict, density: float = RHO_OIL) -> PumpCurve:
     """
     q_design = float(params.get("nominal_volumetric_flow_m3_s", 0.0))
     if q_design <= 0.0:
-        q_design = float(params.get("nominal_flow", 0.1))
+        q_design = float(params.get("nominal_flow", 0.0))
+        if q_design <= 0.0:
+            q_design = 0.1
+        else:
+            # ``nominal_flow`` is a legacy MASS-flow alias [kg/s] (schemes store
+            # it as the line feed rate, e.g. pump_H1: 20 at a 20 kg/s feed).
+            # The curve works in volumetric flow, so convert at the density --
+            # otherwise the design point sits ~850x above the real duty and the
+            # pump runs on its shut-off head for any realistic flow.
+            q_design = q_design / max(density, 1e-6)
     if "mass_capacity_kg_s" in params:
         q_design = float(params["mass_capacity_kg_s"]) / max(density, 1e-6)
 

@@ -33,6 +33,10 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
             "label": "Давление", "unit": "бар", "scale": 1.0,
             "min": 0.1, "max": 50.0, "step": 0.1, "default": 1.01325,
         },
+        "max_pressure_bar": {
+            "label": "Макс. давление", "unit": "бар", "scale": 1.0,
+            "min": 0.1, "max": 100.0, "step": 0.5, "default": 10.0,
+        },
     },
     "pump": {
         "delta_p": {
@@ -72,6 +76,24 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
         "initial_position": {
             "label": "Начальное открытие", "unit": "%", "scale": 0.01,
             "min": 0.0, "max": 100.0, "step": 1.0, "default": 0.0,
+        },
+    },
+    "angle_valve": {
+        "cv": {
+            "label": "Коэффициент Cv", "unit": "", "scale": 1.0,
+            "min": 0.0001, "max": 10.0, "step": 0.0005, "default": 0.01,
+        },
+        "design_delta_p": {
+            "label": "Расчётный перепад", "unit": "бар", "scale": 1e5,
+            "min": 0.05, "max": 20.0, "step": 0.05, "default": 2e5,
+        },
+        "response_rate": {
+            "label": "Скорость срабатывания", "unit": "1/с", "scale": 1.0,
+            "min": 0.01, "max": 2.0, "step": 0.01, "default": 0.2,
+        },
+        "initial_position": {
+            "label": "Начальное открытие", "unit": "%", "scale": 0.01,
+            "min": 0.0, "max": 100.0, "step": 1.0, "default": 100.0,
         },
     },
     "gate_valve": {
@@ -210,6 +232,46 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
         "nominal_pressure": {
             "label": "Давление", "unit": "бар", "scale": 1e5,
             "min": 0.5, "max": 30.0, "step": 0.1, "default": 101325.0,
+        },
+    },
+    "mixer": {
+        "num_inputs": {
+            "label": "Число входов", "unit": "", "scale": 1.0,
+            "min": 1, "max": 8, "step": 1, "default": 2,
+        },
+    },
+    "separator_s1k": {
+        "diameter_m": {
+            "label": "Диаметр", "unit": "м", "scale": 1.0,
+            "min": 0.5, "max": 30.0, "step": 0.1, "default": 6.18,
+        },
+        "height_m": {
+            "label": "Высота", "unit": "м", "scale": 1.0,
+            "min": 1.0, "max": 40.0, "step": 0.1, "default": 6.0,
+        },
+        "vessel_area": {
+            "label": "Площадь сечения", "unit": "м²", "scale": 1.0,
+            "min": 1.0, "max": 500.0, "step": 1.0, "default": 30.0,
+        },
+        "setpoint_level": {
+            "label": "Уставка уровня", "unit": "м", "scale": 1.0,
+            "min": 0.0, "max": 20.0, "step": 0.1, "default": 2.0,
+        },
+        "level_gain": {
+            "label": "Коэф. регулятора уровня", "unit": "кг/(с·м)", "scale": 1.0,
+            "min": 1.0, "max": 500.0, "step": 1.0, "default": 50.0,
+        },
+        "nominal_pressure": {
+            "label": "Давление", "unit": "бар", "scale": 1e5,
+            "min": 0.5, "max": 30.0, "step": 0.1, "default": 101325.0,
+        },
+        "initial_level": {
+            "label": "Начальный уровень", "unit": "м", "scale": 1.0,
+            "min": 0.0, "max": 20.0, "step": 0.1, "default": 2.0,
+        },
+        "level_auto": {
+            "label": "Регулятор уровня (AUTO)", "unit": "", "scale": 1.0,
+            "min": 0, "max": 1, "step": 1, "default": True,
         },
     },
     "sink": {

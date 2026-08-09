@@ -912,6 +912,107 @@ input[type='range'] {
   pointer-events: none;
 }
 
+.mn-node-scale-badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent, #38bdf8);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+.mn-node-scale-handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 13px;
+  height: 13px;
+  background: var(--accent, #38bdf8);
+  border: 2px solid #fff;
+  border-radius: 3px;
+  cursor: ew-resize;
+  box-shadow: 0 0 3px rgba(0, 0, 0, .5);
+  z-index: 2;
+}
+.mn-node-scale-handle:hover {
+  transform: scale(1.2);
+}
+
+.node-ctx-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+}
+.node-ctx-menu {
+  position: fixed;
+  z-index: 901;
+  min-width: 210px;
+  background: var(--panel);
+  border: 1px solid var(--mn-line);
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.node-ctx-menu-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--muted);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--mn-line);
+  margin-bottom: 4px;
+}
+.node-ctx-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px;
+}
+.node-ctx-close:hover {
+  color: var(--danger);
+}
+.node-ctx-menu button {
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.node-ctx-menu button:hover:not(:disabled) {
+  background: var(--mn-line);
+}
+.node-ctx-menu button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+.node-ctx-menu .node-ctx-danger {
+  color: var(--danger);
+}
+.node-ctx-menu .node-ctx-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, .15);
+}
+
 .mn-node-tags {
   position: absolute;
   left: 0;
@@ -1032,6 +1133,20 @@ input[type='range'] {
   --val-fg: #ffffff;
   --tag-fg: #000000;
   --unit-fg: #333333;
+}
+
+/* ---- Квадратик свойств потока (рисуется в foreignObject на линии) ---- */
+.edge-tag {
+  position: static;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.edge-tag.tag-editable {
+  pointer-events: auto;
+}
+.edge-tag .val {
+  font-size: 13px;
 }
 
 .mn-fanb { animation: mn-spin 4s linear infinite; }

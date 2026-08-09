@@ -27,7 +27,8 @@ from models.base import (
 )
 from models.scenario import Scenario, ScenarioEvent
 from equipment import (
-    Pump, Valve, GateValve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
+    Pump, Valve, AngleValve, GateValve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
+    Mixer, SeparatorS1K,
 )
 from equipment.columns import AtmosphericColumnK1, column_class_for
 from calculation_core.hydraulics.pressure_drop import calculate_pipe_pressure_drop
@@ -36,6 +37,9 @@ from safety.alarm_system import AlarmSystem
 from events.error_tracker import ErrorTracker, ExpectedAction
 
 logger = logging.getLogger("elou_avt.engine")
+
+# Node types that behave as adjustable control valves (position throttling).
+_CONTROL_VALVE_TYPES = ("valve", "angle_valve")
 
 
 class SimulationEngine:
@@ -127,9 +131,9 @@ class SimulationEngine:
         for nid, node in getattr(self, "_node_map", {}).items():
             if node.type == "pump":
                 pump_states.setdefault(nid, False)
-            elif node.type == "valve":
+            elif node.type in _CONTROL_VALVE_TYPES:
                 valve_positions.setdefault(nid, 0.0)
-            elif node.type in ("column", "elou", "separator"):
+            elif node.type in ("column", "elou", "separator", "tank", "separator_s1k"):
                 levels.setdefault(nid, float(node.params.get("initial_level", 2.0)))
 
         return SimulationState(
@@ -323,8 +327,13 @@ class SimulationEngine:
             eq = self._equipment.get(nid)
             out: Dict[str, Any] = {}
             if eq is None:
-                # Unknown equipment types (separator, ...) act as pass-through.
-                inlet = self._merge_streams(incoming.get("in") or incoming.get("cold_in"))
+                # Unknown equipment types act as pass-through: merge EVERY
+                # incoming stream regardless of its port name (a node whose
+                # ports are not literally 'in'/'cold_in' must still pass its
+                # flow through, never silently drop it).
+                inlet = self._merge_streams(
+                    [s for lst in incoming.values() for s in lst]
+                )
                 if inlet is not None:
                     out = {"outlet_stream": inlet}
             elif ntype == "pump":
@@ -332,7 +341,7 @@ class SimulationEngine:
                 if inlet is None:
                     continue
                 out = eq.step(dt, inlet_stream=inlet, delta_p=node.params.get("delta_p", 5e5))
-            elif ntype == "valve":
+            elif ntype in _CONTROL_VALVE_TYPES:
                 inlet = self._merge_streams(incoming.get("in"))
                 if inlet is None:
                     continue
@@ -354,10 +363,14 @@ class SimulationEngine:
                     continue
                 out = eq.step(dt, hot_in=hot, cold_in=cold, thermo=self.thermo)
             elif ntype == "heater":
-                inlet = self._merge_streams(incoming.get("in"))
-                if inlet is None:
+                inlets = {
+                    port: self._merge_streams(incoming.get(port))
+                    for port in self._FURNACE_PORT_PAIRS
+                    if incoming.get(port)
+                }
+                if not inlets:
                     continue
-                out = eq.step(dt, inlet_stream=inlet, thermo=self.thermo)
+                out = eq.step(dt, thermo=self.thermo, **inlets)
             elif ntype == "column":
                 feed = self._merge_streams(
                     [s for lst in incoming.values() for s in lst]
@@ -369,7 +382,29 @@ class SimulationEngine:
                 inlet = self._merge_streams(incoming.get("in"))
                 if inlet is None:
                     continue
-                out = eq.step(dt, inlet_stream=inlet, max_out=flow_limits.get(nid))
+                vs = self._vessel_state.get(nid)
+                out = eq.step(
+                    dt, inlet_stream=inlet, max_out=flow_limits.get(nid),
+                    vessel_pressure=vs["p_out"] if vs else None,
+                )
+            elif ntype == "mixer":
+                inlets = [s for lst in incoming.values() for s in lst]
+                if not inlets:
+                    continue
+                out = eq.step(
+                    dt, inlet_streams=inlets, thermo=self.thermo,
+                    back_pressure=self._mixer_back_pressure(nid, hyd),
+                )
+            elif ntype == "separator_s1k":
+                inlets = [s for lst in incoming.values() for s in lst]
+                if not inlets:
+                    continue
+                vs = self._vessel_state.get(nid)
+                out = eq.step(
+                    dt, inlet_streams=inlets, thermo=self.thermo,
+                    max_out=flow_limits.get(nid),
+                    vessel_pressure=vs["p_out"] if vs else None,
+                )
             else:
                 inlet = self._merge_streams(incoming.get("in"))
                 if inlet is not None:
@@ -381,14 +416,27 @@ class SimulationEngine:
             # physically consistent flow and pressure from the line solver
             # (one shared mass flow, pressure dropping along the chain).
             h = hyd.get(nid)
-            if h is not None:
-                os_ = out.get("outlet_stream")
-                if os_ is not None:
-                    out["outlet_stream"] = os_.copy_with(
-                        mass_flow=max(0.0, h["flow"]), pressure=h["p_out"]
-                    )
+            if h is not None and ntype != "mixer":
+                if ntype == "elou":
+                    # An ELOU splits the feed into desalted oil (right port) and
+                    # brine (bottom port).  Both streams leave the vessel; the
+                    # model already divides the feed mass between them, so the
+                    # line solver only anchors their common outlet pressure
+                    # (static head + flow back-pressure).
+                    brine = out.get("brine_stream")
+                    if brine is not None:
+                        out["brine_stream"] = brine.copy_with(pressure=h["p_out"])
+                    os_ = out.get("outlet_stream")
+                    if os_ is not None:
+                        out["outlet_stream"] = os_.copy_with(pressure=h["p_out"])
+                else:
+                    os_ = out.get("outlet_stream")
+                    if os_ is not None:
+                        out["outlet_stream"] = os_.copy_with(
+                            mass_flow=max(0.0, h["flow"]), pressure=h["p_out"]
+                        )
                 out["flow_out"] = h["flow"]
-                if ntype == "valve":
+                if ntype in _CONTROL_VALVE_TYPES:
                     out["inlet_pressure"] = h["p_in"]
                     out["outlet_pressure"] = h["p_out"]
                     out["dp"] = max(0.0, h["p_in"] - h["p_out"])
@@ -399,6 +447,19 @@ class SimulationEngine:
                     if inlet is not None:
                         out["power"] = (h["flow"] / max(inlet.density, 1e-6)) * dp_hyd / max(eq.efficiency, 1e-6)
                         eq.power = out["power"]
+            if ntype == "elou":
+                # The ELOU absorbs its inlet line (the model splits the feed
+                # into oil and brine with fixed fractions, so the hydraulic
+                # solver must not re-divide it downstream).  Feed the vessel
+                # inventory balance with the model's total outlet flow so the
+                # level stays steady instead of ramping with the inlet only.
+                q = self._vessel_q.get(nid)
+                if q is not None:
+                    s_out = out.get("outlet_stream")
+                    b_out = out.get("brine_stream")
+                    q["out"] = (s_out.mass_flow if s_out is not None else 0.0) + (
+                        b_out.mass_flow if b_out is not None else 0.0
+                    )
             if ntype == "heat_exchanger":
                 # Each channel (hot / cold) is its own hydraulic line: apply
                 # the per-channel solved flow and outlet pressure to the
@@ -418,6 +479,21 @@ class SimulationEngine:
                     out[f"p_{label}_in"] = hch["p_in"]
                     out[f"p_{label}_out"] = hch["p_out"]
                     out[f"dp_{label}"] = max(0.0, hch["p_in"] - hch["p_out"])
+            elif ntype == "heater":
+                # A multi-pass furnace is several independent hydraulic lines
+                # (one per section inlet -> outlet pair), exactly like an
+                # exchanger channel.  The furnace never changes the flow of a
+                # pass; it only raises the temperature.
+                for in_port, out_port in self._FURNACE_PORT_PAIRS.items():
+                    hch = hyd.get(f"{nid}:{in_port}")
+                    if hch is None or out.get(out_port) is None:
+                        continue
+                    out[out_port] = out[out_port].copy_with(
+                        mass_flow=max(0.0, hch["flow"]), pressure=hch["p_out"]
+                    )
+                main_out = out.get("out")
+                if main_out is not None:
+                    out["flow_out"] = main_out.mass_flow
             elif ntype == "column":
                 # The column is a pass-through node in the line solver: its
                 # branches share the junction pressure, so the solved outlet
@@ -448,7 +524,7 @@ class SimulationEngine:
         # to the source, so the whole line responds to one valve change.
         for nid, out in outputs.items():
             node = self._node_map.get(nid)
-            if node is None or node.type != "valve":
+            if node is None or node.type not in _CONTROL_VALVE_TYPES:
                 continue
             if nid in hyd:
                 continue  # pressures already set by the line hydraulic solver
@@ -470,6 +546,13 @@ class SimulationEngine:
                     # throttling valve's back-pressure must not overwrite them;
                     # they are the upstream boundary of the dead-headed line.
                     if up_node is not None and up_node.type in ("source", "pump"):
+                        continue
+                    # A node solved by the line hydraulics already carries the
+                    # authoritative pressure at that point; a legacy valve's
+                    # back-pressure must not clobber it (and must not travel
+                    # past it), or every solved line upstream would show the
+                    # valve's dead-head pressure instead of its own.
+                    if up in hyd:
                         continue
                     key = f"{up}:{edge.source_port}"
                     s = streams.get(key)
@@ -575,6 +658,8 @@ class SimulationEngine:
                 self._equipment[node.id] = Pump(node.id, node.params)
             elif node.type == "valve":
                 self._equipment[node.id] = Valve(node.id, node.params)
+            elif node.type == "angle_valve":
+                self._equipment[node.id] = AngleValve(node.id, node.params)
             elif node.type == "gate_valve":
                 self._equipment[node.id] = GateValve(node.id, node.params)
             elif node.type == "elou":
@@ -587,6 +672,12 @@ class SimulationEngine:
                 self._equipment[node.id] = column_class_for(node.id, node.params)(node.id, node.params)
             elif node.type == "separator":
                 self._equipment[node.id] = Tank(node.id, node.params)
+            elif node.type == "tank":
+                self._equipment[node.id] = Tank(node.id, node.params)
+            elif node.type == "mixer":
+                self._equipment[node.id] = Mixer(node.id, node.params)
+            elif node.type == "separator_s1k":
+                self._equipment[node.id] = SeparatorS1K(node.id, node.params)
 
     def _rebuild_topology(self, scheme: ProcessScheme) -> None:
         """Rebuild the node map, edge list and topological order."""
@@ -619,7 +710,7 @@ class SimulationEngine:
         """
         valve_cap: Dict[str, float] = {}
         for nid, node in self._node_map.items():
-            if node.type != "valve":
+            if node.type not in _CONTROL_VALVE_TYPES:
                 continue
             eq = self._equipment.get(nid)
             if eq is None or not hasattr(eq, "current_capacity"):
@@ -639,7 +730,7 @@ class SimulationEngine:
             node = self._node_map.get(nid)
             if node is None or node.type == "sink":
                 res: Optional[float] = None
-            elif node.type == "valve":
+            elif node.type in _CONTROL_VALVE_TYPES:
                 own = valve_cap.get(nid)
                 out_edges = [e for e in self._edges if e.source == nid]
                 child_caps = [cap_of(e.target) for e in out_edges]
@@ -701,6 +792,13 @@ class SimulationEngine:
     # two-stream exchanger is two independent hydraulic lines (hot and cold)
     # that share one node but never mix their flows.
     _HX_PORT_PAIRS = {"hot_in": "hot_out", "cold_in": "cold_out", "in": "out"}
+    # Furnace sections: a multi-pass furnace heats several independent tube
+    # passes, each with its own inlet -> outlet port pair (5 passes: main oil,
+    # side streams and the superheated-steam ПП channel).  Each pass is its own
+    # hydraulic line, exactly like an exchanger channel.
+    _FURNACE_PORT_PAIRS = {
+        "in": "out", "in2": "out2", "in3": "out3", "in4": "out4", "pp_in": "pp_out",
+    }
     # Fallback per-channel resistance of a heat exchanger when the scheme
     # carries no delta_p: 0.1 atm (Pa) at the reference flow.
     _HX_DEFAULT_DP = 10132.5
@@ -725,7 +823,23 @@ class SimulationEngine:
             return vs
         node = self._node_map.get(nid)
         p = node.params if node is not None else {}
-        p_base = float(p.get("pressure_bar", 1.01325)) * 1e5
+        if node is not None and node.type in ("column", "elou"):
+            # A column and an ELOU (dehydrator) are live inventory boundaries.
+            # Their operating pressure is set by the elements downstream of
+            # them (the product sinks), so the feeding lines push against the
+            # same pressure the products leave at -- the vessel never holds an
+            # arbitrary preset pressure.  For the ELOU the downstream sink
+            # pressure is the pressure "after" the dehydrator, so any change of
+            # the outlet line propagates into the vessel pressure.
+            p_base = self._column_downstream_pressure(nid, p)
+        else:
+            # Vessel operating pressure: the explicit nominal_pressure (Pa) when
+            # present, otherwise the pressure_bar param, otherwise atmospheric.
+            # Must match what the vessel model itself pushes at its outlet, or
+            # the upstream line would push against a different pressure than
+            # the vessel's own outlet carries (pressure discontinuity).
+            p_nom = p.get("nominal_pressure")
+            p_base = float(p_nom) if p_nom else float(p.get("pressure_bar", 1.01325)) * 1e5
         height = float(p.get("height_m", 6.0))
         initial = float(p.get("initial_level", 2.0))
         level = max(0.0, min(initial, height))
@@ -736,16 +850,44 @@ class SimulationEngine:
         q_nom = float(p.get("nominal_flow") or p.get("flow_kg_s") or 100.0)
         head_nom = 850.0 * 9.81 * max(level, 0.2)
         k_drain = max(head_nom, 1.0) / max(q_nom * q_nom, 1e-6)
+        # Static head of the liquid column; p_src drives the downstream drain
+        # line, p_out may add a flow-dependent back-pressure (ELOU) on top.
+        static_head = 0.0 if node is not None and node.type == "column" else 850.0 * 9.81 * level
         vs = {
             "level": level,
             "area": area,
             "height": height,
             "p_base": p_base,
-            "p_out": p_base + 850.0 * 9.81 * level,
+            "p_src": p_base + static_head,
+            "p_out": p_base + static_head,
             "k_drain": k_drain,
         }
         self._vessel_state[nid] = vs
         return vs
+
+    def _column_downstream_pressure(self, nid: str, params: Dict[str, Any]) -> float:
+        """Pressure a column holds, taken from the elements downstream of it.
+
+        The product lines (distillate / side draw / bottoms) run into sink
+        nodes, each with its own fixed pressure.  The column must sit at the
+        highest of those so every product can flow out, otherwise a product
+        would have to run uphill against a higher sink pressure.  Falls back to
+        the column preset when no downstream sink is connected.
+        """
+        sink_pressures: List[float] = []
+        for e in self._edges:
+            if e.source != nid:
+                continue
+            target_node = self._node_map.get(e.target)
+            if target_node is None or target_node.type != "sink":
+                continue
+            sink_pressures.append(
+                float(target_node.params.get("pressure_bar", 1.01325)) * 1e5
+            )
+        if sink_pressures:
+            return max(sink_pressures)
+        col_eq = self._equipment.get(nid)
+        return float(getattr(col_eq, "pressure", None) or (params.get("pressure_bar", 1.01325) * 1e5))
 
     def _integrate_levels(self, dt: float) -> None:
         """Advance each buffer vessel's level: dL/dt = (Q_in - Q_out)/(rho*A)."""
@@ -760,8 +902,22 @@ class SimulationEngine:
                 lvl = vs["height"]
             if lvl < 0.0:
                 lvl = 0.0
-            vs["level"] = lvl
-            vs["p_out"] = vs["p_base"] + 850.0 * 9.81 * lvl
+        vs["level"] = lvl
+        node = self._node_map.get(nid)
+        if node is not None and node.type == "column":
+            # Column pressure is anchored to the downstream product sinks,
+            # not to its bottoms level (see _vessel_boundary).
+            vs["p_src"] = vs["p_base"]
+            vs["p_out"] = vs["p_base"]
+        elif node is not None and node.type == "elou":
+            # ELOU (dehydrator): static head plus a flow-dependent
+            # back-pressure, so its pressure reacts to the throughput and to
+            # the pressure downstream of the vessel.
+            vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * lvl
+            vs["p_out"] = vs["p_src"] + vs["k_drain"] * qo * qo
+        else:
+            vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * lvl
+            vs["p_out"] = vs["p_src"]
 
     def _build_line_trees(self) -> List[Dict[str, Any]]:
         """Split the scheme into branched hydraulic trees source -> ... -> sinks.
@@ -786,7 +942,18 @@ class SimulationEngine:
         density = 850.0
         trees: List[Dict[str, Any]] = []
         claimed: set = set()
+        column_sink_nodes: set = set()
+        shared_sink_nodes: set = set()
         queue: List[str] = []
+
+        def claim(nodes: Dict[str, Any]) -> None:
+            # A multi-feed column / two-phase separator is a shared inventory
+            # boundary: each feeding line builds its own tree to it, so the
+            # shared sink is never claimed by any single tree.
+            claimed.update(
+                k for k in nodes
+                if k not in column_sink_nodes and k not in shared_sink_nodes
+            )
 
         def lookahead_sink(cur: str, seen: set, via_port: Optional[str] = None) -> bool:
             for edge in by_source.get(cur, []):
@@ -801,12 +968,34 @@ class SimulationEngine:
                     if pair and lookahead_sink(nxt, seen | {nxt}, pair):
                         return True
                     continue
+                if nt == "heater":
+                    # A multi-pass furnace is a stack of independent sections:
+                    # a feeding line continues only if the matching section
+                    # outlet leads to a sink.
+                    pair = self._FURNACE_PORT_PAIRS.get(edge.target_port)
+                    if pair and lookahead_sink(nxt, seen | {nxt}, pair):
+                        return True
+                    continue
                 if nt == "column":
                     if indeg.get(nxt, 0) > 1:
-                        continue  # multiple feeds -> merge point, breaks the tree
+                        # A multi-feed column is a live inventory boundary: any
+                        # feed line (feed/reflux/steam/circ/main in) terminates
+                        # the tree as a sink at the column's operating pressure.
+                        return True
                     if lookahead_sink(nxt, seen | {nxt}):
                         return True
                     continue
+                if nt == "separator_s1k":
+                    # С-1К is an inventory boundary: any feed line terminates
+                    # here at the vessel's operating pressure (the flash split
+                    # and the level-controlled outflow are model-side, the
+                    # engine only anchors the pressures).
+                    return True
+                if nt == "mixer":
+                    # A mixer is a junction at its downstream sink pressure:
+                    # every feeding line terminates here as a sink, and each
+                    # valve upstream must drop to the junction pressure.
+                    return True
                 if indeg.get(nxt, 0) > 1:
                     continue
                 if nt == "sink":
@@ -850,9 +1039,23 @@ class SimulationEngine:
                         element_count += 1
                         visit(ch_key, seen | {ch_key}, by_source.get(nxt, []), pair)
                         continue
-                    if indeg.get(nxt, 0) > 1:
-                        continue  # merge point breaks the tree
                     if ntype == "column":
+                        if indeg.get(nxt, 0) > 1:
+                            # Multi-feed column: every feed line (feed/reflux/
+                            # steam/circ/main in) ends here as a live inventory
+                            # boundary -- the column absorbs each feed at its own
+                            # operating pressure, which follows the product
+                            # sinks downstream.  Product flows stay MESH-derived;
+                            # the solved outlet pressure anchors the distillate /
+                            # side draw / bottoms streams.
+                            vs = self._vessel_boundary(nxt)
+                            children.setdefault(cur, []).append(nxt)
+                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt, "absorb": True}
+                            sink_ids.append(nxt)
+                            # The column is shared by all its feeding lines, so
+                            # it must never be claimed by a single tree.
+                            column_sink_nodes.add(nxt)
+                            continue
                         # A column is a single-inlet vessel: the line passes
                         # through it (no own resistance) and fans out into the
                         # distillate / bottoms branches like any fork.
@@ -863,15 +1066,68 @@ class SimulationEngine:
                         element_count += 1
                         visit(nxt, seen | {nxt}, by_source.get(nxt, []))
                         continue
+                    if ntype == "separator_s1k":
+                        # С-1К is an inventory boundary: the feeding line ends
+                        # here as a sink at the vessel's operating pressure
+                        # (base + hydrostatic head).  The node is shared (never
+                        # claimed), so every feed line builds its own tree to it
+                        # and each pump/valve upstream pushes against the same
+                        # pressure the separator's outlets carry.
+                        vs = self._vessel_boundary(nxt)
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"]}
+                        sink_ids.append(nxt)
+                        shared_sink_nodes.add(nxt)
+                        continue
+                    if ntype == "mixer":
+                        # A mixer is a junction at its downstream sink pressure
+                        # (the element first after it, or a direct sink).  Every
+                        # feeding line terminates here as a sink at that pressure,
+                        # so each upstream valve drops to the junction pressure
+                        # and the whole line is solved in one network.  The mixer
+                        # is shared (never claimed), like a multi-feed separator.
+                        p_mix = self._mixer_back_pressure(nxt, {})
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {
+                            "type": "sink",
+                            "sink_p": float(p_mix if p_mix is not None else 1.01325e5),
+                        }
+                        sink_ids.append(nxt)
+                        shared_sink_nodes.add(nxt)
+                        continue
+                    if ntype == "heater":
+                        # A multi-pass furnace: each section inlet -> outlet is
+                        # its own hydraulic line (like an exchanger channel).
+                        # The section node is keyed by the inlet port so the
+                        # passes never share flow; the furnace node itself is
+                        # never claimed, so every feeding line builds its own
+                        # channel tree through the matching outlet.
+                        pair = self._FURNACE_PORT_PAIRS.get(edge.target_port)
+                        if pair is None or not lookahead_sink(nxt, {nxt}, pair):
+                            continue
+                        ch_key = f"{nxt}:{edge.target_port}"
+                        children.setdefault(cur, []).append(ch_key)
+                        tree_nodes[ch_key] = {"type": "pass"}
+                        element_count += 1
+                        visit(ch_key, seen | {ch_key}, by_source.get(nxt, []), pair)
+                        continue
+                    if indeg.get(nxt, 0) > 1:
+                        continue  # merge point breaks the tree
                     if ntype in self._TRANSIT_NODE_TYPES:
                         vs = self._vessel_boundary(nxt)
                         children.setdefault(cur, []).append(nxt)
                         if lookahead_sink(nxt, {nxt}):
                             # Inventory boundary: absorb the upstream flow here
-                            # and continue downstream from a NEW tree.
-                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt}
+                            # and continue downstream from a NEW tree.  A vessel
+                            # with several outlet streams (e.g. an ELOU with oil
+                            # and brine) splits them with fixed model fractions;
+                            # the hydraulic solver must not re-divide them, so no
+                            # downstream tree is built and the outlet streams
+                            # propagate as model-driven pass-throughs.
+                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt, "absorb": True}
                             sink_ids.append(nxt)
-                            vessel_roots.append(nxt)
+                            if len(by_source.get(nxt, [])) <= 1:
+                                vessel_roots.append(nxt)
                         else:
                             # No downstream line -> keep the legacy pass-through.
                             tree_nodes[nxt] = {"type": "pass"}
@@ -885,7 +1141,7 @@ class SimulationEngine:
                         }
                         sink_ids.append(nxt)
                         continue
-                    if ntype == "valve":
+                    if ntype in _CONTROL_VALVE_TYPES:
                         eq = self._equipment.get(nxt)
                         if eq is None:
                             continue
@@ -937,14 +1193,16 @@ class SimulationEngine:
             if node.type != "source" or nid in claimed:
                 continue
             p_src = float(node.params.get("pressure_bar", 1.01325)) * 1e5
+            p_src_max = float(node.params.get("max_pressure_bar", 10.0)) * 1e5
             q_src_limit = node.params.get("flow_kg_s")
             tree_nodes, children, sink_ids, vessel_roots = build_tree(nid)
             if not sink_ids or not any(k != nid for k in tree_nodes):
                 continue
-            claimed.update(tree_nodes)
+            claim(tree_nodes)
             trees.append({
                 "root": nid,
                 "p_src": p_src,
+                "p_src_max": p_src_max,
                 "q_src_limit": q_src_limit,
                 "nodes": tree_nodes,
                 "children": children,
@@ -961,10 +1219,10 @@ class SimulationEngine:
             tree_nodes, children, sink_ids, vessel_roots = build_tree(vnid, is_vessel=True)
             if not sink_ids or not any(k != vnid for k in tree_nodes):
                 continue
-            claimed.update(tree_nodes)
+            claim(tree_nodes)
             trees.append({
                 "root": vnid,
-                "p_src": vs["p_out"],
+                "p_src": vs.get("p_src", vs["p_out"]),
                 "q_src_limit": None,
                 "root_vessel": vnid,
                 "nodes": tree_nodes,
@@ -1067,6 +1325,26 @@ class SimulationEngine:
         throttling or closed valve.
         """
         from calculation_core.hydraulics.line_hydraulics import solve_branched_network
+        # Column / ELOU pressure is anchored to the product sinks downstream,
+        # which an operator can retune at runtime -- re-derive it every step so
+        # a sink pressure change propagates into the vessel immediately.  An
+        # ELOU also builds a flow-dependent back-pressure on its static head:
+        # p = p_after + rho*g*h + k_drain * q^2, so the dehydrator pressure
+        # responds to the throughput and to the pressure downstream of it.
+        for nid, node in self._node_map.items():
+            if node.type not in ("column", "elou"):
+                continue
+            vs = self._vessel_state.get(nid)
+            if vs is None:
+                continue
+            vs["p_base"] = self._column_downstream_pressure(nid, node.params)
+            if node.type == "column":
+                vs["p_src"] = vs["p_base"]
+                vs["p_out"] = vs["p_base"]
+            else:
+                vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * vs["level"]
+                q_prev = self._vessel_q.get(nid, {}).get("out", 0.0)
+                vs["p_out"] = vs["p_src"] + vs["k_drain"] * q_prev * q_prev
         self._vessel_q = {nid: {"in": 0.0, "out": 0.0} for nid in self._vessel_state}
         self._vessel_active = set()
         result: Dict[str, Dict[str, float]] = {}
@@ -1078,6 +1356,7 @@ class SimulationEngine:
                     tree["nodes"],
                     tree["children"],
                     tree["root"],
+                    tree.get("p_src_max"),
                 )
             except Exception:
                 logger.exception(
@@ -1125,7 +1404,7 @@ class SimulationEngine:
         density = 850.0
         for nid, out in eq_outputs.items():
             node = self._node_map.get(nid)
-            if node is None or node.type != "valve":
+            if node is None or node.type not in _CONTROL_VALVE_TYPES:
                 continue
             eq = self._equipment.get(nid)
             if eq is None:
@@ -1238,6 +1517,29 @@ class SimulationEngine:
         )
         return stream
 
+    def _mixer_back_pressure(
+        self, nid: str, hyd: Dict[str, Dict[str, float]]
+    ) -> Optional[float]:
+        """Pressure a mixer outlet must carry for junction continuity.
+
+        A mixer is a junction: it takes the back-pressure of whatever element is
+        first downstream of it that the line solver solved (that element's
+        p_in), or the direct sink pressure.  Returns None when no downstream
+        anchor exists -- the model then falls back to the lowest feed pressure
+        (no feed can push in at a pressure below the junction).
+        """
+        for edge in self._edges:
+            if edge.source != nid:
+                continue
+            dn = edge.target
+            h = hyd.get(dn)
+            if h is not None:
+                return float(h["p_in"])
+            dn_node = self._node_map.get(dn)
+            if dn_node is not None and dn_node.type == "sink":
+                return float(dn_node.params.get("pressure_bar", 1.01325)) * 1e5
+        return None
+
     def _attach_level(
         self,
         state: SimulationState,
@@ -1249,7 +1551,7 @@ class SimulationEngine:
     ) -> None:
         """Compute a per-node liquid level via material balance (columns/tanks)."""
         from physics.process_physics import material_balance_level
-        if node.type not in ("column", "elou", "separator", "tank"):
+        if node.type not in ("column", "elou", "separator", "tank", "separator_s1k"):
             return
         # Buffer vessels split by the line solver carry the engine's own
         # inventory state (integrated from the solved inflow/outflow).
@@ -1299,6 +1601,13 @@ class SimulationEngine:
         out["level"] = material_balance_level(
             prev, in_flow / max(density, 1e-6), out_flow / max(density, 1e-6), area, dt,
         )
+        # A column is a live inventory boundary: keep its vessel level in step
+        # with the integrated bottoms level.  Its pressure is anchored to the
+        # downstream product sinks, not to the hydrostatic head.
+        if node.type == "column":
+            vs = self._vessel_state.get(nid)
+            if vs is not None:
+                vs["level"] = max(0.0, min(float(out["level"]), vs["height"]))
         # Overflow branch: mass above the vessel height cannot accumulate, so
         # it must leave the vessel (spill / relief) instead of being destroyed.
         if out["level"] > float(height):
@@ -1321,10 +1630,23 @@ class SimulationEngine:
                 streams[f"{nid}:side_draw"] = out["side_draw"]
             if out.get("bottoms") is not None:
                 streams[f"{nid}:bottoms"] = out["bottoms"]
-        elif ntype == "elou" and out.get("brine_stream") is not None:
+        elif ntype == "elou":
+            # ELOU: desalted oil leaves via the right port (oil_out), the
+            # salt/water brine via the bottom port (out).
+            if out.get("brine_stream") is not None:
+                streams[f"{nid}:out"] = out["brine_stream"]
             if out.get("outlet_stream") is not None:
-                streams[f"{nid}:out"] = out["outlet_stream"]
-            streams[f"{nid}:brine"] = out["brine_stream"]
+                streams[f"{nid}:oil_out"] = out["outlet_stream"]
+        elif ntype == "separator_s1k":
+            if out.get("out_t") is not None:
+                streams[f"{nid}:out_t"] = out["out_t"]
+            if out.get("out_b") is not None:
+                streams[f"{nid}:out_b"] = out["out_b"]
+        elif ntype == "heater":
+            # A multi-pass furnace publishes one stream per section outlet.
+            for in_port, out_port in self._FURNACE_PORT_PAIRS.items():
+                if out.get(out_port) is not None:
+                    streams[f"{nid}:{out_port}"] = out[out_port]
         elif out.get("outlet_stream") is not None:
             streams[f"{nid}:out"] = out["outlet_stream"]
 
@@ -1366,8 +1688,8 @@ class SimulationEngine:
                     alarm_values[f"{nid}_temperature_bottom"] = bott.temperature
                 if f"{nid}_level" in self._measured_params:
                     alarm_values[f"{nid}_level"] = out.get("level", new_state.level.get(nid, 2.0))
-            elif ntype in ("elou", "separator"):
-                s = out.get("outlet_stream")
+            elif ntype in ("elou", "separator", "separator_s1k", "tank"):
+                s = out.get("outlet_stream") or out.get("out_b") or out.get("out_t")
                 if s is not None:
                     if f"{nid}_pressure" in self._measured_params:
                         alarm_values[f"{nid}_pressure"] = s.pressure
@@ -1376,7 +1698,7 @@ class SimulationEngine:
                 if f"{nid}_level" in self._measured_params:
                     alarm_values[f"{nid}_level"] = out.get("level", new_state.level.get(nid, 2.0))
             elif ntype == "heater":
-                s = out.get("outlet_stream")
+                s = out.get("out") or out.get("outlet_stream")
                 if s is not None and f"{nid}_temperature" in self._measured_params:
                     alarm_values[f"{nid}_temperature"] = s.temperature
 
@@ -1408,7 +1730,7 @@ class SimulationEngine:
         s_col_dist = col.get("distillate")
         s_col_side = col.get("side_draw")
         s_col_bott = col.get("bottoms")
-        s_furnace = furnace.get("outlet_stream")
+        s_furnace = furnace.get("out") or furnace.get("outlet_stream")
 
         feed_flow = s_elou.mass_flow if s_elou else 0.0
         product_flow = ((s_col_dist.mass_flow if s_col_dist else 0.0)
@@ -1424,7 +1746,7 @@ class SimulationEngine:
         level_by_node: Dict[str, float] = {}
         for nid in self._topo_order:
             node = self._node_map.get(nid)
-            if node is None or node.type not in ("column", "elou", "separator"):
+            if node is None or node.type not in ("column", "elou", "separator", "separator_s1k"):
                 continue
             level_by_node[nid] = eq_outputs.get(nid, {}).get(
                 "level", prev_state.level.get(nid, 2.0)
@@ -1451,7 +1773,7 @@ class SimulationEngine:
                 continue
             if node.type == "pump":
                 pump_states[nid] = eq_outputs.get(nid, {}).get("running", False)
-            elif node.type == "valve":
+            elif node.type in _CONTROL_VALVE_TYPES:
                 valve_positions[nid] = eq_outputs.get(nid, {}).get("position", 0.0)
         if not pump_states:
             pump_states = {"pump_P101": p101.get("running", False), "pump_P102": False}

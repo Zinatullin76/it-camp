@@ -46,6 +46,10 @@ class Tank(BaseEquipment):
         # Downstream restriction: the tank may push out at most this much, the
         # excess accumulates in the level (blocked/dead-headed line).
         max_out = inputs.get("max_out")
+        # The vessel's own operating pressure (base + hydrostatic head), the
+        # same pressure the upstream line pushes against.  Keeps the outlet
+        # continuous with the inlet even outside a solved hydraulic line.
+        vessel_pressure = inputs.get("vessel_pressure")
         if inlet is None:
             return {"outlet_stream": None, "level": self.level, "setpoint": self.setpoint}
 
@@ -78,7 +82,7 @@ class Tank(BaseEquipment):
         level_new = max(0.0, level_new)
         self.level = level_new
 
-        out_pressure = self.pressure if self.pressure else inlet.pressure
+        out_pressure = vessel_pressure or self.pressure or inlet.pressure
         outlet = inlet.copy_with(
             name="TankOut",
             pressure=out_pressure,

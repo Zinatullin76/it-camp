@@ -3,7 +3,7 @@ import type { ReactElement, PointerEvent as ReactPointerEvent } from 'react';
 import { Handle, Position, useReactFlow } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import type { NodeTelemetry, AlarmData } from '../types';
-import type { MnemoItem, MnemoColDetail, ColDetailNozzle } from '../mnemo/mnemoTypes';
+import type { MnemoItem, MnemoColDetail, MnemoFurDetail, ColDetailNozzle } from '../mnemo/mnemoTypes';
 import type { MnemoLive } from '../mnemo/sources';
 import { itemBBox, renderItem } from '../mnemo/symbols';
 import { TYPE_COLORS, nodeSize, PARAM_LABELS, fmtValue } from '../schemeConfig';
@@ -14,6 +14,7 @@ export type EquipmentNodeData = {
   telemetry: NodeTelemetry | null;
   schemeParams?: Record<string, unknown>;
   size?: { w: number; h: number };
+  scale?: number;
   mnemo?: Partial<MnemoItem>;
   disp?: string[];
   tags?: Record<string, TagCfg>;
@@ -32,7 +33,9 @@ export interface SchemeEditorActions {
   edit: boolean;
   onTagChange: (nodeId: string, key: string, patch: Partial<TagCfg>) => void;
   onRenameNode: (nodeId: string, name: string) => void;
-  onEdgeOffset: (edgeId: string, offset: number) => void;
+  onEdgeOffset: (edgeId: string, offsetX: number, offsetY: number) => void;
+  onScaleNode: (nodeId: string, scale: number) => void;
+  onEdgeTagChange: (edgeId: string, key: string, patch: Partial<TagCfg>) => void;
 }
 
 export const SchemeEditorContext = createContext<SchemeEditorActions>({
@@ -40,6 +43,8 @@ export const SchemeEditorContext = createContext<SchemeEditorActions>({
   onTagChange: () => {},
   onRenameNode: () => {},
   onEdgeOffset: () => {},
+  onScaleNode: () => {},
+  onEdgeTagChange: () => {},
 });
 
 export type EquipmentNode = Node<EquipmentNodeData, 'equipment'>;
@@ -54,12 +59,15 @@ const SYMBOL: Record<string, Partial<MnemoItem>> = {
   sink: { t: 'box', w: 132, h: 38 },
   pump: { t: 'pump' },
   valve: { t: 'valve', vt: 'cv' },
+  angle_valve: { t: 'valve', vt: 'angle' },
   gate_valve: { t: 'valve', vt: 'gate' },
+  mixer: { t: 'mix' },
   elou: { t: 'ed', w: 120, h: 44, lv: 'lv' },
   heat_exchanger: { t: 'hx', w: 132, h: 40 },
   heater: { t: 'fur', w: 118, h: 66 },
   column: { t: 'col', w: 46, h: 118, tr: 10, sump: 24, lv: 'lv' },
   separator: { t: 'vves', w: 132, h: 56, lv: 'lv', lvw: 'lvw' },
+  separator_s1k: { t: 'vves', w: 132, h: 56, lv: 'lv', lvw: 'lvw' },
 };
 
 const NOMINAL_LEVEL_H = 4;
@@ -99,9 +107,10 @@ function buildLive(t: NodeTelemetry | null, color: string): MnemoLive {
   };
 }
 
-const handles = (type: string) => {
+const handles = (type: string, schemeParams?: Record<string, unknown>) => {
   const left = (top: number) => ({ ...HANDLE_STYLE, top: `${top}%` });
   const right = (top: number) => ({ ...HANDLE_STYLE, top: `${top}%` });
+  const mid = () => ({ ...HANDLE_STYLE, left: '50%' });
 
   switch (type) {
     case 'source':
@@ -125,6 +134,61 @@ const handles = (type: string) => {
           <Handle type="source" position={Position.Right} id="bottoms" style={right(70)} />
         </>
       );
+    case 'separator_s1k':
+      // С-1К: входы слева и справа, выходы сверху и снизу.
+      return (
+        <>
+          <Handle type="target" position={Position.Left} id="in_l" style={left(50)} />
+          <Handle type="target" position={Position.Right} id="in_r" style={right(50)} />
+          <Handle type="source" position={Position.Top} id="out_t" style={mid()} />
+          <Handle type="source" position={Position.Bottom} id="out_b" style={mid()} />
+        </>
+      );
+    case 'mixer': {
+      // Смеситель объединяет n потоков: n входов слева, один выход справа.
+      const n = typeof schemeParams?.num_inputs === 'number' ? Math.max(1, Math.min(8, schemeParams.num_inputs)) : 2;
+      return (
+        <>
+          {Array.from({ length: n }, (_, i) => (
+            <Handle
+              key={`in${i}`}
+              type="target"
+              position={Position.Left}
+              id={`in${i}`}
+              style={left(n === 1 ? 50 : 20 + (i * 60) / (n - 1))}
+            />
+          ))}
+          <Handle type="source" position={Position.Right} id="out" style={right(50)} />
+        </>
+      );
+    }
+    case 'elou':
+      // ЭЛОУ: вход сырья слева, выход нефти справа, выход солевого
+      // раствора снизу (нефть отдельным потоком не выводится).
+      return (
+        <>
+          <Handle type="target" position={Position.Left} id="in" style={left(50)} />
+          <Handle type="source" position={Position.Right} id="oil_out" style={right(50)} />
+          <Handle type="source" position={Position.Bottom} id="out" style={mid()} />
+        </>
+      );
+    case 'heater':
+      // П-1: печь с 5 секциями подогрева — по одной паре вход/выход на
+      // секцию (основная нефть, боковые потоки и паро-перегреватель ПП).
+      return (
+        <>
+          <Handle type="target" position={Position.Left} id="in" style={left(10)} />
+          <Handle type="target" position={Position.Left} id="in2" style={left(30)} />
+          <Handle type="target" position={Position.Left} id="in3" style={left(50)} />
+          <Handle type="target" position={Position.Left} id="in4" style={left(70)} />
+          <Handle type="target" position={Position.Left} id="pp_in" style={left(90)} />
+          <Handle type="source" position={Position.Right} id="out" style={right(10)} />
+          <Handle type="source" position={Position.Right} id="out2" style={right(30)} />
+          <Handle type="source" position={Position.Right} id="out3" style={right(50)} />
+          <Handle type="source" position={Position.Right} id="out4" style={right(70)} />
+          <Handle type="source" position={Position.Right} id="pp_out" style={right(90)} />
+        </>
+      );
     default:
       return (
         <>
@@ -140,15 +204,39 @@ const handles = (type: string) => {
  * подключения потока ровно на его конце (фланце). Направление берётся из
  * `dir` отростка (3 выхода, остальные — входы).
  */
-function columnHandles(
-  nozzles: ColDetailNozzle[],
-  g: { s: number; viewScale: number; offX: number; offY: number; cardH: number; nodeW: number; offLeft: number; offTop: number; bx0: number; by0: number; itemX: number; itemY: number },
-): ReactElement[] {
+type NodeGeom = {
+  s: number;
+  viewScale: number;
+  offX: number;
+  offY: number;
+  cardH: number;
+  nodeW: number;
+  offLeft: number;
+  offTop: number;
+  bx0: number;
+  by0: number;
+  bh: number;
+  itemX: number;
+  itemY: number;
+};
+
+function columnHandles(nozzles: ColDetailNozzle[], g: NodeGeom): ReactElement[] {
   const el: ReactElement[] = [];
   for (let i = 0; i < nozzles.length; i++) {
     const nz = nozzles[i];
-    if (!nz.from || !nz.to) continue;
-    const { from, to } = nz;
+    if (!nz.port) continue;
+    let from: { x: number; y: number } | undefined;
+    let to: { x: number; y: number } | undefined;
+    if (nz.from && nz.to) {
+      from = nz.from;
+      to = nz.to;
+    } else if (nz.pts && nz.pts.length >= 2) {
+      const q = nz.pts[nz.pts.length - 2];
+      const p = nz.pts[nz.pts.length - 1];
+      from = { x: q[0], y: q[1] };
+      to = { x: p[0], y: p[1] };
+    }
+    if (!from || !to) continue;
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const horizontal = Math.abs(dx) >= Math.abs(dy);
@@ -173,13 +261,37 @@ function columnHandles(
   return el;
 }
 
+const posFor = (g: NodeGeom, sx: number, sy: number) => {
+  const left = ((g.offLeft + g.offX + (sx - g.bx0) * g.viewScale) / g.nodeW) * 100;
+  const top = ((g.offTop + g.offY + (sy - g.by0) * g.viewScale) / g.cardH) * 100;
+  return { left, top };
+};
+
+function symbolHandles(item: MnemoItem, g: NodeGeom): ReactElement[] {
+  if (item.vt === 'angle') {
+    const inP = posFor(g, item.x - 30, item.y);
+    const outP = posFor(g, item.x, item.y);
+    return [
+      <Handle key="in" type="target" position={Position.Left} id="in" style={{ ...HANDLE_STYLE, top: `${inP.top}%` }} />,
+      <Handle key="out" type="source" position={Position.Bottom} id="out" style={{ ...HANDLE_STYLE, left: `${outP.left}%` }} />,
+    ];
+  }
+  const inP = posFor(g, item.x - 26, item.y);
+  const outP = posFor(g, item.x + 26, item.y);
+  return [
+    <Handle key="in" type="target" position={Position.Left} id="in" style={{ ...HANDLE_STYLE, top: `${inP.top}%` }} />,
+    <Handle key="out" type="source" position={Position.Right} id="out" style={{ ...HANDLE_STYLE, top: `${outP.top}%` }} />,
+  ];
+}
+
 const TAG_STACK = 52;
 
 function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
-  const { nodeType, name, telemetry, size, mnemo, disp, tags, alarms, schemeParams } = data;
-  const { edit, onTagChange, onRenameNode } = useContext(SchemeEditorContext);
+  const { nodeType, name, telemetry, size, scale, mnemo, disp, tags, alarms, schemeParams } = data;
+  const { edit, onTagChange, onRenameNode, onScaleNode } = useContext(SchemeEditorContext);
   const { getZoom } = useReactFlow();
-  const box = size ?? nodeSize(nodeType);
+  const scaleFactor = Math.max(0.3, Math.min(3, scale ?? 1));
+  const box = { w: (size?.w ?? nodeSize(nodeType).w) * scaleFactor, h: (size?.h ?? nodeSize(nodeType).h) * scaleFactor };
   const color = telemetry?.failed ? '#f87171' : TYPE_COLORS[nodeType] ?? '#38bdf8';
   const presetMnemo = schemeParams?.mnemo as Partial<MnemoItem> | undefined;
   const item: MnemoItem = {
@@ -189,13 +301,15 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
     n: name,
     ...(mnemo ?? presetMnemo ?? SYMBOL[nodeType] ?? {}),
   };
-  if (nodeType === 'gate_valve' || nodeType === 'valve') item.gate = id;
+  if (nodeType === 'gate_valve' || nodeType === 'valve' || nodeType === 'angle_valve') item.gate = id;
   const bb = itemBBox(item);
   const live = buildLive(telemetry, color);
   const svgW = box.w - 6;
   const svgH = Math.max(box.h - 6, (bb[3] * svgW) / bb[2]);
-  const detail = item.detail as MnemoColDetail | undefined;
-  const presetNozzles = detail?.sections?.flatMap((s) => s.nozzles ?? []) ?? [];
+  const detail = item.detail as MnemoColDetail | MnemoFurDetail | undefined;
+  const colNozzles = (detail as MnemoColDetail | undefined)?.sections?.flatMap((s) => s.nozzles ?? []) ?? [];
+  const furFlows = (detail as MnemoFurDetail | undefined)?.flows ?? [];
+  const presetNozzles: ColDetailNozzle[] = [...colNozzles, ...furFlows];
   const usePresetHandles = presetNozzles.some((n) => n.port);
   const geom = useMemo(() => {
     const nodeW = item.w || detail?.nodeW || 130;
@@ -212,10 +326,17 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
       offTop: (svgH + 6 - svgH) / 2,
       bx0: bb[0],
       by0: bb[1],
+      bh: bb[3],
       itemX: item.x,
       itemY: item.y,
     };
   }, [svgW, svgH, bb, item.w, item.x, item.y, detail, box.w]);
+  const isValve = nodeType === 'valve' || nodeType === 'gate_valve' || nodeType === 'angle_valve';
+  const nodeHandles = usePresetHandles
+    ? columnHandles(presetNozzles, geom)
+    : isValve
+      ? symbolHandles(item, geom)
+      : handles(nodeType, schemeParams);
   const dispParams = (disp ?? []).filter((k) => telemetry?.params?.[k] !== null && telemetry?.params?.[k] !== undefined);
 
   const failed = !!telemetry?.failed;
@@ -254,6 +375,24 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
     window.addEventListener('pointerup', onUp);
   };
 
+  const startScaleDrag = (e: ReactPointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const zoom = getZoom();
+    const base = scaleFactor;
+    const sx = e.clientX;
+    const onMove = (ev: PointerEvent) => {
+      const next = Math.max(0.3, Math.min(3, base + (ev.clientX - sx) / 250 / zoom));
+      onScaleNode(id, Number(next.toFixed(2)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   const startTagScale = (e: ReactPointerEvent, key: string, cfg: TagCfg | undefined) => {
     e.stopPropagation();
     e.preventDefault();
@@ -280,9 +419,14 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
 
   return (
     <div
-      className={`mn-node${selected ? ' sel' : ''}`}
+      className={`mn-node${selected ? ' sel' : ''}${scaleFactor !== 1 ? ' scaled' : ''}`}
       style={{ width: box.w, height: svgH + 6 }}
       onDoubleClick={edit ? (e) => { e.stopPropagation(); renameNode(); } : undefined}
+      onContextMenu={edit ? (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('node-context-menu', { detail: { id, x: e.clientX, y: e.clientY } }));
+      } : undefined}
     >
       <svg
         viewBox={`${bb[0]} ${bb[1]} ${bb[2]} ${bb[3]}`}
@@ -291,6 +435,12 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
       >
         {renderItem(item, live)}
       </svg>
+      {edit && scaleFactor !== 1 && (
+        <div className="mn-node-scale-badge" title="Масштаб узла">{Math.round(scaleFactor * 100)}%</div>
+      )}
+      {edit && (
+        <div className="mn-node-scale-handle" onPointerDown={startScaleDrag} title="Масштаб узла (тянуть вправо/влево)" />
+      )}
       {dispParams.length > 0 && (
         <div className="mn-node-tags">
           {dispParams.map((k, j) => {
@@ -330,7 +480,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
       {telemetry?.failed ? (
         <span className="mn-node-alarm">АВАРИЯ</span>
       ) : null}
-      {usePresetHandles ? columnHandles(presetNozzles, geom) : handles(nodeType)}
+      {nodeHandles}
     </div>
   );
 }

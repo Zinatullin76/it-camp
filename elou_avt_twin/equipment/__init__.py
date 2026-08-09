@@ -1,6 +1,6 @@
 from .base_equipment import BaseEquipment, EquipmentState
 from .pump import Pump
-from .valve import Valve
+from .valve import Valve, AngleValve
 from .gate_valve import GateValve
 from .heater import Heater
 from .heat_exchanger import HeatExchanger
@@ -14,11 +14,14 @@ from .columns import (
 )
 from .elou import ELOU
 from .tank import Tank
+from .mixer import Mixer
+from .separator_s1k import SeparatorS1K
 
 __all__ = [
     "BaseEquipment", "EquipmentState",
     "Pump",
     "Valve",
+    "AngleValve",
     "GateValve",
     "Heater",
     "HeatExchanger",
@@ -30,4 +33,6 @@ __all__ = [
     "column_class_for",
     "ELOU",
     "Tank",
+    "Mixer",
+    "SeparatorS1K",
 ]

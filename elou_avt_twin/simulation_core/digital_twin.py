@@ -158,7 +158,7 @@ class DigitalTwin:
             return None
 
         def class_for(ntype: str):
-            return {"pump": Pump, "valve": Valve, "heater": Heater}.get(ntype)
+            return {"pump": Pump, "valve": Valve, "angle_valve": Valve, "heater": Heater}.get(ntype)
 
         for key, value in initial_state.items():
             base = key.replace("_running", "").replace("_position", "").replace("_fuel_flow", "")

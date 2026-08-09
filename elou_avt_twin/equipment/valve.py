@@ -25,7 +25,7 @@ class Valve(BaseEquipment):
         self._apply_params()
 
     def _apply_params(self) -> None:
-        self.cv = self.params.get("cv", 0.01)
+        self.cv = self.params.get("cv", self.params.get("flow_coefficient_si", 0.01))
         self.response_rate = self.params.get("response_rate", 0.4)
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
@@ -112,3 +112,20 @@ class Valve(BaseEquipment):
         self.position = self._position = self.target_position = 0.0
         if init_pos is not None:
             self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))
+
+
+class AngleValve(Valve):
+    """
+    Angle valve (угловой клапан) — a control valve with adjustable opening.
+
+    Behaves exactly like a regular control valve (position set via
+    apply_action("SET_VALUE"), throttling, dead-heading), but defaults to
+    fully open when no initial_position is configured, so adding it to a
+    scheme does not silently dead-head the line.
+    """
+
+    def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
+        params = dict(params or {})
+        if "initial_position" not in params:
+            params["initial_position"] = 1.0
+        super().__init__(equipment_id, params)

@@ -25,6 +25,7 @@ import type { EquipmentNode, EquipmentNodeData, TagCfg } from '../nodes/Equipmen
 import Inspector from '../components/Inspector';
 import EdgeInspector from '../components/EdgeInspector';
 import StreamEdge from '../components/StreamEdge';
+import type { StreamEdgeData } from '../components/StreamEdge';
 import TrendChart, { SERIES_META } from '../components/TrendChart';
 
 const nodeTypes = { equipment: EquipmentNodeComponent };
@@ -51,7 +52,10 @@ function edgeMarker(color: string) {
 
 interface EdgeCfg {
   phase?: string;
+  /** Старый перпендикулярный сдвиг (миграция → offsetX/offsetY). */
   offset?: number;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 const EDGE_KEY = 'hmi-edge-v1';
@@ -67,6 +71,42 @@ function loadEdgeCfg(): Record<string, EdgeCfg> {
 function saveEdgeCfg(m: Record<string, EdgeCfg>) {
   try {
     localStorage.setItem(EDGE_KEY, JSON.stringify(m));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const EDGE_DISP_KEY = 'hmi-edge-disp-v1';
+
+function loadEdgeDisp(): Record<string, string[]> {
+  try {
+    return JSON.parse(localStorage.getItem(EDGE_DISP_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveEdgeDisp(m: Record<string, string[]>) {
+  try {
+    localStorage.setItem(EDGE_DISP_KEY, JSON.stringify(m));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+const EDGE_TAGS_KEY = 'hmi-edge-tags-v1';
+
+function loadEdgeTags(): Record<string, Record<string, TagCfg>> {
+  try {
+    return JSON.parse(localStorage.getItem(EDGE_TAGS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveEdgeTags(t: Record<string, Record<string, TagCfg>>) {
+  try {
+    localStorage.setItem(EDGE_TAGS_KEY, JSON.stringify(t));
   } catch {
     // ignore storage errors
   }
@@ -108,7 +148,25 @@ function saveTags(t: Record<string, Record<string, TagCfg>>) {
   }
 }
 
-function toRfNodes(scheme: Scheme): EquipmentNode[] {
+const SCALE_KEY = 'hmi-node-scale-v1';
+
+function loadScale(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(SCALE_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveScale(m: Record<string, number>) {
+  try {
+    localStorage.setItem(SCALE_KEY, JSON.stringify(m));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function toRfNodes(scheme: Scheme, scaleMap: Record<string, number>): EquipmentNode[] {
   const layout = mnemoLayout(scheme.nodes, scheme.edges, (nd) => nodeSizeFor(nd));
   return scheme.nodes.map((n) => {
     const p = layout.get(n.id);
@@ -123,16 +181,31 @@ function toRfNodes(scheme: Scheme): EquipmentNode[] {
         schemeParams: n.params,
         size: p?.size ?? nodeSizeFor(n),
         mnemo: p?.mnemo ?? mnemoForNode(n.params),
+        scale: scaleMap[n.id] ?? 1,
       },
     };
   });
 }
 
-function toRfEdges(scheme: Scheme, edgeCfg: Record<string, EdgeCfg>): Edge[] {
+function toRfEdges(
+  scheme: Scheme,
+  edgeCfg: Record<string, EdgeCfg>,
+  edgeDispMap: Record<string, string[]>,
+  edgeTagsMap: Record<string, Record<string, TagCfg>>,
+): Edge[] {
+  const pos = new Map(scheme.nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
   return scheme.edges.map((e) => {
     const cfg = edgeCfg[e.id];
     const phase = phaseMeta(normalizePhase(cfg?.phase ?? e.kind));
-    const offset = cfg?.offset ?? 0;
+    const sp = pos.get(e.source);
+    const tp = pos.get(e.target);
+    const horizontal = sp && tp ? Math.abs(sp.x - tp.x) >= Math.abs(sp.y - tp.y) : true;
+    let offsetX = cfg?.offsetX ?? 0;
+    let offsetY = cfg?.offsetY ?? 0;
+    if (cfg?.offset != null && cfg.offsetX == null && cfg.offsetY == null && cfg.offset !== 0) {
+      if (horizontal) offsetY = cfg.offset;
+      else offsetX = cfg.offset;
+    }
     return {
       id: e.id,
       source: e.source,
@@ -141,10 +214,10 @@ function toRfEdges(scheme: Scheme, edgeCfg: Record<string, EdgeCfg>): Edge[] {
       targetHandle: e.target_port,
       type: 'stream',
       animated: false,
-      pathOptions: { offset },
+      pathOptions: { offsetX, offsetY },
       markerEnd: edgeMarker(phase.color),
       style: { stroke: phase.color, strokeWidth: EDGE_STROKE },
-      data: { phase: phase.id },
+      data: { phase: phase.id, disp: edgeDispMap[e.id] ?? [], tags: edgeTagsMap[e.id] ?? {}, sourceTelemetry: null },
     };
   });
 }
@@ -167,7 +240,11 @@ function HmiInner() {
   const [dispMap, setDispMap] = useState<Record<string, string[]>>(loadDisp);
   const [tagsMap, setTagsMap] = useState<Record<string, Record<string, TagCfg>>>(loadTags);
   const [edgeCfg, setEdgeCfg] = useState<Record<string, EdgeCfg>>(loadEdgeCfg);
+  const [edgeDispMap, setEdgeDispMap] = useState<Record<string, string[]>>(loadEdgeDisp);
+  const [edgeTagsMap, setEdgeTagsMap] = useState<Record<string, Record<string, TagCfg>>>(loadEdgeTags);
+  const [scaleMap, setScaleMap] = useState<Record<string, number>>(loadScale);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inspectorRef = useRef<{ objectId: string; objectName: string; openedAt: number } | null>(null);
@@ -294,16 +371,103 @@ function HmiInner() {
   );
 
   const onEdgeOffset = useCallback(
-    (edgeId: string, offset: number) => {
-      setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, pathOptions: { offset } } : e)));
+    (edgeId: string, offsetX: number, offsetY: number) => {
+      setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, pathOptions: { offsetX, offsetY } } : e)));
       setEdgeCfg((m) => {
-        const nm = { ...m, [edgeId]: { ...(m[edgeId] ?? {}), offset } };
+        const nm = { ...m, [edgeId]: { ...(m[edgeId] ?? {}), offsetX, offsetY } };
         saveEdgeCfg(nm);
         return nm;
       });
     },
     [setEdges],
   );
+
+  const onEdgeDispChange = useCallback(
+    (edgeId: string, keys: string[]) => {
+      setEdges((eds) => eds.map((e) => (e.id === edgeId ? { ...e, data: { ...(e.data as object), disp: keys } } : e)));
+      setEdgeDispMap((m) => {
+        const nm = { ...m, [edgeId]: keys };
+        saveEdgeDisp(nm);
+        return nm;
+      });
+    },
+    [setEdges],
+  );
+
+  const onEdgeTagChange = useCallback(
+    (edgeId: string, key: string, patch: Partial<TagCfg>) => {
+      setEdges((eds) =>
+        eds.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                data: {
+                  ...(e.data as object),
+                  tags: { ...((e.data as StreamEdgeData).tags ?? {}), [key]: { ...((e.data as StreamEdgeData).tags?.[key] ?? {}), ...patch } },
+                },
+              }
+            : e,
+        ),
+      );
+      setEdgeTagsMap((m) => {
+        const cur = m[edgeId] ?? {};
+        const nm = { ...m, [edgeId]: { ...cur, [key]: { ...(cur[key] ?? {}), ...patch } } };
+        saveEdgeTags(nm);
+        return nm;
+      });
+    },
+    [setEdges],
+  );
+
+  const onDeleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+      setSelectedEdgeId((cur) => (cur === edgeId ? null : cur));
+      setEdgeCfg((m) => {
+        const nm = { ...m };
+        delete nm[edgeId];
+        saveEdgeCfg(nm);
+        return nm;
+      });
+      setEdgeDispMap((m) => {
+        const nm = { ...m };
+        delete nm[edgeId];
+        saveEdgeDisp(nm);
+        return nm;
+      });
+      setEdgeTagsMap((m) => {
+        const nm = { ...m };
+        delete nm[edgeId];
+        saveEdgeTags(nm);
+        return nm;
+      });
+    },
+    [setEdges],
+  );
+
+  const onScaleNode = useCallback(
+    (nodeId: string, scale: number) => {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, scale } } : n)),
+      );
+      setScaleMap((m) => {
+        const nm = { ...m, [nodeId]: scale };
+        saveScale(nm);
+        return nm;
+      });
+    },
+    [setNodes],
+  );
+
+  // Контекстное меню узла (правый клик в режиме редактирования).
+  useEffect(() => {
+    const onCtx = (e: Event) => {
+      const detail = (e as CustomEvent<{ id: string; x: number; y: number }>).detail;
+      if (detail && detail.id) setCtxMenu({ id: detail.id, x: detail.x, y: detail.y });
+    };
+    window.addEventListener('node-context-menu', onCtx);
+    return () => window.removeEventListener('node-context-menu', onCtx);
+  }, []);
 
   const notify = useCallback((text: string) => {
     setMsg(text);
@@ -328,7 +492,7 @@ function HmiInner() {
       eds.map((e) => {
         const t = s.equipment?.[e.source];
         const flowing = !!t && (Number(t.params.flow_kg_s) ?? 0) > 0;
-        return { ...e, animated: flowing };
+        return { ...e, animated: flowing, data: { ...(e.data as object), sourceTelemetry: t ?? null } };
       }),
     );
   }, [setNodes, setEdges]);
@@ -336,8 +500,8 @@ function HmiInner() {
   // Initial load
   useEffect(() => {
     api.getScheme().then((scheme) => {
-      setNodes(withCfg(toRfNodes(scheme)));
-      setEdges(toRfEdges(scheme, edgeCfg));
+      setNodes(withCfg(toRfNodes(scheme, scaleMap)));
+      setEdges(toRfEdges(scheme, edgeCfg, edgeDispMap, edgeTagsMap));
       setTimeout(() => fitView({ padding: 0.15, duration: 350 }), 80);
     }).catch(() => notify('Не удалось загрузить схему с бэкенда'));
     api.getHistory().then(setHistory).catch(() => undefined);
@@ -422,8 +586,8 @@ function HmiInner() {
           targetHandle: c.targetHandle ?? 'in',
           type: 'stream',
           animated: false,
-          pathOptions: { offset: 0 },
-          data: { phase: phase.id },
+          pathOptions: { offsetX: 0, offsetY: 0 },
+          data: { phase: phase.id, disp: [], tags: {}, sourceTelemetry: null },
           markerEnd: edgeMarker(phase.color),
           style: { stroke: phase.color, strokeWidth: EDGE_STROKE },
         },
@@ -460,11 +624,32 @@ function HmiInner() {
 
   const onDelete = useCallback(
     (nodeId: string) => {
+      const gone = edges.filter((e) => e.source === nodeId || e.target === nodeId).map((e) => e.id);
       setNodes((nds) => nds.filter((n) => n.id !== nodeId));
       setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+      if (gone.length > 0) {
+        setEdgeCfg((m) => {
+          const nm = { ...m };
+          gone.forEach((id) => { delete nm[id]; });
+          saveEdgeCfg(nm);
+          return nm;
+        });
+        setEdgeDispMap((m) => {
+          const nm = { ...m };
+          gone.forEach((id) => { delete nm[id]; });
+          saveEdgeDisp(nm);
+          return nm;
+        });
+        setEdgeTagsMap((m) => {
+          const nm = { ...m };
+          gone.forEach((id) => { delete nm[id]; });
+          saveEdgeTags(nm);
+          return nm;
+        });
+      }
       setSelectedId((cur) => (cur === nodeId ? null : cur));
     },
-    [setNodes, setEdges],
+    [setNodes, setEdges, edges],
   );
 
   const saveScheme = useCallback(async () => {
@@ -495,12 +680,12 @@ function HmiInner() {
 
   const loadDefault = useCallback(async () => {
     const scheme = await api.getScheme();
-    setNodes(withCfg(toRfNodes(scheme)));
-    setEdges(toRfEdges(scheme, edgeCfg));
+    setNodes(withCfg(toRfNodes(scheme, scaleMap)));
+    setEdges(toRfEdges(scheme, edgeCfg, edgeDispMap, edgeTagsMap));
     setSelectedId(null);
     setTimeout(() => fitView({ padding: 0.15, duration: 350 }), 80);
     notify('Схема загружена с бэкенда');
-  }, [withCfg, setNodes, setEdges, notify, fitView, edgeCfg]);
+  }, [withCfg, setNodes, setEdges, notify, fitView, edgeCfg, scaleMap, edgeDispMap, edgeTagsMap]);
 
   const runScenario = useCallback(async () => {
     const label = SCENARIOS.find((s) => s.id === scenario)?.label ?? scenario;
@@ -562,8 +747,8 @@ function HmiInner() {
         const state = await api.loadScheme(name);
         applyTelemetry(state);
         const scheme = await api.getScheme();
-        setNodes(withCfg(toRfNodes(scheme)));
-        setEdges(toRfEdges(scheme, edgeCfg));
+        setNodes(withCfg(toRfNodes(scheme, scaleMap)));
+        setEdges(toRfEdges(scheme, edgeCfg, edgeDispMap, edgeTagsMap));
         setSelectedId(null);
         setCurrentScheme(name);
         notify(`Схема «${name}» загружена`);
@@ -571,7 +756,7 @@ function HmiInner() {
         notify('Ошибка загрузки схемы');
       }
     },
-    [currentScheme, applyTelemetry, withCfg, setNodes, setEdges, notify],
+    [currentScheme, applyTelemetry, withCfg, setNodes, setEdges, notify, scaleMap, edgeDispMap, edgeTagsMap],
   );
 
   const onCreateScheme = useCallback(async () => {
@@ -585,14 +770,14 @@ function HmiInner() {
       setSchemes(r.schemes);
       setCurrentScheme(r.current);
       const scheme = await api.getScheme();
-      setNodes(withCfg(toRfNodes(scheme)));
-      setEdges(toRfEdges(scheme, edgeCfg));
+      setNodes(withCfg(toRfNodes(scheme, scaleMap)));
+      setEdges(toRfEdges(scheme, edgeCfg, edgeDispMap, edgeTagsMap));
       setSelectedId(null);
       notify(`Схема «${trimmed}» создана`);
     } catch (err) {
       notify(`Ошибка создания схемы: ${String(err)}`);
     }
-  }, [withCfg, setNodes, setEdges, notify, edgeCfg]);
+  }, [withCfg, setNodes, setEdges, notify, edgeCfg, scaleMap, edgeDispMap, edgeTagsMap]);
 
   const onAction = useCallback(
     async (equipmentId: string, actionType: string, value?: number | null) => {
@@ -749,7 +934,7 @@ function HmiInner() {
         )}
 
         <div className={`canvas${canEditScheme && edit ? ' editing' : ''}`} onDrop={canEditScheme && edit ? onDrop : undefined} onDragOver={(e) => canEditScheme && edit && e.preventDefault()}>
-          <SchemeEditorContext.Provider value={{ edit, onTagChange, onRenameNode: onRename, onEdgeOffset }}>
+          <SchemeEditorContext.Provider value={{ edit, onTagChange, onRenameNode: onRename, onEdgeOffset, onScaleNode, onEdgeTagChange }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -759,6 +944,7 @@ function HmiInner() {
             onNodeClick={onNodeClick}
             onEdgeClick={canEditScheme && edit ? onEdgeClick : undefined}
             onPaneClick={onPaneClick}
+            onEdgesDelete={canEditScheme && edit ? (eds) => eds.forEach((e) => onDeleteEdge(e.id)) : undefined}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView
@@ -806,6 +992,9 @@ function HmiInner() {
               edge={edges.find((e) => e.id === selectedEdgeId) ?? null}
               onPhase={onEdgePhase}
               onOffset={onEdgeOffset}
+              onUpdateDisp={onEdgeDispChange}
+              onDeleteEdge={onDeleteEdge}
+              disp={(edges.find((e) => e.id === selectedEdgeId)?.data as StreamEdgeData | undefined)?.disp ?? []}
               canEditScheme={canEditScheme && edit}
             />
           ) : (
@@ -845,6 +1034,43 @@ function HmiInner() {
       </div>
 
       {msg && <div className="toast">{msg}</div>}
+
+      {ctxMenu && (
+        <>
+          <div className="node-ctx-overlay" onClick={() => setCtxMenu(null)} />
+          <div className="node-ctx-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
+            <div className="node-ctx-menu-title">
+              {nodes.find((n) => n.id === ctxMenu.id)?.data.name ?? ctxMenu.id}
+              <button
+                className="node-ctx-close"
+                onClick={() => setCtxMenu(null)}
+                aria-label="Закрыть"
+              >✕</button>
+            </div>
+            <button
+              onClick={() => {
+                const n = window.prompt('Название узла:', nodes.find((x) => x.id === ctxMenu.id)?.data.name ?? '');
+                if (n && n.trim()) onRename(ctxMenu.id, n.trim());
+                setCtxMenu(null);
+              }}
+            >✏ Переименовать</button>
+            <button
+              disabled={!scaleMap[ctxMenu.id] || scaleMap[ctxMenu.id] === 1}
+              onClick={() => {
+                onScaleNode(ctxMenu.id, 1);
+                setCtxMenu(null);
+              }}
+            >◼ Сбросить масштаб{scaleMap[ctxMenu.id] && scaleMap[ctxMenu.id] !== 1 ? ` (${Math.round(scaleMap[ctxMenu.id] * 100)}%)` : ''}</button>
+            <button
+              className="node-ctx-danger"
+              onClick={() => {
+                onDelete(ctxMenu.id);
+                setCtxMenu(null);
+              }}
+            >🗑 Удалить объект</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

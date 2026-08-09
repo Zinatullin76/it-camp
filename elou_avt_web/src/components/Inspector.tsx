@@ -167,6 +167,7 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
           </div>
         );
       case 'valve':
+      case 'angle_valve':
         return (
           <div className="ctrl-group">
             <label className="ctrl-label">
@@ -267,7 +268,8 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
             <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Выключить</button>
           </div>
         );
-      case 'separator': {
+      case 'separator':
+      case 'separator_s1k': {
         // Настройка доступна только в редакторе схемы.
         if (!canEditScheme) return null;
         const lmode = schemeParams?.level_mode === 'water' ? 'water' : 'reflux';
@@ -291,6 +293,29 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
                 onChange={() => onUpdateSchemeParam?.(nodeId, 'level_mode', 'water')}
               />
               <span>Вода — только вода, сверху пустота</span>
+            </label>
+          </div>
+        );
+      }
+      case 'mixer': {
+        // Настройка числа входов доступна в редакторе схемы.
+        if (!canEditScheme) return null;
+        const n = typeof schemeParams?.num_inputs === 'number' ? schemeParams.num_inputs : 2;
+        return (
+          <div className="ctrl-group">
+            <div className="panel-title" style={{ margin: 0 }}>ЧИСЛО ВХОДОВ</div>
+            <label className="ctrl-label">
+              Входы смесителя: {n}
+              <input
+                type="number"
+                min={1}
+                max={8}
+                step={1}
+                value={n}
+                onChange={(e) =>
+                  onUpdateSchemeParam?.(nodeId, 'num_inputs', Math.max(1, Math.min(8, Number(e.target.value))))
+                }
+              />
             </label>
           </div>
         );
