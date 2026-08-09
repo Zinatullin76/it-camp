@@ -94,6 +94,19 @@ class Valve(BaseEquipment):
         opening = 1.0 if self.params.get("flow_controller") else self.position
         return calculate_valve_flow(self.cv, opening, design_dp, density) * density
 
+    def draw_capacity(self, level_m: float, density: float = 850.0) -> float:
+        """Column-bottom draw through the valve from the sump hydrostatic head.
+
+        Q = Cv·x·ρ·sqrt(g·h): the driving force is the liquid column above the
+        draw point, so an emptied sump cannot be drawn and a deeper sump draws
+        more -- the level settles where this equals the MESH bottoms inflow.
+        """
+        if self.position <= 1e-6 or level_m <= 1e-9:
+            return 0.0
+        opening = 1.0 if self.params.get("flow_controller") else self.position
+        head_dp = max(density, 1e-9) * 9.81 * max(0.0, level_m)
+        return calculate_valve_flow(self.cv, opening, head_dp, density) * density
+
     def get_state(self) -> EquipmentState:
         self.state.extra["position"] = self.position
         return self.state
