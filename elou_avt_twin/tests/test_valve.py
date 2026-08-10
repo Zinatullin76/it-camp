@@ -12,8 +12,8 @@ from models.stream import Stream
 PARAMS = {"valve_constant": 0.02, "cv": 0.02, "max_valve_position": 1.0}
 
 
-def _valve(**over):
-    return Valve("V001", {**PARAMS, **over})
+def _valve(over=None, **kwargs):
+    return Valve("V001", {**PARAMS, **(over or {}), **kwargs})
 
 
 def _oil(pressure=10e5, mass_flow=10.0):

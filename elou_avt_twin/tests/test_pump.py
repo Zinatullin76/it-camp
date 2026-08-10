@@ -19,8 +19,9 @@ PARAMS = {
 }
 
 
-def _pump(**over):
-    p = Pump("P001", {**PARAMS, **over})
+def _pump(over=None, **kwargs):
+    params = {**PARAMS, **(over or {}), **kwargs}
+    p = Pump("P001", params)
     p.apply_action("TURN_ON")
     return p
 

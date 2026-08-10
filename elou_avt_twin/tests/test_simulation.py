@@ -597,40 +597,34 @@ class TestIntegrationPumpFailure:
 
         assert state.feed_flow < flow_before
 
-    def test_standby_pump_restores_flow(self):
-        """Starting standby pump must restore feed flow after failure."""
+    def test_secondary_pump_can_be_started_after_failure(self):
+        """A configured secondary pump remains operable after another pump fails."""
         twin = DigitalTwin()
         twin.create_simulation()
         twin.start()
 
+        # The canonical process scheme contains H-1 and H-2; P101/P102 were
+        # names from the obsolete demo scheme and are intentionally not used.
         twin.apply_operator_action(OperatorAction(
             timestamp=0.0, operator_id="op1",
-            equipment_id="pump_P101", action_type=ActionType.TURN_ON,
+            equipment_id="pump_H1", action_type=ActionType.TURN_ON,
         ))
-        twin.apply_operator_action(OperatorAction(
-            timestamp=0.0, operator_id="op1",
-            equipment_id="valve_FV101", action_type=ActionType.SET_VALUE,
-            new_value=0.6,
-        ))
-        for _ in range(20):
+        for _ in range(5):
             twin.step(dt=1.0)
 
-        # Fail main pump
-        twin.inject_failure("pump_P101", "MECHANICAL_FAILURE")
-        for _ in range(3):
+        twin.inject_failure("pump_H1", "MECHANICAL_FAILURE")
+        for _ in range(2):
             twin.step(dt=1.0)
-        flow_after_failure = twin.get_state().feed_flow
 
-        # Start standby pump
         twin.apply_operator_action(OperatorAction(
             timestamp=float(twin.simulation_time), operator_id="op1",
-            equipment_id="pump_P102", action_type=ActionType.TURN_ON,
+            equipment_id="pump_H2", action_type=ActionType.TURN_ON,
         ))
-        for _ in range(10):
+        for _ in range(5):
             state = twin.step(dt=1.0)
 
-        # P102 running means pump_states shows it running
-        assert state.pump_states.get("pump_P102") is True
+        assert state.pump_states.get("pump_H2") is True
+        assert any("pump_H1" in failure for failure in state.active_failures)
 
     def test_failure_recorded_in_active_failures(self):
         """Injected failure must appear in active_failures list."""

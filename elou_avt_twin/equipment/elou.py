@@ -16,6 +16,7 @@ class ELOU(BaseEquipment):
     def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
         super().__init__(equipment_id, params or {})
         self.power_consumption = 0.0
+        self.state.running = bool(self.params.get("initial_running", True))
         self._apply_params()
 
     def _apply_params(self) -> None:
@@ -127,3 +128,4 @@ class ELOU(BaseEquipment):
     def reset(self) -> None:
         super().reset()
         self.power_consumption = 0.0
+        self.state.running = bool(self.params.get("initial_running", True))

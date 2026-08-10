@@ -1,0 +1,5760 @@
+{
+  "edges": [
+    {
+      "id": "source_6-pum_8-1786303729339",
+      "kind": "oil",
+      "source": "source_6",
+      "source_port": "out",
+      "target": "pum_8",
+      "target_port": "in"
+    },
+    {
+      "id": "source_6-pum_9-1786303747961",
+      "kind": "oil",
+      "source": "source_6",
+      "source_port": "out",
+      "target": "pum_9",
+      "target_port": "in"
+    },
+    {
+      "id": "source_6-pum_7-1786303752801",
+      "kind": "oil",
+      "source": "source_6",
+      "source_port": "out",
+      "target": "pum_7",
+      "target_port": "in"
+    },
+    {
+      "id": "source_11-hea_10-1786304031037",
+      "kind": "other",
+      "source": "source_11",
+      "source_port": "out",
+      "target": "hea_10",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_10-hea_12-1786304101991",
+      "kind": "oil",
+      "source": "hea_10",
+      "source_port": "hot_out",
+      "target": "hea_12",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_13-hea_12-1786304119591",
+      "kind": "other",
+      "source": "source_13",
+      "source_port": "out",
+      "target": "hea_12",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "elo_14-elo_15-1786304261805",
+      "kind": "oil",
+      "source": "elo_14",
+      "source_port": "oil_out",
+      "target": "elo_15",
+      "target_port": "in"
+    },
+    {
+      "id": "elo_15-elo_16-1786304271694",
+      "kind": "oil",
+      "source": "elo_15",
+      "source_port": "oil_out",
+      "target": "elo_16",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_17-hea_18-1786304372717",
+      "kind": "oil",
+      "source": "hea_17",
+      "source_port": "hot_out",
+      "target": "hea_18",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "pum_7-val_21-1786304568344",
+      "kind": "oil",
+      "source": "pum_7",
+      "source_port": "out",
+      "target": "val_21",
+      "target_port": "in"
+    },
+    {
+      "id": "val_21-hea_10-1786304571422",
+      "kind": "oil",
+      "source": "val_21",
+      "source_port": "out",
+      "target": "hea_10",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "pum_8-val_22-1786304643657",
+      "kind": "oil",
+      "source": "pum_8",
+      "source_port": "out",
+      "target": "val_22",
+      "target_port": "in"
+    },
+    {
+      "id": "val_22-hea_17-1786304648454",
+      "kind": "oil",
+      "source": "val_22",
+      "source_port": "out",
+      "target": "hea_17",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "pum_9-val_23-1786304705319",
+      "kind": "oil",
+      "source": "pum_9",
+      "source_port": "out",
+      "target": "val_23",
+      "target_port": "in"
+    },
+    {
+      "id": "val_23-hea_19-1786304706819",
+      "kind": "oil",
+      "source": "val_23",
+      "source_port": "out",
+      "target": "hea_19",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_19-hea_20-1786304735741",
+      "kind": "oil",
+      "source": "hea_19",
+      "source_port": "hot_out",
+      "target": "hea_20",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_20-gat_24-1786304989924",
+      "kind": "oil",
+      "source": "hea_20",
+      "source_port": "hot_out",
+      "target": "gat_24",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_18-gat_26-1786305007791",
+      "kind": "oil",
+      "source": "hea_18",
+      "source_port": "hot_out",
+      "target": "gat_26",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_12-gat_27-1786305021959",
+      "kind": "oil",
+      "source": "hea_12",
+      "source_port": "hot_out",
+      "target": "gat_27",
+      "target_port": "in"
+    },
+    {
+      "id": "gat_27-elo_14-1786305083256",
+      "kind": "oil",
+      "source": "gat_27",
+      "source_port": "out",
+      "target": "elo_14",
+      "target_port": "in"
+    },
+    {
+      "id": "gat_26-elo_14-1786305132748",
+      "kind": "oil",
+      "source": "gat_26",
+      "source_port": "out",
+      "target": "elo_14",
+      "target_port": "in"
+    },
+    {
+      "id": "gat_24-elo_14-1786305213383",
+      "kind": "oil",
+      "source": "gat_24",
+      "source_port": "out",
+      "target": "elo_14",
+      "target_port": "in"
+    },
+    {
+      "id": "elo_16-elo_28-1786305574782",
+      "kind": "oil",
+      "source": "elo_16",
+      "source_port": "oil_out",
+      "target": "elo_28",
+      "target_port": "in"
+    },
+    {
+      "id": "elo_28-elo_29-1786305577765",
+      "kind": "oil",
+      "source": "elo_28",
+      "source_port": "oil_out",
+      "target": "elo_29",
+      "target_port": "in"
+    },
+    {
+      "id": "elo_29-elo_30-1786305580014",
+      "kind": "oil",
+      "source": "elo_29",
+      "source_port": "oil_out",
+      "target": "elo_30",
+      "target_port": "in"
+    },
+    {
+      "id": "elo_30-sep_31-1786305707532",
+      "kind": "oil",
+      "source": "elo_30",
+      "source_port": "oil_out",
+      "target": "sep_31",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_33-hea_36-1786306562790",
+      "kind": "oil",
+      "source": "hea_33",
+      "source_port": "hot_out",
+      "target": "hea_36",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_37-hea_38-1786306740875",
+      "kind": "oil",
+      "source": "hea_37",
+      "source_port": "hot_out",
+      "target": "hea_38",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_41-hea_43-1786306849887",
+      "kind": "oil",
+      "source": "hea_41",
+      "source_port": "hot_out",
+      "target": "hea_43",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "val_44-hea_33-1786306956356",
+      "kind": "oil",
+      "source": "val_44",
+      "source_port": "out",
+      "target": "hea_33",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "val_45-hea_37-1786306962167",
+      "kind": "oil",
+      "source": "val_45",
+      "source_port": "out",
+      "target": "hea_37",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "val_46-hea_41-1786306968560",
+      "kind": "oil",
+      "source": "val_46",
+      "source_port": "out",
+      "target": "hea_41",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "pum_34-val_46-1786306976478",
+      "kind": "oil",
+      "source": "pum_34",
+      "source_port": "out",
+      "target": "val_46",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_34-val_45-1786306978405",
+      "kind": "oil",
+      "source": "pum_34",
+      "source_port": "out",
+      "target": "val_45",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_34-val_44-1786306994179",
+      "kind": "oil",
+      "source": "pum_34",
+      "source_port": "out",
+      "target": "val_44",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_35-val_44-1786307008298",
+      "kind": "oil",
+      "source": "pum_35",
+      "source_port": "out",
+      "target": "val_44",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_35-val_45-1786307031244",
+      "kind": "oil",
+      "source": "pum_35",
+      "source_port": "out",
+      "target": "val_45",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_35-val_46-1786307046264",
+      "kind": "oil",
+      "source": "pum_35",
+      "source_port": "out",
+      "target": "val_46",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_36-col_32-1786307205381",
+      "kind": "oil",
+      "source": "hea_36",
+      "source_port": "hot_out",
+      "target": "col_32",
+      "target_port": "feed2"
+    },
+    {
+      "id": "hea_40-col_32-1786307209376",
+      "kind": "oil",
+      "source": "hea_40",
+      "source_port": "hot_out",
+      "target": "col_32",
+      "target_port": "feed2"
+    },
+    {
+      "id": "hea_43-col_32-1786307244351",
+      "kind": "oil",
+      "source": "hea_43",
+      "source_port": "hot_out",
+      "target": "col_32",
+      "target_port": "feed2"
+    },
+    {
+      "id": "pum_34-col_32-1786307579332",
+      "kind": "oil",
+      "source": "pum_34",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_35-col_32-1786307604677",
+      "kind": "oil",
+      "source": "pum_35",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_49-sep_48-1786308001836",
+      "kind": "gas_haz",
+      "source": "hea_49",
+      "source_port": "hot_out",
+      "target": "sep_48",
+      "target_port": "in"
+    },
+    {
+      "id": "col_32-hea_49-1786308010032",
+      "kind": "gas_haz",
+      "source": "col_32",
+      "source_port": "distillate",
+      "target": "hea_49",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "sep_48-pum_50-1786308178394",
+      "kind": "other",
+      "source": "sep_48",
+      "source_port": "out",
+      "target": "pum_50",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_50-val_52-1786308323510",
+      "kind": "other",
+      "source": "pum_50",
+      "source_port": "out",
+      "target": "val_52",
+      "target_port": "in"
+    },
+    {
+      "id": "val_52-col_32-1786308333589",
+      "kind": "other",
+      "source": "val_52",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "reflux"
+    },
+    {
+      "id": "hea_53-col_32-1786308468989",
+      "kind": "gas",
+      "source": "hea_53",
+      "source_port": "pp_out",
+      "target": "col_32",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_53-col_32-1786308516633",
+      "kind": "oil",
+      "source": "hea_53",
+      "source_port": "out2",
+      "target": "col_32",
+      "target_port": "feed4"
+    },
+    {
+      "id": "hea_53-col_32-1786308548609",
+      "kind": "oil",
+      "source": "hea_53",
+      "source_port": "out3",
+      "target": "col_32",
+      "target_port": "feed4"
+    },
+    {
+      "id": "hea_53-col_32-1786308552354",
+      "kind": "oil",
+      "source": "hea_53",
+      "source_port": "out4",
+      "target": "col_32",
+      "target_port": "feed4"
+    },
+    {
+      "id": "hea_54-col_32-1786309016879",
+      "kind": "oil",
+      "source": "hea_54",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "feed3"
+    },
+    {
+      "id": "hea_54-col_32-1786309040289",
+      "kind": "oil",
+      "source": "hea_54",
+      "source_port": "out4",
+      "target": "col_32",
+      "target_port": "feed3"
+    },
+    {
+      "id": "col_32-pum_55-1786309166855",
+      "kind": "oil",
+      "source": "col_32",
+      "source_port": "bottoms",
+      "target": "pum_55",
+      "target_port": "in"
+    },
+    {
+      "id": "source_56-hea_53-1786309177514",
+      "kind": "gas",
+      "source": "source_56",
+      "source_port": "out",
+      "target": "hea_53",
+      "target_port": "pp_in"
+    },
+    {
+      "id": "pum_55-hea_53-1786309258338",
+      "kind": "oil",
+      "source": "pum_55",
+      "source_port": "out",
+      "target": "hea_53",
+      "target_port": "in2"
+    },
+    {
+      "id": "pum_55-hea_53-1786309278669",
+      "kind": "oil",
+      "source": "pum_55",
+      "source_port": "out",
+      "target": "hea_53",
+      "target_port": "in3"
+    },
+    {
+      "id": "pum_55-hea_53-1786309294244",
+      "kind": "oil",
+      "source": "pum_55",
+      "source_port": "out",
+      "target": "hea_53",
+      "target_port": "in4"
+    },
+    {
+      "id": "col_32-pum_57-1786309356848",
+      "kind": "oil",
+      "source": "col_32",
+      "source_port": "bottoms",
+      "target": "pum_57",
+      "target_port": "in"
+    },
+    {
+      "id": "col_32-pum_58-1786309364022",
+      "kind": "oil",
+      "source": "col_32",
+      "source_port": "bottoms",
+      "target": "pum_58",
+      "target_port": "in"
+    },
+    {
+      "id": "col_32-pum_59-1786309597169",
+      "kind": "other",
+      "source": "col_32",
+      "source_port": "side_draw",
+      "target": "pum_59",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_59-gat_60-1786309620579",
+      "kind": "other",
+      "source": "pum_59",
+      "source_port": "out",
+      "target": "gat_60",
+      "target_port": "in"
+    },
+    {
+      "id": "gat_60-hea_61-1786309684300",
+      "kind": "other",
+      "source": "gat_60",
+      "source_port": "out",
+      "target": "hea_61",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_61-col_32-1786309699379",
+      "kind": "other",
+      "source": "hea_61",
+      "source_port": "cold_out",
+      "target": "col_32",
+      "target_port": "circ"
+    },
+    {
+      "id": "source_62-hea_54-1786309757260",
+      "kind": "gas",
+      "source": "source_62",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "pp1_in"
+    },
+    {
+      "id": "col_64-col_63-1786309824755",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "k33_liq",
+      "target": "col_63",
+      "target_port": "k33_liq"
+    },
+    {
+      "id": "col_63-col_64-1786309837692",
+      "kind": "oil",
+      "source": "col_63",
+      "source_port": "k33_vap",
+      "target": "col_64",
+      "target_port": "k33_vap"
+    },
+    {
+      "id": "col_64-col_63-1786309844278",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "k32_liq",
+      "target": "col_63",
+      "target_port": "k32_liq"
+    },
+    {
+      "id": "col_63-col_64-1786309849700",
+      "kind": "oil",
+      "source": "col_63",
+      "source_port": "k32_vap",
+      "target": "col_64",
+      "target_port": "k32_vap"
+    },
+    {
+      "id": "col_64-col_63-1786309854875",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "k31_liq",
+      "target": "col_63",
+      "target_port": "k31_liq"
+    },
+    {
+      "id": "col_63-col_64-1786309856292",
+      "kind": "oil",
+      "source": "col_63",
+      "source_port": "k31_vap",
+      "target": "col_64",
+      "target_port": "k31_vap"
+    },
+    {
+      "id": "hea_54-col_63-1786309889777",
+      "kind": "gas",
+      "source": "hea_54",
+      "source_port": "pp1_out",
+      "target": "col_63",
+      "target_port": "k31_steam"
+    },
+    {
+      "id": "source_65-hea_54-1786309967729",
+      "kind": "gas",
+      "source": "source_65",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "pp2_in"
+    },
+    {
+      "id": "pum_58-hea_66-1786310027842",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_58-hea_66-1786310030665",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in2"
+    },
+    {
+      "id": "pum_58-hea_66-1786310035513",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in3"
+    },
+    {
+      "id": "pum_58-hea_66-1786310038399",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in4"
+    },
+    {
+      "id": "pum_57-hea_66-1786310051772",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_57-hea_66-1786310056084",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in2"
+    },
+    {
+      "id": "pum_57-hea_66-1786310059058",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in3"
+    },
+    {
+      "id": "pum_57-hea_66-1786310062034",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_66",
+      "target_port": "in4"
+    },
+    {
+      "id": "hea_66-col_64-1786310079130",
+      "kind": "oil",
+      "source": "hea_66",
+      "source_port": "out4",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_66-col_64-1786310080646",
+      "kind": "oil",
+      "source": "hea_66",
+      "source_port": "out3",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_66-col_64-1786310082440",
+      "kind": "oil",
+      "source": "hea_66",
+      "source_port": "out2",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_66-col_64-1786310084793",
+      "kind": "oil",
+      "source": "hea_66",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "pum_58-hea_54-1786310151954",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_57-hea_54-1786310169802",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_57-hea_54-1786310193304",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in2"
+    },
+    {
+      "id": "pum_58-hea_54-1786310240660",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in3"
+    },
+    {
+      "id": "pum_58-hea_54-1786310254008",
+      "kind": "oil",
+      "source": "pum_58",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in4"
+    },
+    {
+      "id": "pum_57-hea_54-1786310266042",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in3"
+    },
+    {
+      "id": "pum_57-hea_54-1786310285525",
+      "kind": "oil",
+      "source": "pum_57",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "in4"
+    },
+    {
+      "id": "hea_54-col_64-1786310327361",
+      "kind": "oil",
+      "source": "hea_54",
+      "source_port": "out2",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_54-col_64-1786310339655",
+      "kind": "oil",
+      "source": "hea_54",
+      "source_port": "out3",
+      "target": "col_64",
+      "target_port": "steam"
+    },
+    {
+      "id": "hea_54-val_67-1786310578489",
+      "kind": "gas",
+      "source": "hea_54",
+      "source_port": "pp2_out",
+      "target": "val_67",
+      "target_port": "in"
+    },
+    {
+      "id": "val_67-col_64-1786310595029",
+      "kind": "gas",
+      "source": "val_67",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_71-1786311150243",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "bottoms",
+      "target": "pum_71",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_68-1786311152278",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "bottoms",
+      "target": "pum_68",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_70-1786311154392",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "bottoms",
+      "target": "pum_70",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_69-1786311156597",
+      "kind": "oil",
+      "source": "col_64",
+      "source_port": "bottoms",
+      "target": "pum_69",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_71-val_73-1786311186268",
+      "kind": "oil",
+      "source": "pum_71",
+      "source_port": "out",
+      "target": "val_73",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_68-val_73-1786311189185",
+      "kind": "oil",
+      "source": "pum_68",
+      "source_port": "out",
+      "target": "val_73",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_70-val_73-1786311194363",
+      "kind": "oil",
+      "source": "pum_70",
+      "source_port": "out",
+      "target": "val_73",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_69-val_73-1786311197026",
+      "kind": "oil",
+      "source": "pum_69",
+      "source_port": "out",
+      "target": "val_73",
+      "target_port": "in"
+    },
+    {
+      "id": "val_73-sink_74-1786311224074",
+      "kind": "oil",
+      "source": "val_73",
+      "source_port": "out",
+      "target": "sink_74",
+      "target_port": "in"
+    },
+    {
+      "id": "val_75-sink_76-1786311253597",
+      "kind": "oil",
+      "source": "val_75",
+      "source_port": "out",
+      "target": "sink_76",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_71-val_75-1786311264698",
+      "kind": "oil",
+      "source": "pum_71",
+      "source_port": "out",
+      "target": "val_75",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_68-val_75-1786311267886",
+      "kind": "oil",
+      "source": "pum_68",
+      "source_port": "out",
+      "target": "val_75",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_70-val_75-1786311284990",
+      "kind": "oil",
+      "source": "pum_70",
+      "source_port": "out",
+      "target": "val_75",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_69-val_75-1786311295757",
+      "kind": "oil",
+      "source": "pum_69",
+      "source_port": "out",
+      "target": "val_75",
+      "target_port": "in"
+    },
+    {
+      "id": "source_78-hea_61-1786342483673",
+      "kind": "oil",
+      "source": "source_78",
+      "source_port": "out",
+      "target": "hea_61",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_61-sink_79-1786342486920",
+      "kind": "oil",
+      "source": "hea_61",
+      "source_port": "hot_out",
+      "target": "sink_79",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_80-1786342594381",
+      "kind": "other",
+      "source": "col_64",
+      "source_port": "circ1_out",
+      "target": "pum_80",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_80-val_84-1786343882515",
+      "kind": "other",
+      "source": "pum_80",
+      "source_port": "out",
+      "target": "val_84",
+      "target_port": "in"
+    },
+    {
+      "id": "val_84-sink_81-1786343892766",
+      "kind": "other",
+      "source": "val_84",
+      "source_port": "out",
+      "target": "sink_81",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_85-1786344101805",
+      "kind": "other",
+      "source": "col_64",
+      "source_port": "circ2_out",
+      "target": "pum_85",
+      "target_port": "in"
+    },
+    {
+      "id": "source_88-col_64-1786344204425",
+      "kind": "other",
+      "source": "source_88",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "circ2_in"
+    },
+    {
+      "id": "pum_85-val_89-1786344581360",
+      "kind": "other",
+      "source": "pum_85",
+      "source_port": "out",
+      "target": "val_89",
+      "target_port": "in"
+    },
+    {
+      "id": "val_89-sink_86-1786344594467",
+      "kind": "other",
+      "source": "val_89",
+      "source_port": "out",
+      "target": "sink_86",
+      "target_port": "in"
+    },
+    {
+      "id": "source_82-col_64-1786344655484",
+      "kind": "other",
+      "source": "source_82",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "circ1_in"
+    },
+    {
+      "id": "pum_90-val_91-1786345227040",
+      "kind": "other",
+      "source": "pum_90",
+      "source_port": "out",
+      "target": "val_91",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-pum_90-1786345240108",
+      "kind": "other",
+      "source": "col_64",
+      "source_port": "circ3_out",
+      "target": "pum_90",
+      "target_port": "in"
+    },
+    {
+      "id": "val_91-sink_92-1786345279246",
+      "kind": "other",
+      "source": "val_91",
+      "source_port": "out",
+      "target": "sink_92",
+      "target_port": "in"
+    },
+    {
+      "id": "source_93-col_64-1786345368180",
+      "kind": "other",
+      "source": "source_93",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "circ3_in"
+    },
+    {
+      "id": "hea_95-sep_94-1786350707910",
+      "kind": "other",
+      "source": "hea_95",
+      "source_port": "hot_out",
+      "target": "sep_94",
+      "target_port": "in"
+    },
+    {
+      "id": "col_64-hea_95-1786350711392",
+      "kind": "gas_haz",
+      "source": "col_64",
+      "source_port": "distillate",
+      "target": "hea_95",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_96-hea_95-1786350726000",
+      "kind": "liq",
+      "source": "source_96",
+      "source_port": "out",
+      "target": "hea_95",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_95-sink_97-1786350733139",
+      "kind": "liq",
+      "source": "hea_95",
+      "source_port": "cold_out",
+      "target": "sink_97",
+      "target_port": "in"
+    },
+    {
+      "id": "val_98-col_64-1786350825101",
+      "kind": "other",
+      "source": "val_98",
+      "source_port": "out",
+      "target": "col_64",
+      "target_port": "reflux"
+    },
+    {
+      "id": "pum_100-val_99-1786350865269",
+      "kind": "other",
+      "source": "pum_100",
+      "source_port": "out",
+      "target": "val_99",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_100-val_98-1786350866721",
+      "kind": "other",
+      "source": "pum_100",
+      "source_port": "out",
+      "target": "val_98",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_94-pum_100-1786350875102",
+      "kind": "other",
+      "source": "sep_94",
+      "source_port": "out",
+      "target": "pum_100",
+      "target_port": "in"
+    },
+    {
+      "id": "val_99-sep_101-1786350927725",
+      "kind": "oil",
+      "source": "val_99",
+      "source_port": "out",
+      "target": "sep_101",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_102-1786351416675",
+      "kind": "other",
+      "source": "col_63",
+      "source_port": "k31_out",
+      "target": "pum_102",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_103-1786351418339",
+      "kind": "other",
+      "source": "col_63",
+      "source_port": "k31_out",
+      "target": "pum_103",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_102-val_104-1786351437171",
+      "kind": "other",
+      "source": "pum_102",
+      "source_port": "out",
+      "target": "val_104",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_103-val_104-1786351456341",
+      "kind": "other",
+      "source": "pum_103",
+      "source_port": "out",
+      "target": "val_104",
+      "target_port": "in"
+    },
+    {
+      "id": "val_104-sink_105-1786351470662",
+      "kind": "other",
+      "source": "val_104",
+      "source_port": "out",
+      "target": "sink_105",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_106-1786351543007",
+      "kind": "other",
+      "source": "col_63",
+      "source_port": "k32_out",
+      "target": "pum_106",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_107-1786351544747",
+      "kind": "other",
+      "source": "col_63",
+      "source_port": "k32_out",
+      "target": "pum_107",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_106-sink_108-1786351579725",
+      "kind": "other",
+      "source": "pum_106",
+      "source_port": "out",
+      "target": "sink_108",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_107-sink_109-1786351587474",
+      "kind": "other",
+      "source": "pum_107",
+      "source_port": "out",
+      "target": "sink_109",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_111-1786352210371",
+      "kind": "oil",
+      "source": "col_63",
+      "source_port": "k33_out",
+      "target": "pum_111",
+      "target_port": "in"
+    },
+    {
+      "id": "col_63-pum_112-1786352212115",
+      "kind": "oil",
+      "source": "col_63",
+      "source_port": "k33_out",
+      "target": "pum_112",
+      "target_port": "in"
+    },
+    {
+      "id": "val_115-sink_113-1786352284065",
+      "kind": "oil",
+      "source": "val_115",
+      "source_port": "out",
+      "target": "sink_113",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_111-val_115-1786352289307",
+      "kind": "oil",
+      "source": "pum_111",
+      "source_port": "out",
+      "target": "val_115",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_112-val_115-1786352291159",
+      "kind": "oil",
+      "source": "pum_112",
+      "source_port": "out",
+      "target": "val_115",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_116-hea_117-1786353793282",
+      "kind": "oil",
+      "source": "hea_116",
+      "source_port": "hot_out",
+      "target": "hea_117",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_117-col_51-1786353795872",
+      "kind": "oil",
+      "source": "hea_117",
+      "source_port": "hot_out",
+      "target": "col_51",
+      "target_port": "feed2"
+    },
+    {
+      "id": "col_51-hea_116-1786354078369",
+      "kind": "oil",
+      "source": "col_51",
+      "source_port": "bottoms",
+      "target": "hea_116",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_116-hea_118-1786354157201",
+      "kind": "oil",
+      "source": "hea_116",
+      "source_port": "cold_out",
+      "target": "hea_118",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_119-hea_118-1786354177744",
+      "kind": "liq",
+      "source": "source_119",
+      "source_port": "out",
+      "target": "hea_118",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_118-sink_120-1786354570345",
+      "kind": "liq",
+      "source": "hea_118",
+      "source_port": "cold_out",
+      "target": "sink_120",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_118-sink_121-1786354596371",
+      "kind": "oil",
+      "source": "hea_118",
+      "source_port": "hot_out",
+      "target": "sink_121",
+      "target_port": "in"
+    },
+    {
+      "id": "val_122-col_51-1786354698652",
+      "kind": "oil",
+      "source": "val_122",
+      "source_port": "out",
+      "target": "col_51",
+      "target_port": "feed1"
+    },
+    {
+      "id": "val_123-col_51-1786354714302",
+      "kind": "oil",
+      "source": "val_123",
+      "source_port": "out",
+      "target": "col_51",
+      "target_port": "reflux"
+    },
+    {
+      "id": "pum_50-val_122-1786354743445",
+      "kind": "other",
+      "source": "pum_50",
+      "source_port": "out",
+      "target": "val_122",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_50-val_123-1786355113454",
+      "kind": "other",
+      "source": "pum_50",
+      "source_port": "out",
+      "target": "val_123",
+      "target_port": "in"
+    },
+    {
+      "id": "col_51-hea_125-1786355267642",
+      "kind": "gas_haz",
+      "source": "col_51",
+      "source_port": "distillate",
+      "target": "hea_125",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_125-sep_124-1786355281322",
+      "kind": "other",
+      "source": "hea_125",
+      "source_port": "hot_out",
+      "target": "sep_124",
+      "target_port": "in"
+    },
+    {
+      "id": "source_126-hea_125-1786355336792",
+      "kind": "liq",
+      "source": "source_126",
+      "source_port": "out",
+      "target": "hea_125",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_125-sink_127-1786355360338",
+      "kind": "liq",
+      "source": "hea_125",
+      "source_port": "cold_out",
+      "target": "sink_127",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_124-pum_128-1786355433208",
+      "kind": "other",
+      "source": "sep_124",
+      "source_port": "out",
+      "target": "pum_128",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_128-val_123-1786355447905",
+      "kind": "other",
+      "source": "pum_128",
+      "source_port": "out",
+      "target": "val_123",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_117-sink_129-1786355559217",
+      "kind": "other",
+      "source": "hea_117",
+      "source_port": "cold_out",
+      "target": "sink_129",
+      "target_port": "in"
+    },
+    {
+      "id": "val_130-hea_116-1786361280082",
+      "kind": "oil",
+      "source": "val_130",
+      "source_port": "out",
+      "target": "hea_116",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "pum_50-val_130-1786361293334",
+      "kind": "oil",
+      "source": "pum_50",
+      "source_port": "out",
+      "target": "val_130",
+      "target_port": "in"
+    },
+    {
+      "id": "col_51-hea_53-1786361372236",
+      "kind": "oil",
+      "source": "col_51",
+      "source_port": "product",
+      "target": "hea_53",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_131-col_51-1786361538986",
+      "kind": "oil",
+      "source": "pum_131",
+      "source_port": "out",
+      "target": "col_51",
+      "target_port": "reboil"
+    },
+    {
+      "id": "hea_53-pum_131-1786361559237",
+      "kind": "oil",
+      "source": "hea_53",
+      "source_port": "out",
+      "target": "pum_131",
+      "target_port": "in"
+    },
+    {
+      "id": "col_141-pum_143-1786362981600",
+      "kind": "oil",
+      "source": "col_141",
+      "source_port": "bottoms",
+      "target": "pum_143",
+      "target_port": "in"
+    },
+    {
+      "id": "col_141-hea_144-1786363095686",
+      "kind": "gas_haz",
+      "source": "col_141",
+      "source_port": "distillate",
+      "target": "hea_144",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_145-hea_144-1786363117925",
+      "kind": "liq",
+      "source": "source_145",
+      "source_port": "out",
+      "target": "hea_144",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_144-sink_146-1786363147275",
+      "kind": "liq",
+      "source": "hea_144",
+      "source_port": "cold_out",
+      "target": "sink_146",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_144-sep_147-1786363179779",
+      "kind": "other",
+      "source": "hea_144",
+      "source_port": "hot_out",
+      "target": "sep_147",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_147-pum_148-1786363197364",
+      "kind": "other",
+      "source": "sep_147",
+      "source_port": "out",
+      "target": "pum_148",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_148-val_149-1786363206838",
+      "kind": "other",
+      "source": "pum_148",
+      "source_port": "out",
+      "target": "val_149",
+      "target_port": "in"
+    },
+    {
+      "id": "col_140-col_141-1786363372040",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "bottoms",
+      "target": "col_141",
+      "target_port": "feed1"
+    },
+    {
+      "id": "col_140-col_141-1786363386658",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "bottoms",
+      "target": "col_141",
+      "target_port": "feed2"
+    },
+    {
+      "id": "col_140-col_141-1786363395864",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "bottoms",
+      "target": "col_141",
+      "target_port": "feed3"
+    },
+    {
+      "id": "col_140-col_141-1786363405882",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "bottoms",
+      "target": "col_141",
+      "target_port": "feed4"
+    },
+    {
+      "id": "col_140-pum_150-1786363503773",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "product",
+      "target": "pum_150",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_143-hea_142-1786363591218",
+      "kind": "oil",
+      "source": "pum_143",
+      "source_port": "out",
+      "target": "hea_142",
+      "target_port": "in2"
+    },
+    {
+      "id": "hea_142-col_140-1786363656437",
+      "kind": "oil",
+      "source": "hea_142",
+      "source_port": "out",
+      "target": "col_140",
+      "target_port": "feed3"
+    },
+    {
+      "id": "hea_142-col_141-1786364149223",
+      "kind": "oil",
+      "source": "hea_142",
+      "source_port": "out2",
+      "target": "col_141",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_150-hea_142-1786364189324",
+      "kind": "oil",
+      "source": "pum_150",
+      "source_port": "out",
+      "target": "hea_142",
+      "target_port": "in"
+    },
+    {
+      "id": "col_140-hea_151-1786366245855",
+      "kind": "gas_haz",
+      "source": "col_140",
+      "source_port": "distillate",
+      "target": "hea_151",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_151-sep_152-1786366303103",
+      "kind": "other",
+      "source": "hea_151",
+      "source_port": "hot_out",
+      "target": "sep_152",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_152-pum_153-1786366391944",
+      "kind": "other",
+      "source": "sep_152",
+      "source_port": "out",
+      "target": "pum_153",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_153-val_154-1786366429095",
+      "kind": "oil",
+      "source": "pum_153",
+      "source_port": "out",
+      "target": "val_154",
+      "target_port": "in"
+    },
+    {
+      "id": "val_154-col_140-1786366435837",
+      "kind": "other",
+      "source": "val_154",
+      "source_port": "out",
+      "target": "col_140",
+      "target_port": "reflux"
+    },
+    {
+      "id": "hea_156-col_140-1786366532724",
+      "kind": "oil",
+      "source": "hea_156",
+      "source_port": "hot_out",
+      "target": "col_140",
+      "target_port": "feed2"
+    },
+    {
+      "id": "val_155-hea_156-1786366534651",
+      "kind": "oil",
+      "source": "val_155",
+      "source_port": "out",
+      "target": "hea_156",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "col_51-val_155-1786366547412",
+      "kind": "oil",
+      "source": "col_51",
+      "source_port": "bottoms",
+      "target": "val_155",
+      "target_port": "in"
+    },
+    {
+      "id": "source_157-hea_156-1786366600611",
+      "kind": "oil",
+      "source": "source_157",
+      "source_port": "out",
+      "target": "hea_156",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_156-hea_117-1786366659227",
+      "kind": "oil",
+      "source": "hea_156",
+      "source_port": "cold_out",
+      "target": "hea_117",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_159-col_140-1786366737328",
+      "kind": "oil",
+      "source": "hea_159",
+      "source_port": "hot_out",
+      "target": "col_140",
+      "target_port": "feed1"
+    },
+    {
+      "id": "col_141-hea_159-1786366862989",
+      "kind": "oil",
+      "source": "col_141",
+      "source_port": "product",
+      "target": "hea_159",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "pum_160-hea_159-1786366927338",
+      "kind": "other",
+      "source": "pum_160",
+      "source_port": "out",
+      "target": "hea_159",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_161-pum_160-1786366956713",
+      "kind": "other",
+      "source": "source_161",
+      "source_port": "out",
+      "target": "pum_160",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_159-sink_162-1786367004485",
+      "kind": "other",
+      "source": "hea_159",
+      "source_port": "cold_out",
+      "target": "sink_162",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_10-sink_163-1786367255393",
+      "kind": "other",
+      "source": "hea_10",
+      "source_port": "cold_out",
+      "target": "sink_163",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_12-sink_164-1786367340667",
+      "kind": "other",
+      "source": "hea_12",
+      "source_port": "cold_out",
+      "target": "sink_164",
+      "target_port": "in"
+    },
+    {
+      "id": "source_165-hea_17-1786367556692",
+      "kind": "oil",
+      "source": "source_165",
+      "source_port": "out",
+      "target": "hea_17",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_17-sink_166-1786367761304",
+      "kind": "oil",
+      "source": "hea_17",
+      "source_port": "cold_out",
+      "target": "sink_166",
+      "target_port": "in"
+    },
+    {
+      "id": "source_167-hea_18-1786367834929",
+      "kind": "other",
+      "source": "source_167",
+      "source_port": "out",
+      "target": "hea_18",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_18-sink_168-1786367859762",
+      "kind": "other",
+      "source": "hea_18",
+      "source_port": "cold_out",
+      "target": "sink_168",
+      "target_port": "in"
+    },
+    {
+      "id": "source_169-hea_19-1786368433405",
+      "kind": "oil",
+      "source": "source_169",
+      "source_port": "out",
+      "target": "hea_19",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_19-sink_170-1786368473087",
+      "kind": "oil",
+      "source": "hea_19",
+      "source_port": "cold_out",
+      "target": "sink_170",
+      "target_port": "in"
+    },
+    {
+      "id": "source_171-hea_20-1786368519919",
+      "kind": "other",
+      "source": "source_171",
+      "source_port": "out",
+      "target": "hea_20",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_20-sink_172-1786368558059",
+      "kind": "oil",
+      "source": "hea_20",
+      "source_port": "cold_out",
+      "target": "sink_172",
+      "target_port": "in"
+    },
+    {
+      "id": "source_173-hea_33-1786368696759",
+      "kind": "other",
+      "source": "source_173",
+      "source_port": "out",
+      "target": "hea_33",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_33-sink_174-1786368744497",
+      "kind": "other",
+      "source": "hea_33",
+      "source_port": "cold_out",
+      "target": "sink_174",
+      "target_port": "in"
+    },
+    {
+      "id": "source_175-hea_36-1786368877082",
+      "kind": "other",
+      "source": "source_175",
+      "source_port": "out",
+      "target": "hea_36",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_36-sink_176-1786368909975",
+      "kind": "other",
+      "source": "hea_36",
+      "source_port": "cold_out",
+      "target": "sink_176",
+      "target_port": "in"
+    },
+    {
+      "id": "source_177-hea_37-1786369019011",
+      "kind": "oil",
+      "source": "source_177",
+      "source_port": "out",
+      "target": "hea_37",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_37-sink_178-1786369092027",
+      "kind": "oil",
+      "source": "hea_37",
+      "source_port": "cold_out",
+      "target": "sink_178",
+      "target_port": "in"
+    },
+    {
+      "id": "source_179-hea_38-1786369124551",
+      "kind": "oil",
+      "source": "source_179",
+      "source_port": "out",
+      "target": "hea_38",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_38-sink_180-1786369149054",
+      "kind": "oil",
+      "source": "hea_38",
+      "source_port": "cold_out",
+      "target": "sink_180",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_38-hea_40-1786369242861",
+      "kind": "oil",
+      "source": "hea_38",
+      "source_port": "hot_out",
+      "target": "hea_40",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_182-hea_40-1786369388105",
+      "kind": "oil",
+      "source": "source_182",
+      "source_port": "out",
+      "target": "hea_40",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_40-sink_183-1786369396853",
+      "kind": "oil",
+      "source": "hea_40",
+      "source_port": "cold_out",
+      "target": "sink_183",
+      "target_port": "in"
+    },
+    {
+      "id": "source_184-hea_41-1786369494736",
+      "kind": "oil",
+      "source": "source_184",
+      "source_port": "out",
+      "target": "hea_41",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_41-sink_185-1786369513316",
+      "kind": "oil",
+      "source": "hea_41",
+      "source_port": "cold_out",
+      "target": "sink_185",
+      "target_port": "in"
+    },
+    {
+      "id": "source_186-hea_43-1786369555700",
+      "kind": "oil",
+      "source": "source_186",
+      "source_port": "out",
+      "target": "hea_43",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_43-sink_187-1786369594297",
+      "kind": "oil",
+      "source": "hea_43",
+      "source_port": "cold_out",
+      "target": "sink_187",
+      "target_port": "in"
+    },
+    {
+      "id": "source_188-hea_49-1786369639714",
+      "kind": "liq",
+      "source": "source_188",
+      "source_port": "out",
+      "target": "hea_49",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_49-sink_189-1786369653332",
+      "kind": "liq",
+      "source": "hea_49",
+      "source_port": "cold_out",
+      "target": "sink_189",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_31-pum_34-1786370889007",
+      "kind": "oil",
+      "source": "sep_31",
+      "source_port": "out",
+      "target": "pum_34",
+      "target_port": "in"
+    },
+    {
+      "id": "sep_31-pum_35-1786370900625",
+      "kind": "oil",
+      "source": "sep_31",
+      "source_port": "out",
+      "target": "pum_35",
+      "target_port": "in"
+    },
+    {
+      "id": "val_149-col_141-1786371013339",
+      "kind": "other",
+      "source": "val_149",
+      "source_port": "out",
+      "target": "col_141",
+      "target_port": "reflux"
+    }
+  ],
+  "id": "default",
+  "name": "ЭЛОУ-АВТ / default",
+  "nodes": [
+    {
+      "id": "pum_8",
+      "name": "Н1-Б",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -160.0,
+      "y": -564.0
+    },
+    {
+      "id": "source_13",
+      "name": "ц.о. К-2",
+      "params": {
+        "flow_kg_s": 19,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -50.0,
+      "y": -925.0
+    },
+    {
+      "id": "source_6",
+      "name": "Резервуарный парк 55/5",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -621.0,
+      "y": -576.0
+    },
+    {
+      "id": "pum_7",
+      "name": "Н1-А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -157.0,
+      "y": -722.0
+    },
+    {
+      "id": "pum_8",
+      "name": "Н1-Б",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -160.0,
+      "y": -564.0
+    },
+    {
+      "id": "pum_9",
+      "name": "Н1-В",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -160.0,
+      "y": -391.0
+    },
+    {
+      "id": "hea_10",
+      "name": "Т-1/1, T-1/2. T-1/3",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 126.0,
+      "y": -723.0
+    },
+    {
+      "id": "source_11",
+      "name": "фр. 140-240",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -30.0,
+      "y": -815.0
+    },
+    {
+      "id": "hea_12",
+      "name": "Т-2, Т-3/1, Т-3/2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 371.0,
+      "y": -723.0
+    },
+    {
+      "id": "source_13",
+      "name": "ц.о. К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -50.0,
+      "y": -925.0
+    },
+    {
+      "id": "elo_14",
+      "name": "Э-1",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 990.0,
+      "y": -706.0
+    },
+    {
+      "id": "elo_15",
+      "name": "Э-3",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 994.0,
+      "y": -557.0
+    },
+    {
+      "id": "elo_16",
+      "name": "Э-5",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 996.0,
+      "y": -419.0
+    },
+    {
+      "id": "hea_17",
+      "name": "Т-4/1, Т-5",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 125.0,
+      "y": -566.0
+    },
+    {
+      "id": "hea_18",
+      "name": "Т-6/1, Т-6/2, Т-7/1",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 368.0,
+      "y": -565.0
+    },
+    {
+      "id": "hea_19",
+      "name": "Т-9/1, Т-9/2, Т-10/1, Т-10/2, Т-11",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 122.0,
+      "y": -391.0
+    },
+    {
+      "id": "hea_20",
+      "name": "Т-7/2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 362.0,
+      "y": -391.0
+    },
+    {
+      "id": "val_21",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 8.0,
+      "y": -707.0
+    },
+    {
+      "id": "val_22",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 13.0,
+      "y": -550.0
+    },
+    {
+      "id": "val_23",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 15.0,
+      "y": -375.0
+    },
+    {
+      "id": "gat_24",
+      "name": "Задвижка",
+      "params": {
+        "initial_open": 1
+      },
+      "type": "gate_valve",
+      "x": 561.0,
+      "y": -380.0
+    },
+    {
+      "id": "gat_26",
+      "name": "Задвижка",
+      "params": {
+        "initial_open": 1
+      },
+      "type": "gate_valve",
+      "x": 558.0,
+      "y": -554.0
+    },
+    {
+      "id": "gat_27",
+      "name": "Задвижка",
+      "params": {
+        "initial_open": 1
+      },
+      "type": "gate_valve",
+      "x": 555.0,
+      "y": -712.0
+    },
+    {
+      "id": "elo_28",
+      "name": "Э-2",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 1212.0,
+      "y": -707.0
+    },
+    {
+      "id": "elo_29",
+      "name": "Э-4",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 1212.0,
+      "y": -558.0
+    },
+    {
+      "id": "elo_30",
+      "name": "Э-6",
+      "params": {
+        "vessel_area": 30
+      },
+      "type": "elou",
+      "x": 1216.0,
+      "y": -419.0
+    },
+    {
+      "id": "sep_31",
+      "name": "E-15",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 1543.0,
+      "y": -557.0
+    },
+    {
+      "id": "col_32",
+      "name": "К-1 · Атмосферная колонна",
+      "params": {
+        "feed_stage": 18,
+        "mnemo": {
+          "nodeW": 380,
+          "ppk": [
+            {
+              "kind": "atmos",
+              "scale": 0.45,
+              "x": 341.1,
+              "y": 47.3
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#D7D7D7",
+              "leftX": 270,
+              "level": {
+                "color": "#8B5E3C",
+                "lv": "lv",
+                "y0": 472,
+                "y100": 336
+              },
+              "nozzles": [
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 226
+                  },
+                  "port": "in",
+                  "to": {
+                    "x": 254,
+                    "y": 226
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 292
+                  },
+                  "port": "feed1",
+                  "to": {
+                    "x": 254,
+                    "y": 292
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 332
+                  },
+                  "port": "feed2",
+                  "to": {
+                    "x": 254,
+                    "y": 332
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 372
+                  },
+                  "port": "feed3",
+                  "to": {
+                    "x": 254,
+                    "y": 372
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 270,
+                    "y": 400
+                  },
+                  "port": "feed4",
+                  "to": {
+                    "x": 254,
+                    "y": 400
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 96
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 386,
+                    "y": 96
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 112
+                  },
+                  "port": "circ",
+                  "to": {
+                    "x": 386,
+                    "y": 112
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 150
+                  },
+                  "port": "side_draw",
+                  "to": {
+                    "x": 386,
+                    "y": 150
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 370,
+                    "y": 372
+                  },
+                  "port": "steam",
+                  "to": {
+                    "x": 386,
+                    "y": 372
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 305,
+                    "y": 46
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 305,
+                    "y": 28
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 320,
+                    "y": 472
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 320,
+                    "y": 492
+                  }
+                }
+              ],
+              "rightX": 370,
+              "shell": "M 292 46 L 348 46 L 370 90 L 370 428 L 348 472 L 292 472 L 270 428 L 270 90 Z",
+              "tag": {
+                "s": "К-1",
+                "size": 26,
+                "x": 320,
+                "y": 398
+              },
+              "trays": [
+                {
+                  "label": "28 тар.",
+                  "y": 112
+                },
+                {
+                  "blind": true,
+                  "label": "26 тар.",
+                  "y": 150
+                },
+                {
+                  "label": "25 тар.",
+                  "y": 190
+                },
+                {
+                  "label": "22 тар.",
+                  "y": 226
+                },
+                {
+                  "label": "18 тар.",
+                  "y": 256
+                },
+                {
+                  "label": "17 тар.",
+                  "y": 292
+                },
+                {
+                  "label": "16 тар.",
+                  "y": 332
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 530,
+            "w": 640
+          }
+        },
+        "num_stages": 28,
+        "preset": "k1"
+      },
+      "type": "column",
+      "x": 344.0,
+      "y": -27.0
+    },
+    {
+      "id": "hea_33",
+      "name": "Т-17, Т-18/1, Т-18/2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -420.0,
+      "y": 0.0
+    },
+    {
+      "id": "pum_34",
+      "name": "Н-20А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -783.0,
+      "y": 106.0
+    },
+    {
+      "id": "pum_35",
+      "name": "Н20-Б",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": -783.0,
+      "y": 203.0
+    },
+    {
+      "id": "hea_36",
+      "name": "Т-22/4, Т-22/5, Т-27/1",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -17.0,
+      "y": 1.0
+    },
+    {
+      "id": "hea_37",
+      "name": "Т-19",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -423.0,
+      "y": 145.0
+    },
+    {
+      "id": "hea_38",
+      "name": "Т-20",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -228.0,
+      "y": 145.0
+    },
+    {
+      "id": "hea_40",
+      "name": "Т-22/6",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 12.0,
+      "y": 146.0
+    },
+    {
+      "id": "hea_41",
+      "name": "Т-22/1, Т-22/2, Т-22/3",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -417.0,
+      "y": 300.0
+    },
+    {
+      "id": "hea_43",
+      "name": "Т-24, Т-25/2, Т-26",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": -16.0,
+      "y": 300.0
+    },
+    {
+      "id": "val_44",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": -522.0,
+      "y": 17.0
+    },
+    {
+      "id": "val_45",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": -523.0,
+      "y": 162.0
+    },
+    {
+      "id": "val_46",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": -523.0,
+      "y": 316.0
+    },
+    {
+      "id": "sep_48",
+      "name": "Е1",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 654.0,
+      "y": -128.0
+    },
+    {
+      "id": "hea_49",
+      "name": "Х-1/3, Х-1/4, Х-1,5",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 482.0,
+      "y": -113.0
+    },
+    {
+      "id": "pum_50",
+      "name": "Н-6А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 858.0,
+      "y": -108.0
+    },
+    {
+      "id": "col_51",
+      "name": "К-4 · Стабилизатор",
+      "params": {
+        "feed_stage": 23,
+        "mnemo": {
+          "nodeW": 150,
+          "ppk": [
+            {
+              "kind": "flare",
+              "scale": 0.413,
+              "x": 200,
+              "y": 240
+            },
+            {
+              "kind": "atmos",
+              "scale": 0.413,
+              "x": 138.1,
+              "y": 162.8
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#E6E6E6",
+              "leftX": 70,
+              "level": {
+                "color": "#000000",
+                "lv": "lv",
+                "y0": 750,
+                "y100": 620
+              },
+              "nozzles": [
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 70,
+                    "y": 265
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 34,
+                    "y": 265
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 70,
+                    "y": 385
+                  },
+                  "port": "feed1",
+                  "to": {
+                    "x": 34,
+                    "y": 385
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 70,
+                    "y": 505
+                  },
+                  "port": "feed2",
+                  "to": {
+                    "x": 34,
+                    "y": 505
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 180,
+                    "y": 655
+                  },
+                  "port": "reboil",
+                  "to": {
+                    "x": 222,
+                    "y": 655
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 104.3,
+                    "y": 160
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 104.3,
+                    "y": 118
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 111,
+                    "y": 750
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 111,
+                    "y": 786
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 139,
+                    "y": 750
+                  },
+                  "port": "product",
+                  "to": {
+                    "x": 139,
+                    "y": 786
+                  }
+                },
+                {
+                  "from": {
+                    "x": 180,
+                    "y": 240
+                  },
+                  "to": {
+                    "x": 200,
+                    "y": 240
+                  }
+                }
+              ],
+              "rightX": 180,
+              "shell": "M 70 200 L 98 160 L 152 160 L 180 200 L 180 700 L 152 750 L 98 750 L 70 700 Z",
+              "tag": {
+                "s": "К-4",
+                "size": 30,
+                "x": 125,
+                "y": 452
+              },
+              "trays": [
+                {
+                  "label": "34 тар.",
+                  "y": 265
+                },
+                {
+                  "label": "23 тар.",
+                  "y": 385
+                },
+                {
+                  "label": "15 тар.",
+                  "y": 505
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 800,
+            "w": 340
+          }
+        },
+        "num_stages": 34,
+        "preset": "k4"
+      },
+      "type": "column",
+      "x": 1965.0,
+      "y": -277.0
+    },
+    {
+      "id": "val_52",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 967.0,
+      "y": -55.0
+    },
+    {
+      "id": "hea_53",
+      "name": "П-3 · Подогрев низа К-1 (рибойлер К-4)",
+      "params": {
+        "max_heat_duty": 50000000,
+        "mnemo": {
+          "arch": "M 60,168 L 122,118 L 238,118 L 300,168 Z",
+          "base": {
+            "floor": {
+              "h": 12,
+              "w": 256,
+              "x": 52,
+              "y": 280
+            },
+            "legs": [
+              {
+                "h": 18,
+                "w": 14,
+                "x": 70,
+                "y": 292
+              },
+              {
+                "h": 18,
+                "w": 14,
+                "x": 276,
+                "y": 292
+              }
+            ]
+          },
+          "caps": [
+            {
+              "anchor": "end",
+              "s": "КОНВ.",
+              "size": 10,
+              "x": 234,
+              "y": 113
+            }
+          ],
+          "ceil": {
+            "label": {
+              "s": "ПЭ (лев.)",
+              "x": 186,
+              "y": 184
+            },
+            "xs": [
+              96,
+              109,
+              122,
+              135,
+              148,
+              161,
+              174
+            ],
+            "y": 180
+          },
+          "conv": {
+            "h": 78,
+            "w": 116,
+            "x": 122,
+            "y": 40
+          },
+          "flows": [
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 206
+              },
+              "label": "1",
+              "port": "in",
+              "to": {
+                "x": 4,
+                "y": 206
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 206
+              },
+              "label": "1",
+              "port": "out",
+              "to": {
+                "x": 346,
+                "y": 206
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 226
+              },
+              "label": "2",
+              "port": "in2",
+              "to": {
+                "x": 4,
+                "y": 226
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 226
+              },
+              "label": "2",
+              "port": "out2",
+              "to": {
+                "x": 346,
+                "y": 226
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 246
+              },
+              "label": "3",
+              "port": "in3",
+              "to": {
+                "x": 4,
+                "y": 246
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 246
+              },
+              "label": "3",
+              "port": "out3",
+              "to": {
+                "x": 346,
+                "y": 246
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 266
+              },
+              "label": "4",
+              "port": "in4",
+              "to": {
+                "x": 4,
+                "y": 266
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 266
+              },
+              "label": "4",
+              "port": "out4",
+              "to": {
+                "x": 346,
+                "y": 266
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 122,
+                "y": 54
+              },
+              "label": "ПП",
+              "port": "pp_in",
+              "to": {
+                "x": 76,
+                "y": 54
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 238,
+                "y": 54
+              },
+              "label": "ПП",
+              "port": "pp_out",
+              "to": {
+                "x": 346,
+                "y": 54
+              }
+            }
+          ],
+          "nodeW": 200,
+          "pp": [
+            {
+              "h": 16,
+              "s": "ПП",
+              "w": 104,
+              "x": 128,
+              "y": 46
+            }
+          ],
+          "rad": {
+            "h": 112,
+            "w": 240,
+            "x": 60,
+            "y": 168
+          },
+          "stack": [
+            {
+              "h": 9,
+              "w": 36,
+              "x": 162,
+              "y": 2
+            },
+            {
+              "h": 30,
+              "w": 24,
+              "x": 168,
+              "y": 10
+            }
+          ],
+          "tag": {
+            "s": "П-3",
+            "size": 26,
+            "x": 180,
+            "y": 238
+          },
+          "vb": {
+            "h": 340,
+            "w": 400
+          }
+        },
+        "preset": "p3",
+        "response_tau": 60
+      },
+      "type": "heater",
+      "x": 160.0,
+      "y": 491.0
+    },
+    {
+      "id": "hea_54",
+      "name": "П-2 · Нефть в К-2 + подогрев низа К-1",
+      "params": {
+        "max_heat_duty": 50000000,
+        "mnemo": {
+          "arch": "M 60,168 L 122,118 L 238,118 L 300,168 Z",
+          "base": {
+            "floor": {
+              "h": 12,
+              "w": 256,
+              "x": 52,
+              "y": 280
+            },
+            "legs": [
+              {
+                "h": 18,
+                "w": 14,
+                "x": 70,
+                "y": 292
+              },
+              {
+                "h": 18,
+                "w": 14,
+                "x": 276,
+                "y": 292
+              }
+            ]
+          },
+          "caps": [
+            {
+              "anchor": "end",
+              "s": "КОНВ.",
+              "size": 10,
+              "x": 234,
+              "y": 113
+            }
+          ],
+          "conv": {
+            "h": 78,
+            "w": 116,
+            "x": 122,
+            "y": 40
+          },
+          "flows": [
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 206
+              },
+              "label": "1",
+              "port": "in",
+              "to": {
+                "x": 4,
+                "y": 206
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 206
+              },
+              "label": "1",
+              "port": "out",
+              "to": {
+                "x": 346,
+                "y": 206
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 226
+              },
+              "label": "2",
+              "port": "in2",
+              "to": {
+                "x": 4,
+                "y": 226
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 226
+              },
+              "label": "2",
+              "port": "out2",
+              "to": {
+                "x": 346,
+                "y": 226
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 246
+              },
+              "label": "3",
+              "port": "in3",
+              "to": {
+                "x": 4,
+                "y": 246
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 246
+              },
+              "label": "3",
+              "port": "out3",
+              "to": {
+                "x": 346,
+                "y": 246
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 266
+              },
+              "label": "4",
+              "port": "in4",
+              "to": {
+                "x": 4,
+                "y": 266
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 266
+              },
+              "label": "4",
+              "port": "out4",
+              "to": {
+                "x": 346,
+                "y": 266
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 122,
+                "y": 52.5
+              },
+              "label": "ПП",
+              "port": "pp1_in",
+              "to": {
+                "x": 76,
+                "y": 52.5
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 238,
+                "y": 52.5
+              },
+              "label": "ПП",
+              "port": "pp1_out",
+              "to": {
+                "x": 346,
+                "y": 52.5
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 122,
+                "y": 68.5
+              },
+              "label": "ПП",
+              "port": "pp2_in",
+              "to": {
+                "x": 76,
+                "y": 68.5
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 238,
+                "y": 68.5
+              },
+              "label": "ПП",
+              "port": "pp2_out",
+              "to": {
+                "x": 346,
+                "y": 68.5
+              }
+            }
+          ],
+          "nodeW": 200,
+          "pp": [
+            {
+              "h": 13,
+              "s": "ПП-1",
+              "w": 104,
+              "x": 128,
+              "y": 46
+            },
+            {
+              "h": 13,
+              "s": "ПП-2",
+              "w": 104,
+              "x": 128,
+              "y": 62
+            }
+          ],
+          "rad": {
+            "h": 112,
+            "w": 240,
+            "x": 60,
+            "y": 168
+          },
+          "stack": [
+            {
+              "h": 9,
+              "w": 36,
+              "x": 162,
+              "y": 2
+            },
+            {
+              "h": 30,
+              "w": 24,
+              "x": 168,
+              "y": 10
+            }
+          ],
+          "tag": {
+            "s": "П-2",
+            "size": 26,
+            "x": 180,
+            "y": 238
+          },
+          "vb": {
+            "h": 340,
+            "w": 400
+          }
+        },
+        "preset": "p2",
+        "response_tau": 60
+      },
+      "type": "heater",
+      "x": 160.0,
+      "y": 719.0
+    },
+    {
+      "id": "pum_55",
+      "name": "Н-3А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 498.0,
+      "y": 658.0
+    },
+    {
+      "id": "source_56",
+      "name": "Остр. пар",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -6.0,
+      "y": 495.0
+    },
+    {
+      "id": "pum_57",
+      "name": "Н-2А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 736.0,
+      "y": 595.0
+    },
+    {
+      "id": "pum_58",
+      "name": "Н-2Б",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 735.0,
+      "y": 699.0
+    },
+    {
+      "id": "pum_59",
+      "name": "Н-6К/1",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 663.0,
+      "y": 60.0
+    },
+    {
+      "id": "gat_60",
+      "name": "Задвижка",
+      "params": {
+        "initial_open": 1
+      },
+      "type": "gate_valve",
+      "x": 781.0,
+      "y": 67.0
+    },
+    {
+      "id": "hea_61",
+      "name": "Т-1/5",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 855.0,
+      "y": 108.0
+    },
+    {
+      "id": "source_62",
+      "name": "Ост. пар",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -45.0,
+      "y": 725.0
+    },
+    {
+      "id": "col_63",
+      "name": "К-3 · Отпарная колонна",
+      "params": {
+        "feed_stage": 5,
+        "mnemo": {
+          "nodeW": 70,
+          "sections": [
+            {
+              "fill": "none",
+              "nozzles": [
+                {
+                  "dir": "out",
+                  "port": "k31_vap",
+                  "pts": [
+                    [
+                      36,
+                      15
+                    ],
+                    [
+                      36,
+                      4
+                    ],
+                    [
+                      0,
+                      4
+                    ]
+                  ],
+                  "width": 1.2
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 11.5,
+                    "y": 31
+                  },
+                  "port": "k31_liq",
+                  "to": {
+                    "x": 0,
+                    "y": 31
+                  },
+                  "width": 2
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 11.5,
+                    "y": 96.5
+                  },
+                  "port": "k31_steam",
+                  "to": {
+                    "x": 0,
+                    "y": 96.5
+                  },
+                  "width": 2
+                },
+                {
+                  "dir": "out",
+                  "port": "k31_out",
+                  "pts": [
+                    [
+                      36,
+                      113
+                    ],
+                    [
+                      36,
+                      122
+                    ],
+                    [
+                      75,
+                      122
+                    ]
+                  ],
+                  "width": 1.2
+                }
+              ],
+              "shell": [
+                "M 11.5 22 L 36 15 L 59.5 22",
+                "M 11.5 105 L 36 113 L 59.5 105"
+              ],
+              "tag": {
+                "anchor": "start",
+                "line": {
+                  "x2": 54,
+                  "y2": 61
+                },
+                "s": "К-3/1",
+                "size": 10,
+                "x": 15,
+                "y": 56
+              }
+            },
+            {
+              "fill": "none",
+              "nozzles": [
+                {
+                  "dir": "out",
+                  "port": "k32_vap",
+                  "pts": [
+                    [
+                      36,
+                      166
+                    ],
+                    [
+                      36,
+                      151.5
+                    ],
+                    [
+                      0,
+                      151.5
+                    ]
+                  ],
+                  "width": 1.2
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 11.5,
+                    "y": 188
+                  },
+                  "port": "k32_liq",
+                  "to": {
+                    "x": 0,
+                    "y": 188
+                  },
+                  "width": 2
+                },
+                {
+                  "dir": "out",
+                  "port": "k32_out",
+                  "pts": [
+                    [
+                      36,
+                      264
+                    ],
+                    [
+                      36,
+                      273
+                    ],
+                    [
+                      75,
+                      273
+                    ]
+                  ],
+                  "width": 1.2
+                }
+              ],
+              "shell": [
+                "M 11.5 174 L 36 166 L 59.5 174",
+                "M 11.5 256 L 36 264 L 59.5 256"
+              ],
+              "tag": {
+                "anchor": "start",
+                "line": {
+                  "x2": 54,
+                  "y2": 213
+                },
+                "s": "К-3/2",
+                "size": 10,
+                "x": 15,
+                "y": 208
+              }
+            },
+            {
+              "fill": "none",
+              "nozzles": [
+                {
+                  "dir": "out",
+                  "port": "k33_vap",
+                  "pts": [
+                    [
+                      36,
+                      310
+                    ],
+                    [
+                      36,
+                      299.5
+                    ],
+                    [
+                      0,
+                      299.5
+                    ]
+                  ],
+                  "width": 1.2
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 11.5,
+                    "y": 336
+                  },
+                  "port": "k33_liq",
+                  "to": {
+                    "x": 0,
+                    "y": 336
+                  },
+                  "width": 2
+                },
+                {
+                  "dir": "out",
+                  "port": "k33_out",
+                  "pts": [
+                    [
+                      36,
+                      408
+                    ],
+                    [
+                      36,
+                      417
+                    ],
+                    [
+                      75,
+                      417
+                    ]
+                  ],
+                  "width": 1.2
+                }
+              ],
+              "shell": [
+                "M 11.5 317 L 36 310 L 59.5 317",
+                "M 11.5 400 L 36 408 L 59.5 400"
+              ],
+              "tag": {
+                "anchor": "start",
+                "line": {
+                  "x2": 54,
+                  "y2": 363
+                },
+                "s": "К-3/3",
+                "size": 10,
+                "x": 15,
+                "y": 358
+              }
+            }
+          ],
+          "shell": [
+            "M 11.5 22 L 11.5 148  M 11.5 155 L 11.5 296  M 11.5 303 L 11.5 400",
+            "M 59.5 22 L 59.5 119  M 59.5 125 L 59.5 270  M 59.5 279 L 59.5 400"
+          ],
+          "vb": {
+            "h": 425,
+            "w": 75
+          }
+        },
+        "num_stages": 10,
+        "preset": "k3"
+      },
+      "type": "column",
+      "x": 1455.0,
+      "y": 556.0
+    },
+    {
+      "id": "col_64",
+      "name": "К-2 · Атмосферная колонна",
+      "params": {
+        "feed_stage": 36,
+        "mnemo": {
+          "nodeW": 130,
+          "ppk": [
+            {
+              "kind": "atmos",
+              "scale": 0.45,
+              "x": 131.1,
+              "y": 47.3
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#D7D7D7",
+              "leftX": 60,
+              "level": {
+                "color": "#8B5E3C",
+                "lv": "lv",
+                "y0": 852,
+                "y100": 776
+              },
+              "nozzles": [
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 153
+                  },
+                  "port": "circ1_in",
+                  "to": {
+                    "x": 44,
+                    "y": 153
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 199
+                  },
+                  "port": "circ1_out",
+                  "to": {
+                    "x": 44,
+                    "y": 199
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 377
+                  },
+                  "port": "circ2_out",
+                  "to": {
+                    "x": 44,
+                    "y": 377
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 421
+                  },
+                  "port": "circ2_in",
+                  "to": {
+                    "x": 44,
+                    "y": 421
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 606
+                  },
+                  "port": "circ3_in",
+                  "to": {
+                    "x": 44,
+                    "y": 606
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 650
+                  },
+                  "port": "circ3_out",
+                  "to": {
+                    "x": 44,
+                    "y": 650
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 785
+                  },
+                  "port": "in",
+                  "to": {
+                    "x": 44,
+                    "y": 785
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 60,
+                    "y": 805
+                  },
+                  "port": "steam",
+                  "to": {
+                    "x": 44,
+                    "y": 805
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 115
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 176,
+                    "y": 115
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 153
+                  },
+                  "port": "k31_vap",
+                  "to": {
+                    "x": 176,
+                    "y": 153
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 176
+                  },
+                  "port": "k31_liq",
+                  "to": {
+                    "x": 176,
+                    "y": 176
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 377
+                  },
+                  "port": "k32_vap",
+                  "to": {
+                    "x": 176,
+                    "y": 377
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 398
+                  },
+                  "port": "k32_liq",
+                  "to": {
+                    "x": 176,
+                    "y": 398
+                  }
+                },
+                {
+                  "dir": "in",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 561
+                  },
+                  "port": "k33_vap",
+                  "to": {
+                    "x": 176,
+                    "y": 561
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 160,
+                    "y": 585
+                  },
+                  "port": "k33_liq",
+                  "to": {
+                    "x": 176,
+                    "y": 585
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 95,
+                    "y": 46
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 95,
+                    "y": 28
+                  }
+                },
+                {
+                  "dir": "out",
+                  "flange": true,
+                  "from": {
+                    "x": 110,
+                    "y": 852
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 110,
+                    "y": 872
+                  }
+                }
+              ],
+              "rightX": 160,
+              "shell": "M 82 46 L 138 46 L 160 90 L 160 808 L 138 852 L 82 852 L 60 808 L 60 90 Z",
+              "tag": {
+                "s": "К-2",
+                "size": 26,
+                "x": 110,
+                "y": 320
+              },
+              "trays": [
+                {
+                  "label": "43 тар.",
+                  "y": 130
+                },
+                {
+                  "label": "36 тар.",
+                  "y": 153
+                },
+                {
+                  "label": "35 тар.",
+                  "y": 176
+                },
+                {
+                  "label": "34 тар.",
+                  "y": 199
+                },
+                {
+                  "label": "33 тар.",
+                  "y": 221
+                },
+                {
+                  "label": "32 тар.",
+                  "y": 243
+                },
+                {
+                  "label": "26 тар.",
+                  "y": 377
+                },
+                {
+                  "label": "25 тар.",
+                  "y": 398
+                },
+                {
+                  "label": "24 тар.",
+                  "y": 421
+                },
+                {
+                  "label": "23 тар.",
+                  "y": 444
+                },
+                {
+                  "label": "22 тар.",
+                  "y": 466
+                },
+                {
+                  "label": "16 тар.",
+                  "y": 561
+                },
+                {
+                  "label": "15 тар.",
+                  "y": 585
+                },
+                {
+                  "label": "14 тар.",
+                  "y": 606
+                },
+                {
+                  "label": "13 тар.",
+                  "y": 628
+                },
+                {
+                  "label": "12 тар.",
+                  "y": 650
+                },
+                {
+                  "label": "6 тар.",
+                  "y": 765
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 900,
+            "w": 220
+          }
+        },
+        "num_stages": 43,
+        "preset": "k2"
+      },
+      "type": "column",
+      "x": 1250.0,
+      "y": 482.0
+    },
+    {
+      "id": "source_65",
+      "name": "Ост. пар",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -29.0,
+      "y": 764.0
+    },
+    {
+      "id": "hea_66",
+      "name": "П-1 · Нагрев отбензиненной нефти",
+      "params": {
+        "max_heat_duty": 50000000,
+        "mnemo": {
+          "arch": "M 60,168 L 122,118 L 238,118 L 300,168 Z",
+          "base": {
+            "floor": {
+              "h": 12,
+              "w": 256,
+              "x": 52,
+              "y": 280
+            },
+            "legs": [
+              {
+                "h": 18,
+                "w": 14,
+                "x": 70,
+                "y": 292
+              },
+              {
+                "h": 18,
+                "w": 14,
+                "x": 276,
+                "y": 292
+              }
+            ]
+          },
+          "caps": [
+            {
+              "anchor": "end",
+              "s": "КОНВ.",
+              "size": 10,
+              "x": 234,
+              "y": 113
+            }
+          ],
+          "conv": {
+            "h": 78,
+            "w": 116,
+            "x": 122,
+            "y": 40
+          },
+          "flows": [
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 206
+              },
+              "label": "1",
+              "port": "in",
+              "to": {
+                "x": 4,
+                "y": 206
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 206
+              },
+              "label": "1",
+              "port": "out",
+              "to": {
+                "x": 346,
+                "y": 206
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 226
+              },
+              "label": "2",
+              "port": "in2",
+              "to": {
+                "x": 4,
+                "y": 226
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 226
+              },
+              "label": "2",
+              "port": "out2",
+              "to": {
+                "x": 346,
+                "y": 226
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 246
+              },
+              "label": "3",
+              "port": "in3",
+              "to": {
+                "x": 4,
+                "y": 246
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 246
+              },
+              "label": "3",
+              "port": "out3",
+              "to": {
+                "x": 346,
+                "y": 246
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 266
+              },
+              "label": "4",
+              "port": "in4",
+              "to": {
+                "x": 4,
+                "y": 266
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 266
+              },
+              "label": "4",
+              "port": "out4",
+              "to": {
+                "x": 346,
+                "y": 266
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 122,
+                "y": 54
+              },
+              "label": "ПП",
+              "port": "pp_in",
+              "to": {
+                "x": 76,
+                "y": 54
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 238,
+                "y": 54
+              },
+              "label": "ПП",
+              "port": "pp_out",
+              "to": {
+                "x": 346,
+                "y": 54
+              }
+            }
+          ],
+          "inst": [
+            {
+              "cx": 240,
+              "cy": 20,
+              "lead": [
+                192,
+                20,
+                222,
+                20
+              ],
+              "lines": [
+                "QR",
+                "5001"
+              ]
+            }
+          ],
+          "nodeW": 200,
+          "pp": [
+            {
+              "h": 16,
+              "s": "ПП",
+              "w": 104,
+              "x": 128,
+              "y": 46
+            }
+          ],
+          "rad": {
+            "h": 112,
+            "w": 240,
+            "x": 60,
+            "y": 168
+          },
+          "stack": [
+            {
+              "h": 9,
+              "w": 36,
+              "x": 162,
+              "y": 2
+            },
+            {
+              "h": 30,
+              "w": 24,
+              "x": 168,
+              "y": 10
+            }
+          ],
+          "tag": {
+            "s": "П-1",
+            "size": 26,
+            "x": 180,
+            "y": 238
+          },
+          "vb": {
+            "h": 340,
+            "w": 400
+          }
+        },
+        "preset": "p1",
+        "response_tau": 60
+      },
+      "type": "heater",
+      "x": 923.0,
+      "y": 944.0
+    },
+    {
+      "id": "val_67",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 955.0,
+      "y": 824.0
+    },
+    {
+      "id": "pum_68",
+      "name": "Н-32А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1617.0,
+      "y": 1131.0
+    },
+    {
+      "id": "pum_69",
+      "name": "Н-4А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1618.0,
+      "y": 1294.0
+    },
+    {
+      "id": "pum_70",
+      "name": "Н-4",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1617.0,
+      "y": 1214.0
+    },
+    {
+      "id": "pum_71",
+      "name": "Н-32",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1618.0,
+      "y": 1053.0
+    },
+    {
+      "id": "val_73",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1902.0,
+      "y": 1164.0
+    },
+    {
+      "id": "sink_74",
+      "name": "1й - поток мазута",
+      "params": {},
+      "type": "sink",
+      "x": 2036.0,
+      "y": 1163.0
+    },
+    {
+      "id": "val_75",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1899.0,
+      "y": 1239.0
+    },
+    {
+      "id": "sink_76",
+      "name": "2й - поток мазута",
+      "params": {},
+      "type": "sink",
+      "x": 2038.0,
+      "y": 1237.0
+    },
+    {
+      "id": "source_78",
+      "name": "Сырая нефть ЭЛОУ-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 718.0,
+      "y": 180.0
+    },
+    {
+      "id": "sink_79",
+      "name": "Сырая нефть ЭЛОУ-2",
+      "params": {},
+      "type": "sink",
+      "x": 1035.0,
+      "y": 180.0
+    },
+    {
+      "id": "pum_80",
+      "name": "Н-12А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 992.0,
+      "y": 525.0
+    },
+    {
+      "id": "sink_81",
+      "name": "1 ц.о. на подогрев",
+      "params": {},
+      "type": "sink",
+      "x": 1150.0,
+      "y": 525.0
+    },
+    {
+      "id": "source_82",
+      "name": "1 ц.о с тепл.",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1118.0,
+      "y": 577.0
+    },
+    {
+      "id": "val_84",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1082.0,
+      "y": 524.0
+    },
+    {
+      "id": "pum_85",
+      "name": "Н-13А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 988.0,
+      "y": 679.0
+    },
+    {
+      "id": "sink_86",
+      "name": "2 ц.о.",
+      "params": {},
+      "type": "sink",
+      "x": 1137.0,
+      "y": 680.0
+    },
+    {
+      "id": "source_88",
+      "name": "ц.о. 2 - Т-15/1",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1107.0,
+      "y": 738.0
+    },
+    {
+      "id": "val_89",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1072.0,
+      "y": 678.0
+    },
+    {
+      "id": "pum_90",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 993.0,
+      "y": 886.0
+    },
+    {
+      "id": "val_91",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1086.0,
+      "y": 885.0
+    },
+    {
+      "id": "sink_92",
+      "name": "В Т26, Т-25/2, Т-24, Т-20",
+      "params": {},
+      "type": "sink",
+      "x": 1143.0,
+      "y": 886.0
+    },
+    {
+      "id": "source_93",
+      "name": "C Т26, Т-25/2, Т-24, Т-20",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1021.0,
+      "y": 849.0
+    },
+    {
+      "id": "sep_94",
+      "name": "Е-2",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 1436.0,
+      "y": 367.0
+    },
+    {
+      "id": "hea_95",
+      "name": "Теплообменник",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 1243.0,
+      "y": 368.0
+    },
+    {
+      "id": "source_96",
+      "name": "Вода",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1045.0,
+      "y": 331.0
+    },
+    {
+      "id": "sink_97",
+      "name": "Вода",
+      "params": {},
+      "type": "sink",
+      "x": 1425.0,
+      "y": 303.0
+    },
+    {
+      "id": "val_98",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1518.0,
+      "y": 510.0
+    },
+    {
+      "id": "val_99",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1518.0,
+      "y": 474.0
+    },
+    {
+      "id": "pum_100",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1398.0,
+      "y": 482.0
+    },
+    {
+      "id": "sep_101",
+      "name": "А-1, А-2/1",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 1683.0,
+      "y": 325.0
+    },
+    {
+      "id": "pum_102",
+      "name": "Н-14",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1616.0,
+      "y": 617.0
+    },
+    {
+      "id": "pum_103",
+      "name": "Н-67А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1615.0,
+      "y": 680.0
+    },
+    {
+      "id": "val_104",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1762.0,
+      "y": 644.0
+    },
+    {
+      "id": "sink_105",
+      "name": "Фр. 140-240",
+      "params": {},
+      "type": "sink",
+      "x": 1872.0,
+      "y": 642.0
+    },
+    {
+      "id": "pum_106",
+      "name": "Н-15",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1616.0,
+      "y": 769.0
+    },
+    {
+      "id": "pum_107",
+      "name": "Н-35",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1623.0,
+      "y": 832.0
+    },
+    {
+      "id": "sink_108",
+      "name": "1-й поток Фр. 240-300",
+      "params": {},
+      "type": "sink",
+      "x": 1745.0,
+      "y": 763.0
+    },
+    {
+      "id": "sink_109",
+      "name": "2й поток фр. 240-300",
+      "params": {},
+      "type": "sink",
+      "x": 1744.0,
+      "y": 825.0
+    },
+    {
+      "id": "pum_111",
+      "name": "Н-16",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1618.0,
+      "y": 919.0
+    },
+    {
+      "id": "pum_112",
+      "name": "Н-16А",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1618.0,
+      "y": 973.0
+    },
+    {
+      "id": "sink_113",
+      "name": "Фр 300-350",
+      "params": {},
+      "type": "sink",
+      "x": 1861.0,
+      "y": 935.0
+    },
+    {
+      "id": "val_115",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1753.0,
+      "y": 937.0
+    },
+    {
+      "id": "hea_116",
+      "name": "Т-14",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 1635.0,
+      "y": -79.0
+    },
+    {
+      "id": "hea_117",
+      "name": "Т-15/1",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 1802.0,
+      "y": -79.0
+    },
+    {
+      "id": "hea_118",
+      "name": "X-5,6, X-7",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 1798.0,
+      "y": 168.0
+    },
+    {
+      "id": "source_119",
+      "name": "Вода",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1627.0,
+      "y": 147.0
+    },
+    {
+      "id": "sink_120",
+      "name": "Вода",
+      "params": {},
+      "type": "sink",
+      "x": 2056.0,
+      "y": 137.0
+    },
+    {
+      "id": "sink_121",
+      "name": "В некондицию",
+      "params": {},
+      "type": "sink",
+      "x": 2057.0,
+      "y": 202.0
+    },
+    {
+      "id": "val_122",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1902.0,
+      "y": -114.0
+    },
+    {
+      "id": "val_123",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1902.0,
+      "y": -168.0
+    },
+    {
+      "id": "sep_124",
+      "name": "E-3",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 2075.0,
+      "y": -339.0
+    },
+    {
+      "id": "hea_125",
+      "name": "Х-4/1-3",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 1838.0,
+      "y": -338.0
+    },
+    {
+      "id": "source_126",
+      "name": "Вода",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1711.0,
+      "y": -342.0
+    },
+    {
+      "id": "sink_127",
+      "name": "Вода",
+      "params": {},
+      "type": "sink",
+      "x": 2017.0,
+      "y": -384.0
+    },
+    {
+      "id": "pum_128",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2129.0,
+      "y": -245.0
+    },
+    {
+      "id": "sink_129",
+      "name": "2 ц.о. в К-2",
+      "params": {},
+      "type": "sink",
+      "x": 1840.0,
+      "y": 15.0
+    },
+    {
+      "id": "val_130",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1494.0,
+      "y": -60.0
+    },
+    {
+      "id": "pum_131",
+      "name": "Н-78 (Н-78А)",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 1898.0,
+      "y": 318.0
+    },
+    {
+      "id": "col_140",
+      "name": "К-9 · Вторичная перегонка бензина",
+      "params": {
+        "feed_stage": 15,
+        "mnemo": {
+          "nodeW": 200,
+          "ppk": [
+            {
+              "kind": "atmos",
+              "scale": 0.4,
+              "x": 336.8,
+              "y": 159.6
+            },
+            {
+              "kind": "atmos",
+              "scale": 0.4,
+              "x": 281.6,
+              "y": 159.6
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#D7D7D7",
+              "leftX": 250,
+              "level": {
+                "color": "#000000",
+                "lv": "lv",
+                "y0": 800,
+                "y100": 620
+              },
+              "nozzles": [
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 308.88,
+                    "y": 159.14
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 308.88,
+                    "y": 76.14
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 368,
+                    "y": 262
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 470,
+                    "y": 262
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 252,
+                    "y": 392
+                  },
+                  "port": "feed1",
+                  "to": {
+                    "x": 150,
+                    "y": 392
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 252,
+                    "y": 642
+                  },
+                  "port": "feed2",
+                  "to": {
+                    "x": 150,
+                    "y": 642
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 252,
+                    "y": 772
+                  },
+                  "port": "feed3",
+                  "to": {
+                    "x": 150,
+                    "y": 772
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 287.89,
+                    "y": 838.84
+                  },
+                  "port": "product",
+                  "to": {
+                    "x": 287.89,
+                    "y": 872.33
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 328.51,
+                    "y": 839.58
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 328.51,
+                    "y": 873.07
+                  }
+                }
+              ],
+              "rightX": 370,
+              "shell": "M 275 160 L 345 160 L 370 200 L 370 800 L 345 840 L 275 840 L 250 800 L 250 200 Z",
+              "tag": {
+                "s": "К-9",
+                "size": 42,
+                "x": 310,
+                "y": 530
+              },
+              "trays": [
+                {
+                  "label": "60 тар.",
+                  "y": 270
+                },
+                {
+                  "label": "25 тар.",
+                  "y": 400
+                },
+                {
+                  "label": "11 тар.",
+                  "y": 650
+                },
+                {
+                  "label": "8 тар.",
+                  "y": 715
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 960,
+            "w": 760
+          }
+        },
+        "num_stages": 30,
+        "preset": "k9"
+      },
+      "type": "column",
+      "x": 2394.0,
+      "y": -250.0
+    },
+    {
+      "id": "col_141",
+      "name": "К-10 · Вторичная перегонка бензина",
+      "params": {
+        "feed_stage": 15,
+        "mnemo": {
+          "nodeW": 130,
+          "ppk": [
+            {
+              "kind": "flare",
+              "scale": 0.4,
+              "x": 168.7,
+              "y": 87.3
+            },
+            {
+              "kind": "atmos",
+              "scale": 0.4,
+              "x": 133.3,
+              "y": 87.3
+            }
+          ],
+          "sections": [
+            {
+              "fill": "#D7D7D7",
+              "leftX": 100,
+              "level": {
+                "color": "#000000",
+                "lv": "lv",
+                "y0": 722,
+                "y100": 622
+              },
+              "nozzles": [
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 151.71,
+                    "y": 88.9
+                  },
+                  "port": "distillate",
+                  "to": {
+                    "x": 151.71,
+                    "y": 5.9
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 200,
+                    "y": 164.72
+                  },
+                  "port": "reflux",
+                  "to": {
+                    "x": 240.12,
+                    "y": 164.72
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 100,
+                    "y": 267.47
+                  },
+                  "port": "feed1",
+                  "to": {
+                    "x": 59.66,
+                    "y": 267.47
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 100,
+                    "y": 296.18
+                  },
+                  "port": "feed2",
+                  "to": {
+                    "x": 59.78,
+                    "y": 296.18
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 100,
+                    "y": 352.95
+                  },
+                  "port": "feed3",
+                  "to": {
+                    "x": 59.03,
+                    "y": 352.95
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 100,
+                    "y": 384.35
+                  },
+                  "port": "feed4",
+                  "to": {
+                    "x": 59.24,
+                    "y": 384.35
+                  }
+                },
+                {
+                  "dir": "in",
+                  "from": {
+                    "x": 100,
+                    "y": 570.6
+                  },
+                  "port": "in",
+                  "to": {
+                    "x": 60.34,
+                    "y": 570.6
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 133.89,
+                    "y": 721.08
+                  },
+                  "port": "bottoms",
+                  "to": {
+                    "x": 133.89,
+                    "y": 761.66
+                  }
+                },
+                {
+                  "dir": "out",
+                  "from": {
+                    "x": 165.68,
+                    "y": 721.53
+                  },
+                  "port": "product",
+                  "to": {
+                    "x": 165.68,
+                    "y": 762.1
+                  }
+                }
+              ],
+              "rightX": 200,
+              "shell": "M 100 120 L 130 88 L 170 88 L 200 120 L 200 690 L 170 722 L 130 722 L 100 690 Z",
+              "tag": {
+                "s": "К-10",
+                "size": 30,
+                "x": 150,
+                "y": 215
+              },
+              "trays": [
+                {
+                  "y": 155
+                },
+                {
+                  "label": "37 тар.",
+                  "y": 250
+                },
+                {
+                  "label": "35 тар.",
+                  "y": 278
+                },
+                {
+                  "label": "31 тар.",
+                  "y": 306
+                },
+                {
+                  "label": "28 тар.",
+                  "y": 334
+                },
+                {
+                  "label": "25 тар.",
+                  "y": 362
+                },
+                {
+                  "label": "17 тар.",
+                  "y": 390
+                },
+                {
+                  "label": "10 тар.",
+                  "y": 580
+                }
+              ]
+            }
+          ],
+          "vb": {
+            "h": 800,
+            "w": 300
+          }
+        },
+        "num_stages": 30,
+        "preset": "k10"
+      },
+      "type": "column",
+      "x": 2939.0,
+      "y": -282.0
+    },
+    {
+      "id": "hea_142",
+      "name": "П-4 · Вторичная перегонка бензина",
+      "params": {
+        "max_heat_duty": 50000000,
+        "mnemo": {
+          "arch": "M 60,168 L 122,118 L 238,118 L 300,168 Z",
+          "base": {
+            "floor": {
+              "h": 12,
+              "w": 256,
+              "x": 52,
+              "y": 280
+            },
+            "legs": [
+              {
+                "h": 18,
+                "w": 14,
+                "x": 70,
+                "y": 292
+              },
+              {
+                "h": 18,
+                "w": 14,
+                "x": 276,
+                "y": 292
+              }
+            ]
+          },
+          "caps": [
+            {
+              "anchor": "end",
+              "s": "КОНВ.",
+              "size": 10,
+              "x": 234,
+              "y": 113
+            }
+          ],
+          "conv": {
+            "h": 78,
+            "w": 116,
+            "x": 122,
+            "y": 40
+          },
+          "flows": [
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 222
+              },
+              "label": "1",
+              "port": "in",
+              "to": {
+                "x": 4,
+                "y": 222
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 222
+              },
+              "label": "1",
+              "port": "out",
+              "to": {
+                "x": 346,
+                "y": 222
+              }
+            },
+            {
+              "dir": "in",
+              "from": {
+                "x": 60,
+                "y": 258
+              },
+              "label": "2",
+              "port": "in2",
+              "to": {
+                "x": 4,
+                "y": 258
+              }
+            },
+            {
+              "dir": "out",
+              "from": {
+                "x": 300,
+                "y": 258
+              },
+              "label": "2",
+              "port": "out2",
+              "to": {
+                "x": 346,
+                "y": 258
+              }
+            }
+          ],
+          "nodeW": 200,
+          "rad": {
+            "h": 112,
+            "w": 240,
+            "x": 60,
+            "y": 168
+          },
+          "stack": [
+            {
+              "h": 9,
+              "w": 36,
+              "x": 162,
+              "y": 2
+            },
+            {
+              "h": 30,
+              "w": 24,
+              "x": 168,
+              "y": 10
+            }
+          ],
+          "tag": {
+            "s": "П-4",
+            "size": 26,
+            "x": 180,
+            "y": 238
+          },
+          "vb": {
+            "h": 340,
+            "w": 400
+          }
+        },
+        "preset": "p4",
+        "response_tau": 60
+      },
+      "type": "heater",
+      "x": 2608.0,
+      "y": 187.0
+    },
+    {
+      "id": "pum_143",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2791.0,
+      "y": 147.0
+    },
+    {
+      "id": "hea_144",
+      "name": "Х-22 ,Х-21/2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 2397.0,
+      "y": -474.0
+    },
+    {
+      "id": "source_145",
+      "name": "Вода",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 2271.0,
+      "y": -507.0
+    },
+    {
+      "id": "sink_146",
+      "name": "Вода",
+      "params": {},
+      "type": "sink",
+      "x": 2532.0,
+      "y": -501.0
+    },
+    {
+      "id": "sep_147",
+      "name": "Е-17",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 2641.0,
+      "y": -491.0
+    },
+    {
+      "id": "pum_148",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2824.0,
+      "y": -470.0
+    },
+    {
+      "id": "val_149",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 3026.0,
+      "y": -465.0
+    },
+    {
+      "id": "pum_150",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2475.0,
+      "y": 50.0
+    },
+    {
+      "id": "hea_151",
+      "name": "Х-20,21/1,2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 2511.0,
+      "y": -292.0
+    },
+    {
+      "id": "sep_152",
+      "name": "Сепаратор",
+      "params": {
+        "level_mode": "reflux"
+      },
+      "type": "separator",
+      "x": 2636.0,
+      "y": -312.0
+    },
+    {
+      "id": "pum_153",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2825.0,
+      "y": -290.0
+    },
+    {
+      "id": "val_154",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 2914.0,
+      "y": -283.0
+    },
+    {
+      "id": "val_155",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "flow_coefficient_si": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 2218.0,
+      "y": -89.0
+    },
+    {
+      "id": "hea_156",
+      "name": "Т-15/2",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 2299.0,
+      "y": -100.0
+    },
+    {
+      "id": "source_157",
+      "name": "2 ц.о. К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 2164.0,
+      "y": -150.0
+    },
+    {
+      "id": "hea_159",
+      "name": "Т-16",
+      "params": {
+        "area": 200,
+        "u": 300
+      },
+      "type": "heat_exchanger",
+      "x": 2299.0,
+      "y": -197.0
+    },
+    {
+      "id": "pum_160",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100,
+        "nominal_volumetric_flow_m3_s": 100
+      },
+      "type": "pump",
+      "x": 2144.0,
+      "y": -488.0
+    },
+    {
+      "id": "source_161",
+      "name": "Бензин из парка 55/5",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 1939.0,
+      "y": -494.0
+    },
+    {
+      "id": "sink_162",
+      "name": "Фр. 105-180",
+      "params": {},
+      "type": "sink",
+      "x": 2324.0,
+      "y": -285.0
+    },
+    {
+      "id": "sink_163",
+      "name": "Фр. 140-240",
+      "params": {},
+      "type": "sink",
+      "x": 171.0,
+      "y": -818.0
+    },
+    {
+      "id": "sink_164",
+      "name": "ц.о. К-2",
+      "params": {},
+      "type": "sink",
+      "x": 552.0,
+      "y": -926.0
+    },
+    {
+      "id": "source_165",
+      "name": "1й-поток мазута К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 87.0,
+      "y": -639.0
+    },
+    {
+      "id": "sink_166",
+      "name": "1й-поток мазута К-2",
+      "params": {},
+      "type": "sink",
+      "x": 302.0,
+      "y": -656.0
+    },
+    {
+      "id": "source_167",
+      "name": "1 ц.о. колонны К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 297.0,
+      "y": -612.0
+    },
+    {
+      "id": "sink_168",
+      "name": "1 ц.о. колонны К-2",
+      "params": {},
+      "type": "sink",
+      "x": 490.0,
+      "y": -611.0
+    },
+    {
+      "id": "source_169",
+      "name": "2ой-поток мазута К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 78.0,
+      "y": -462.0
+    },
+    {
+      "id": "sink_170",
+      "name": "2ой-поток мазута К-2",
+      "params": {},
+      "type": "sink",
+      "x": 212.0,
+      "y": -463.0
+    },
+    {
+      "id": "source_171",
+      "name": "фр.  300-350",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 319.0,
+      "y": -463.0
+    },
+    {
+      "id": "sink_172",
+      "name": "фр.  300-350",
+      "params": {},
+      "type": "sink",
+      "x": 456.0,
+      "y": -461.0
+    },
+    {
+      "id": "source_173",
+      "name": "фр. 240-300",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -577.0,
+      "y": -38.0
+    },
+    {
+      "id": "sink_174",
+      "name": "фр. 240-300",
+      "params": {},
+      "type": "sink",
+      "x": -242.0,
+      "y": -39.0
+    },
+    {
+      "id": "source_175",
+      "name": "1й поток мазута",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -156.0,
+      "y": -41.0
+    },
+    {
+      "id": "sink_176",
+      "name": "1й поток мазута",
+      "params": {},
+      "type": "sink",
+      "x": 166.0,
+      "y": -35.0
+    },
+    {
+      "id": "source_177",
+      "name": "ц.о. К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -453.0,
+      "y": 87.0
+    },
+    {
+      "id": "sink_178",
+      "name": "ц.о. К-2",
+      "params": {},
+      "type": "sink",
+      "x": -322.0,
+      "y": 87.0
+    },
+    {
+      "id": "source_179",
+      "name": "ц.о. 3 К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -249.0,
+      "y": 87.0
+    },
+    {
+      "id": "sink_180",
+      "name": "ц.о. 3 К-2",
+      "params": {},
+      "type": "sink",
+      "x": -118.0,
+      "y": 86.0
+    },
+    {
+      "id": "source_182",
+      "name": "1 поток мазута",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -39.0,
+      "y": 86.0
+    },
+    {
+      "id": "sink_183",
+      "name": "1 поток мазута",
+      "params": {},
+      "type": "sink",
+      "x": 94.0,
+      "y": 114.0
+    },
+    {
+      "id": "source_184",
+      "name": "1й - поток мазута",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -454.0,
+      "y": 257.0
+    },
+    {
+      "id": "sink_185",
+      "name": "1й поток мазута",
+      "params": {},
+      "type": "sink",
+      "x": -316.0,
+      "y": 258.0
+    },
+    {
+      "id": "source_186",
+      "name": "ц.о. 3 К-2",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": -160.0,
+      "y": 259.0
+    },
+    {
+      "id": "sink_187",
+      "name": "ц.о. 3 К-2",
+      "params": {},
+      "type": "sink",
+      "x": 35.0,
+      "y": 252.0
+    },
+    {
+      "id": "source_188",
+      "name": "Вода",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 339.0,
+      "y": -161.0
+    },
+    {
+      "id": "sink_189",
+      "name": "Вода",
+      "params": {},
+      "type": "sink",
+      "x": 622.0,
+      "y": -163.0
+    }
+  ],
+  "schema_version": "1.1"
+}

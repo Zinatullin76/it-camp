@@ -19,7 +19,7 @@ export const CRITERION_KEYS: { key: string; title: string }[] = [
   { key: 'safety', title: 'Безопасность' },
 ];
 
-export const ACTION_TYPES = ['TURN_ON', 'TURN_OFF', 'SET_PARAM', 'OPEN_VALVE', 'CLOSE_VALVE', 'INJECT_FAILURE', 'RESET_FAILURE'];
+export const ACTION_TYPES = ['TURN_ON', 'TURN_OFF', 'SET_PARAM', 'OPEN_VALVE', 'CLOSE_VALVE', 'INCREASE_PARAM', 'DECREASE_PARAM', 'INJECT_FAILURE', 'RESET_FAILURE'];
 
 export const EVENT_TYPES = ['fault', 'param', 'state', 'alarm', 'mode'];
 
@@ -53,9 +53,17 @@ export const ACTION_TYPE_LABEL: Record<string, string> = {
   SET_PARAM: 'Задать параметр',
   OPEN_VALVE: 'Открыть клапан',
   CLOSE_VALVE: 'Закрыть клапан',
+  INCREASE_PARAM: 'Увеличить параметр',
+  DECREASE_PARAM: 'Уменьшить параметр',
   INJECT_FAILURE: 'Внести отказ',
   RESET_FAILURE: 'Сбросить отказ',
 };
+
+export const DIRECTIONAL_ACTIONS = ['INCREASE_PARAM', 'DECREASE_PARAM'];
+
+export function isDirectionalAction(v: string): boolean {
+  return DIRECTIONAL_ACTIONS.includes(v);
+}
 
 export function typeLabel(v: string): string {
   return EVENT_TYPE_LABEL[v] ?? v;
@@ -70,6 +78,14 @@ export function numOr(v: string): number | string {
   if (t === '') return '';
   const n = Number(t);
   return Number.isFinite(n) ? n : t;
+}
+
+export function deadlineNum(v: unknown): number | null {
+  if (v == null) return null;
+  const t = String(v).trim();
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 export function asStringArray(v: unknown): string[] {
@@ -99,6 +115,63 @@ export const EQUIP_TYPE_LABEL: Record<string, string> = {
 };
 
 export const TARGET_ATTRS = ['running', 'position', 'fuel_flow', 'failed', 'failure_mode', 'flow_kg_s', 'temperature_c', 'pressure_bar', 'level_m'];
+
+export const ATTR_LABEL: Record<string, string> = {
+  running: 'Состояние (вкл/выкл)',
+  position: 'Положение клапана',
+  fuel_flow: 'Расход топлива',
+  failed: 'Отказ',
+  failure_mode: 'Режим отказа',
+  flow_kg_s: 'Расход, кг/с',
+  temperature_c: 'Температура, °C',
+  pressure_bar: 'Давление, бар',
+  level_m: 'Уровень, м',
+  level_percent: 'Уровень, %',
+  setpoint_level: 'Уставка уровня',
+  reflux_ratio: 'Флегмовое число',
+  u: 'Коэф. теплопередачи',
+  cv: 'Коэф. пропуска (Cv)',
+  area: 'Площадь сечения',
+  vessel_area: 'Площадь ёмкости',
+  nominal_flow: 'Номинальный расход',
+  nominal_volumetric_flow_m3_s: 'Номин. объёмный расход, м³/с',
+  num_stages: 'Число тарелок',
+  num_inputs: 'Число входов',
+  num_outputs: 'Число выходов',
+  feed_stage: 'Тарелка питания',
+  design_delta_p: 'Расчётный перепад давления',
+  efficiency_nominal: 'КПД номинальный',
+  flow_coefficient_si: 'Коэф. расхода (СИ)',
+  max_heat_duty: 'Макс. тепловая нагрузка',
+  response_rate: 'Скорость отклика',
+  response_tau: 'Постоянная времени',
+  initial_running: 'Нач. состояние',
+  initial_position: 'Нач. положение',
+  initial_open: 'Нач. открытие',
+  initial_fuel_flow: 'Нач. расход топлива',
+  initial_reflux_ratio: 'Нач. флегмовое число',
+  level_mode: 'Режим уровня',
+  preset: 'Пресет',
+  mnemo: 'Мнемосхема',
+};
+
+export function attrLabel(v: string): string {
+  return ATTR_LABEL[v] ?? v;
+}
+
+export const RELATION_LABEL: Record<string, string> = {
+  '==': 'равно',
+  '!=': 'не равно',
+  '>': 'больше',
+  '<': 'меньше',
+  '>=': 'больше или равно',
+  '<=': 'меньше или равно',
+  between: 'между',
+};
+
+export function relationLabel(v: string): string {
+  return RELATION_LABEL[v] ?? v;
+}
 
 export function equipmentOpts(equipment: EquipmentItem[]): { value: string; label: string }[] {
   return equipment.map((e) => ({ value: e.id, label: `${e.name} · ${e.id}` }));
@@ -189,8 +262,8 @@ export function AttrSelect({ equipment, value, onChange, width }: {
   return (
     <select className="scenario-select" style={width ? { width } : undefined} value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">— атрибут —</option>
-      {known && <option value={value}>{value}</option>}
-      {opts.map((a) => <option key={a} value={a}>{a}</option>)}
+      {known && <option value={value}>{attrLabel(value)}</option>}
+      {opts.map((a) => <option key={a} value={a}>{attrLabel(a)}</option>)}
     </select>
   );
 }
@@ -374,6 +447,9 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
   const [equipmentIds, setEquipmentIds] = useState<string[]>(scenario?.equipment_ids ?? []);
   const [initialState, setInitialState] = useState(scenario?.initial_state ? JSON.stringify(scenario.initial_state, null, 2) : '{}');
   const [finalState, setFinalState] = useState(scenario?.final_state ? JSON.stringify(scenario.final_state, null, 2) : '{}');
+  const [finalStateEnabled, setFinalStateEnabled] = useState(
+    !!(scenario?.final_state && Object.keys(scenario.final_state).length > 0),
+  );
   const [events, setEvents] = useState<EventRow[]>(
     (scenario?.events ?? []).map((e, i) => ({ ...e, rowKey: i })),
   );
@@ -401,7 +477,7 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
   const save = () => {
     if (!title.trim()) return notifyToast('Укажите название сценария');
     const init = tryJson(initialState);
-    const fin = tryJson(finalState);
+    const fin = finalStateEnabled ? tryJson(finalState) : { ok: true, error: '' };
     if (!init.ok) return notifyToast(`Начальное состояние: ${init.error}`);
     if (!fin.ok) return notifyToast(`Финальное состояние: ${fin.error}`);
     onSave({
@@ -413,9 +489,9 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
       competency_codes: competencyCodes,
       equipment_ids: equipmentIds,
       initial_state: JSON.parse(initialState || '{}'),
-      final_state: JSON.parse(finalState || '{}'),
+      final_state: finalStateEnabled ? JSON.parse(finalState || '{}') : {},
       events: events.map(({ rowKey: _k, ...e }) => ({ ...e, time: Number(e.time) || 0, value: numOr(asString(e.value)) })),
-      expected_actions: expectedActions.map(({ rowKey: _k, ...a }) => ({ ...a, value: numOr(asString(a.value)) })),
+      expected_actions: expectedActions.map(({ rowKey: _k, ...a }) => ({ ...a, value: numOr(asString(a.value)), deadline_t: deadlineNum(a.deadline_t) })),
       success_criteria: successCriteria.map(({ rowKey: _k, ...c }) => ({ ...c, weight: Number(c.weight) || 1 })),
       critical_errors: criticalErrors.map(({ rowKey: _k, ...r }) => ({ ...r, value: numOr(asString(r.value)) })),
       target_state: targetState.map(({ rowKey: _k, ...c }) => ({
@@ -476,7 +552,13 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
         <div className="card-title">НАЧАЛЬНОЕ И ФИНАЛЬНОЕ СОСТОЯНИЕ</div>
         <div className="sc-hint" style={{ marginBottom: 4 }}>Задайте настройку оборудования на старте и к моменту завершения практики. Поля, которые не трогали, в состояние не попадают.</div>
         <StateEditor label="Начальное состояние" hint="Параметры установки на момент старта практики" equipment={equipment} value={initialState} onChange={setInitialState} />
-        <StateEditor label="Финальное состояние" hint="Требуемые параметры для успешного завершения" equipment={equipment} value={finalState} onChange={setFinalState} />
+        <label className="form-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, textTransform: 'none', marginTop: 6 }}>
+          <input type="checkbox" checked={finalStateEnabled} onChange={(e) => setFinalStateEnabled(e.target.checked)} />
+          Финальное состояние (можно не задавать)
+        </label>
+        {finalStateEnabled && (
+          <StateEditor label="Финальное состояние" hint="Требуемые параметры для успешного завершения" equipment={equipment} value={finalState} onChange={setFinalState} />
+        )}
 
         <div className="sc-sep" />
 
@@ -486,7 +568,7 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
           <span style={{ width: 120 }}>Параметр</span>
           <span style={{ width: 90 }}>Операция</span>
           <span style={{ width: 90 }}>Значение</span>
-          <span style={{ width: 90 }}>До (для between)</span>
+          <span style={{ width: 90 }}>До (для «между»)</span>
           <span style={{ flex: 1 }}></span>
         </div>
         <div className="col" style={{ gap: 6 }}>
@@ -495,7 +577,7 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
               <ObjectSelect equipment={equipment} width={170} value={c.object_id} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, object_id: v } : x))} />
               <AttrSelect equipment={equipment} width={120} value={c.attribute} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, attribute: v } : x))} />
               <select className="scenario-select" style={{ width: 90 }} value={c.relation} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, relation: e.target.value } : x))}>
-                {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                {RELATIONS.map((r) => <option key={r} value={r}>{relationLabel(r)}</option>)}
               </select>
               <input className="form-input" style={{ width: 90 }} placeholder="значение" value={asString(c.value)} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, value: e.target.value } : x))} />
               {c.relation === 'between' && (
@@ -527,7 +609,7 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
                 {EVENT_TYPES.map((t) => <option key={t} value={t} title={EVENT_TYPE_HINT[t]}>{typeLabel(t)}</option>)}
               </select>
               <ObjectSelect equipment={equipment} width={170} value={ev.object_id} onChange={(v) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, object_id: v } : x))} />
-              <input className="form-input" style={{ width: 100 }} placeholder="параметр" value={ev.param} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, param: e.target.value } : x))} />
+              <AttrSelect equipment={equipment} width={100} value={ev.param} onChange={(v) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, param: v } : x))} />
               <input className="form-input" style={{ width: 80 }} placeholder="значение" value={asString(ev.value)} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, value: e.target.value } : x))} />
               <input className="form-input" style={{ flex: 1, minWidth: 140 }} placeholder="напр.: Отказ насоса Н-1" value={ev.message} onChange={(e) => setEvents((rs) => rs.map((x) => x.rowKey === ev.rowKey ? { ...x, message: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setEvents((rs) => rs.filter((x) => x.rowKey !== ev.rowKey))}>✕</button>
@@ -538,12 +620,14 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
 
         <div className="sc-sep" />
 
-        <SectionTitle title="ОЖИДАЕМЫЕ ДЕЙСТВИЯ ОПЕРАТОРА" hint="Что оператор должен сделать в ходе практики. Порядок нумеруется автоматически." />
+        <SectionTitle title="ОЖИДАЕМЫЕ ДЕЙСТВИЯ ОПЕРАТОРА" hint="Что оператор должен сделать в ходе практики. Порядок нумеруется автоматически. «Срок, с» — время на выполнение действия с начала практики; если не указано, контроль по сроку не применяется." />
         <div className="sc-col-head">
           <span style={{ width: 26 }}>№</span>
           <span style={{ width: 130 }}>Объект</span>
           <span style={{ width: 150 }}>Действие</span>
+          <span style={{ width: 110 }}>Параметр</span>
           <span style={{ width: 80 }}>Значение</span>
+          <span style={{ width: 70 }}>Срок, с</span>
           <span style={{ flex: 1 }}>Пояснение</span>
         </div>
         <div className="col" style={{ gap: 6 }}>
@@ -555,12 +639,18 @@ export function ScenarioModal({ scenario, equipment, competencies, onSave, onClo
                 <option value="">— действие —</option>
                 {ACTION_TYPES.map((t) => <option key={t} value={t}>{actionLabel(t)}</option>)}
               </select>
-              <input className="form-input" style={{ width: 80 }} placeholder="значение" value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
+              <AttrSelect equipment={equipment} width={110} value={a.attribute ?? ''} onChange={(v) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, attribute: v } : x))} />
+              {isDirectionalAction(a.action_type) ? (
+                <span className="sc-hint" style={{ width: 80 }}>↑/↓</span>
+              ) : (
+                <input className="form-input" style={{ width: 80 }} placeholder="значение" value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
+              )}
+              <input className="form-input" style={{ width: 70 }} type="number" min={0} placeholder="не ограничено" title="Время на выполнение действия, с" value={a.deadline_t == null ? '' : String(a.deadline_t)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, deadline_t: e.target.value === '' ? null : Number(e.target.value) } : x))} />
               <input className="form-input" style={{ flex: 1, minWidth: 140 }} placeholder="пояснение" value={a.description} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, description: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setExpectedActions((rs) => rs.filter((x) => x.rowKey !== a.rowKey))}>✕</button>
             </div>
           ))}
-          <button className="btn" onClick={() => setExpectedActions((rs) => [...rs, { seq: rs.length + 1, object_id: '', action_type: 'TURN_ON', value: '', description: '', deadline_t: null, weight: 1, rowKey: nextExp }])}>+ Действие</button>
+          <button className="btn" onClick={() => setExpectedActions((rs) => [...rs, { seq: rs.length + 1, object_id: '', action_type: 'TURN_ON', attribute: '', value: '', description: '', deadline_t: null, weight: 1, rowKey: nextExp }])}>+ Действие</button>
         </div>
 
         <div className="sc-sep" />

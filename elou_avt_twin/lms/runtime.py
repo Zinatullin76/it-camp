@@ -19,7 +19,10 @@ Registered by api_server.configure_runtime(...) after the twin is created:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger("lms.runtime")
 
 _twin: Any = None
 _scheme_store: Any = None
@@ -60,6 +63,36 @@ def get_session_recorder() -> Any:
 
 def get_inputs() -> Dict[str, float]:
     return _inputs
+
+
+def restore_alarm_setpoints() -> None:
+    """Re-apply operator-saved alarm overrides from the database.
+
+    ``twin.create_simulation()`` builds a fresh engine whose
+    ``_alarm_setpoint_overrides`` are empty, so setpoints saved through
+    ``PUT /alarms/setpoints`` would be silently dropped on the next practice
+    or scenario start. Call right after every ``create_simulation()``.
+    """
+    twin = get_twin()
+    if twin is None or twin._engine is None:
+        return
+    try:
+        from persistence.session_store import SessionStore
+        store = SessionStore()
+        try:
+            restored = 0
+            for sp in store.load_alarm_setpoints():
+                if twin._engine.restore_alarm_setpoint(
+                    sp["parameter"], sp["low_low"], sp["low"], sp["high"],
+                    sp["high_high"], sp["unit"] or "",
+                ):
+                    restored += 1
+            if restored:
+                logger.info("Restored %d saved alarm setpoint(s).", restored)
+        finally:
+            store.close()
+    except Exception:
+        logger.exception("Failed to restore alarm setpoints")
 
 
 def node_telemetry() -> Dict[str, Dict[str, Any]]:

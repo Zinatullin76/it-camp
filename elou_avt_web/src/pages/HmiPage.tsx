@@ -539,7 +539,7 @@ function HmiInner() {
       if (!type) return;
       const preset = e.dataTransfer.getData('application/elou-preset') || undefined;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const node = createNode(type, pos.x, pos.y, preset);
+      const node = createNode(type, pos.x, pos.y, preset, nodes.map((n) => n.id));
       setNodes((nds) => [
         ...nds,
         {
@@ -561,7 +561,7 @@ function HmiInner() {
       setSelectedId(node.id);
       notify(`Добавлен объект «${node.name}»`);
     },
-    [screenToFlowPosition, setNodes, notify],
+    [screenToFlowPosition, setNodes, notify, nodes],
   );
 
   const onConnect = useCallback(
@@ -662,13 +662,13 @@ function HmiInner() {
       kind: (e.data as { phase?: string } | undefined)?.phase ?? 'crude',
     }));
     try {
-      const state = await api.saveScheme(sn, se);
+      const state = await api.saveScheme(sn, se, currentScheme, currentScheme);
       applyTelemetry(state);
-      notify(`Схема сохранена (${sn.length} объектов, ${se.length} связей)`);
+      notify(`Схема «${currentScheme}» сохранена (${sn.length} объектов, ${se.length} связей)`);
     } catch (err) {
       notify(`Ошибка сохранения: ${String(err)}`);
     }
-  }, [nodes, edges, applyTelemetry, notify]);
+  }, [nodes, edges, applyTelemetry, notify, currentScheme]);
 
   const loadDefault = useCallback(async () => {
     const scheme = await api.getScheme();
@@ -798,12 +798,25 @@ function HmiInner() {
     async (equipmentId: string, params: Record<string, number>) => {
       try {
         applyTelemetry(await api.updateEquipmentParams(equipmentId, params));
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === equipmentId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    schemeParams: { ...(n.data as EquipmentNodeData).schemeParams, ...params },
+                  },
+                }
+              : n,
+          ),
+        );
         notify('Физические свойства обновлены');
       } catch {
         notify('Ошибка обновления свойств');
       }
     },
-    [applyTelemetry, notify],
+    [applyTelemetry, notify, setNodes],
   );
 
   const onUpdateSchemeParam = useCallback(

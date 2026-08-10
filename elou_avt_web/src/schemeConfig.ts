@@ -162,17 +162,40 @@ export function defaultName(type: string): string {
 }
 
 let counter = 0;
-export function nextId(type: string): string {
+/** Сгенерировать уникальный id объекта (prefix_n), не пересекающийся с уже
+ *  существующими. Схемы, загруженные с бэкенда, имеют свои id (source_5,
+ *  col_32, ...), поэтому простой счётчик-инкремент может выдать дубликат:
+ *  новый узел затирает существующий с тем же id, и его связи «сами собой»
+ *  переезжают на новый элемент. */
+export function nextId(type: string, taken?: Iterable<string>): string {
   counter += 1;
   const prefix = type === 'source' || type === 'sink' ? type : type.slice(0, 3);
-  return `${prefix}_${counter}`;
+  const used = new Set(taken ?? []);
+  let max = counter;
+  for (const id of used) {
+    if (!id.startsWith(`${prefix}_`)) continue;
+    const n = Number(id.slice(prefix.length + 1));
+    if (Number.isFinite(n)) max = Math.max(max, n + 1);
+  }
+  let id = `${prefix}_${max}`;
+  while (used.has(id)) {
+    max += 1;
+    id = `${prefix}_${max}`;
+  }
+  return id;
 }
 
 /** Создать узел. Для детальных колонн передаётся ключ пресета (k1..k4):
  *  в params кладётся конфиг мнемосимвола (detail), число тарелок и стадия питания. */
-export function createNode(type: string, x: number, y: number, preset?: string): SchemeNodeData {
+export function createNode(
+  type: string,
+  x: number,
+  y: number,
+  preset?: string,
+  existingIds?: Iterable<string>,
+): SchemeNodeData {
   const node: SchemeNodeData = {
-    id: nextId(type),
+    id: nextId(type, existingIds),
     type,
     name: defaultName(type),
     x: 0,

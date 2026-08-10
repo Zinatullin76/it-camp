@@ -12,6 +12,7 @@ import type {
 } from '../../types';
 import ScadaScheme from '../../scada/ScadaScheme';
 import { useSimulation } from '../../lms/sim';
+import { actionLabel, attrLabel } from '../../lms/scenarioEditor';
 import {
   Bar,
   Card,
@@ -54,16 +55,24 @@ function PracticeFrame({ moduleId, onDone }: {
   const sim = useSimulation();
   const { user } = useAuth();
   const [sessionId, setSessionId] = useState('');
+  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const started = useRef(false);
+  const readySession = useRef('');
 
   const run = async () => {
+    if (started.current) return;
+    started.current = true;
     setError('');
+    setReady(false);
+    readySession.current = '';
     try {
       const s = await api.lmsPracticeStart(moduleId);
       setSessionId(s.session_id);
       await sim.refresh();
     } catch (e) {
+      started.current = false;
       setError(e instanceof Error ? e.message : String(e));
     }
   };
@@ -72,6 +81,19 @@ function PracticeFrame({ moduleId, onDone }: {
     void run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const markReady = async () => {
+    if (!sessionId || readySession.current === sessionId) return;
+    readySession.current = sessionId;
+    try {
+      await api.lmsPracticeReady(sessionId);
+      await sim.refresh();
+      setReady(true);
+    } catch (e) {
+      readySession.current = '';
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   const finish = async () => {
     if (!sessionId) return;
@@ -98,7 +120,7 @@ function PracticeFrame({ moduleId, onDone }: {
         <span className={`chip ${(sim.live?.alarms?.length ?? 0) > 0 ? 'chip-alarm' : 'chip-ok'}`}>
           ⚠ {(sim.live?.alarms?.length ?? 0)} аварий
         </span>
-        <button className="btn btn-start" disabled={busy || !sessionId} onClick={() => void finish()}>
+        <button className="btn btn-start" disabled={busy || !sessionId || !ready} onClick={() => void finish()}>
           Завершить задание
         </button>
       </div>
@@ -110,8 +132,10 @@ function PracticeFrame({ moduleId, onDone }: {
       ) : (
         <div className="mnemo-wrap">
           <ScadaScheme
+            key={sessionId}
             live={sim.live}
             user={user?.username}
+            onReady={() => void markReady()}
           />
         </div>
       )}
@@ -522,7 +546,7 @@ export default function ModuleStudyPage() {
               <div className="col" style={{ gap: 4, marginBottom: 14 }}>
                 {study.task?.expected_actions.map((a, i) => (
                   <div key={i} className="muted" style={{ fontSize: 12 }}>
-                    {i + 1}. {a.action_type} → {a.object_id} {a.description ? `(${a.description})` : ''}
+                    {i + 1}. {actionLabel(a.action_type)} → {a.object_id} {a.attribute ? ` (${attrLabel(a.attribute)})` : ''} {a.description ? `(${a.description})` : ''}
                   </div>
                 ))}
               </div>

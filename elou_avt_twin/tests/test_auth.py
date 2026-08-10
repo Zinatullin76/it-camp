@@ -83,7 +83,7 @@ def test_seed_accounts_and_permission_catalog(svc):
     assert svc.authenticate("operator", "operator") is not None
     assert svc.authenticate("unknown", "x") is None
     assert svc.authenticate("operator", "wrong") is None
-    assert len(PERMISSIONS) == 27
+    assert len(PERMISSIONS) == 39
     assert set(ROLE_PERMISSIONS) == {
         "administrator", "instructor", "operator",
     }

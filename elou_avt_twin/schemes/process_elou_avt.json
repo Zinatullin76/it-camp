@@ -1,0 +1,1698 @@
+{
+  "edges": [
+    {
+      "id": "e_feed_tank",
+      "kind": "process",
+      "source": "src_feed",
+      "source_port": "out",
+      "target": "tank_R11",
+      "target_port": "in"
+    },
+    {
+      "id": "e_tank_h1",
+      "kind": "process",
+      "source": "tank_R11",
+      "source_port": "out",
+      "target": "pump_H1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h1_fv1",
+      "kind": "process",
+      "source": "pump_H1",
+      "source_port": "out",
+      "target": "valve_FV1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_fv1_hx1",
+      "kind": "process",
+      "source": "valve_FV1",
+      "source_port": "out",
+      "target": "hx_T1",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_pogo_hx1",
+      "kind": "hot",
+      "source": "src_hot_pogo",
+      "source_port": "out",
+      "target": "hx_T1",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_hx1_elou1",
+      "kind": "process",
+      "source": "hx_T1",
+      "source_port": "cold_out",
+      "target": "elou_1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_elou1_elou2",
+      "kind": "process",
+      "source": "elou_1",
+      "source_port": "out",
+      "target": "elou_2",
+      "target_port": "in"
+    },
+    {
+      "id": "e_elou2_e15",
+      "kind": "process",
+      "source": "elou_2",
+      "source_port": "out",
+      "target": "sep_E15",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e15_h20",
+      "kind": "process",
+      "source": "sep_E15",
+      "source_port": "out",
+      "target": "pump_H20",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h20_hx17",
+      "kind": "process",
+      "source": "pump_H20",
+      "source_port": "out",
+      "target": "hx_T17",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_mazut_hx17",
+      "kind": "hot",
+      "source": "src_mazut",
+      "source_port": "out",
+      "target": "hx_T17",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_hx17_k1",
+      "kind": "process",
+      "source": "hx_T17",
+      "source_port": "cold_out",
+      "target": "column_K1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_hx1_hot_ret",
+      "kind": "process",
+      "source": "hx_T1",
+      "source_port": "hot_out",
+      "target": "sink_hot_ret",
+      "target_port": "in"
+    },
+    {
+      "id": "e_hx17_hot_ret",
+      "kind": "process",
+      "source": "hx_T17",
+      "source_port": "hot_out",
+      "target": "sink_hot_ret",
+      "target_port": "in"
+    },
+    {
+      "id": "e_elou1_brine",
+      "kind": "process",
+      "source": "elou_1",
+      "source_port": "brine",
+      "target": "sink_brine",
+      "target_port": "in"
+    },
+    {
+      "id": "e_elou2_brine",
+      "kind": "process",
+      "source": "elou_2",
+      "source_port": "brine",
+      "target": "sink_brine",
+      "target_port": "in"
+    },
+    {
+      "id": "e_brine_e16",
+      "kind": "process",
+      "source": "src_brine",
+      "source_port": "out",
+      "target": "sep_E16",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e16_brine",
+      "kind": "process",
+      "source": "sep_E16",
+      "source_port": "out",
+      "target": "sink_brine",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k1_cond1",
+      "kind": "process",
+      "source": "column_K1",
+      "source_port": "distillate",
+      "target": "hx_cond1",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_cw_cond1",
+      "kind": "cooling",
+      "source": "src_cw",
+      "source_port": "out",
+      "target": "hx_cond1",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_cond1_cw",
+      "kind": "process",
+      "source": "hx_cond1",
+      "source_port": "cold_out",
+      "target": "sink_cw_out",
+      "target_port": "in"
+    },
+    {
+      "id": "e_cond1_e1",
+      "kind": "process",
+      "source": "hx_cond1",
+      "source_port": "hot_out",
+      "target": "sep_E1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e1_h6",
+      "kind": "process",
+      "source": "sep_E1",
+      "source_port": "out",
+      "target": "pump_H6",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h6_k4",
+      "kind": "process",
+      "source": "pump_H6",
+      "source_port": "out",
+      "target": "column_K4",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k1_pv1",
+      "kind": "process",
+      "source": "column_K1",
+      "source_port": "distillate",
+      "target": "valve_PV1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_pv1_vap",
+      "kind": "process",
+      "source": "valve_PV1",
+      "source_port": "out",
+      "target": "sink_vapour",
+      "target_port": "in"
+    },
+    {
+      "id": "e_gas_k7",
+      "kind": "process",
+      "source": "src_gas",
+      "source_port": "out",
+      "target": "column_K7",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k7_offgas",
+      "kind": "process",
+      "source": "column_K7",
+      "source_port": "distillate",
+      "target": "sink_offgas",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k7_k1",
+      "kind": "process",
+      "source": "column_K7",
+      "source_port": "bottoms",
+      "target": "column_K1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k1_h2",
+      "kind": "process",
+      "source": "column_K1",
+      "source_port": "bottoms",
+      "target": "pump_H2",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h2_p1",
+      "kind": "process",
+      "source": "pump_H2",
+      "source_port": "out",
+      "target": "furnace_P1",
+      "target_port": "in"
+    },
+    {
+      "id": "e_p1_k2",
+      "kind": "process",
+      "source": "furnace_P1",
+      "source_port": "out",
+      "target": "column_K2",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k2_cond2",
+      "kind": "process",
+      "source": "column_K2",
+      "source_port": "distillate",
+      "target": "hx_cond2",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_cw_cond2",
+      "kind": "cooling",
+      "source": "src_cw",
+      "source_port": "out",
+      "target": "hx_cond2",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_cond2_cw",
+      "kind": "process",
+      "source": "hx_cond2",
+      "source_port": "cold_out",
+      "target": "sink_cw_out",
+      "target_port": "in"
+    },
+    {
+      "id": "e_cond2_e2",
+      "kind": "process",
+      "source": "hx_cond2",
+      "source_port": "hot_out",
+      "target": "sep_E2",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e2_benzene",
+      "kind": "process",
+      "source": "sep_E2",
+      "source_port": "out",
+      "target": "sink_benzene",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k2_pv2",
+      "kind": "process",
+      "source": "column_K2",
+      "source_port": "distillate",
+      "target": "valve_PV2",
+      "target_port": "in"
+    },
+    {
+      "id": "e_pv2_vap",
+      "kind": "process",
+      "source": "valve_PV2",
+      "source_port": "out",
+      "target": "sink_vapour",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k2_h4",
+      "kind": "process",
+      "source": "column_K2",
+      "source_port": "bottoms",
+      "target": "pump_H4",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h4_k31",
+      "kind": "process",
+      "source": "pump_H4",
+      "source_port": "out",
+      "target": "column_K31",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k31_fv13",
+      "kind": "process",
+      "source": "column_K31",
+      "source_port": "distillate",
+      "target": "valve_FV13",
+      "target_port": "in"
+    },
+    {
+      "id": "e_fv13_reactor",
+      "kind": "process",
+      "source": "valve_FV13",
+      "source_port": "out",
+      "target": "reactor_K124",
+      "target_port": "in"
+    },
+    {
+      "id": "e_reactor_k12",
+      "kind": "process",
+      "source": "reactor_K124",
+      "source_port": "out",
+      "target": "column_K12",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k31_k32",
+      "kind": "process",
+      "source": "column_K31",
+      "source_port": "bottoms",
+      "target": "column_K32",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k32_diesel",
+      "kind": "process",
+      "source": "column_K32",
+      "source_port": "distillate",
+      "target": "sink_diesel",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k32_k33",
+      "kind": "process",
+      "source": "column_K32",
+      "source_port": "bottoms",
+      "target": "column_K33",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k33_gasoil",
+      "kind": "process",
+      "source": "column_K33",
+      "source_port": "distillate",
+      "target": "sink_gasoil",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k33_fuel",
+      "kind": "process",
+      "source": "column_K33",
+      "source_port": "bottoms",
+      "target": "sink_fuel_oil",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k12_c1k",
+      "kind": "process",
+      "source": "column_K12",
+      "source_port": "distillate",
+      "target": "sep_C1K",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k12_product",
+      "kind": "process",
+      "source": "column_K12",
+      "source_port": "bottoms",
+      "target": "sink_kerosene",
+      "target_port": "in"
+    },
+    {
+      "id": "e_c1k_product",
+      "kind": "process",
+      "source": "sep_C1K",
+      "source_port": "out",
+      "target": "sink_kerosene",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k4_cond4",
+      "kind": "process",
+      "source": "column_K4",
+      "source_port": "distillate",
+      "target": "hx_cond4",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_cw_cond4",
+      "kind": "cooling",
+      "source": "src_cw",
+      "source_port": "out",
+      "target": "hx_cond4",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_cond4_cw",
+      "kind": "process",
+      "source": "hx_cond4",
+      "source_port": "cold_out",
+      "target": "sink_cw_out",
+      "target_port": "in"
+    },
+    {
+      "id": "e_cond4_e3",
+      "kind": "process",
+      "source": "hx_cond4",
+      "source_port": "hot_out",
+      "target": "sep_E3",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e3_stabgas",
+      "kind": "process",
+      "source": "sep_E3",
+      "source_port": "out",
+      "target": "sink_stabgas",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k4_pv4",
+      "kind": "process",
+      "source": "column_K4",
+      "source_port": "distillate",
+      "target": "valve_PV4",
+      "target_port": "in"
+    },
+    {
+      "id": "e_pv4_stabgas",
+      "kind": "process",
+      "source": "valve_PV4",
+      "source_port": "out",
+      "target": "sink_vapour",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k4_p3",
+      "kind": "process",
+      "source": "column_K4",
+      "source_port": "bottoms",
+      "target": "furnace_P3",
+      "target_port": "in"
+    },
+    {
+      "id": "e_p3_k9",
+      "kind": "process",
+      "source": "furnace_P3",
+      "source_port": "out",
+      "target": "column_K9",
+      "target_port": "in"
+    },
+    {
+      "id": "e_naphtha_r13",
+      "kind": "process",
+      "source": "src_naphtha",
+      "source_port": "out",
+      "target": "tank_R13",
+      "target_port": "in"
+    },
+    {
+      "id": "e_r13_k9",
+      "kind": "process",
+      "source": "tank_R13",
+      "source_port": "out",
+      "target": "column_K9",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k9_fv12",
+      "kind": "process",
+      "source": "column_K9",
+      "source_port": "distillate",
+      "target": "valve_FV12",
+      "target_port": "in"
+    },
+    {
+      "id": "e_fv12_cond9",
+      "kind": "process",
+      "source": "valve_FV12",
+      "source_port": "out",
+      "target": "hx_cond9",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_cw_cond9",
+      "kind": "cooling",
+      "source": "src_cw",
+      "source_port": "out",
+      "target": "hx_cond9",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_cond9_cw",
+      "kind": "process",
+      "source": "hx_cond9",
+      "source_port": "cold_out",
+      "target": "sink_cw_out",
+      "target_port": "in"
+    },
+    {
+      "id": "e_cond9_e18",
+      "kind": "process",
+      "source": "hx_cond9",
+      "source_port": "hot_out",
+      "target": "sep_E18",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e18_62",
+      "kind": "process",
+      "source": "sep_E18",
+      "source_port": "out",
+      "target": "sink_62",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k9_p4a",
+      "kind": "process",
+      "source": "column_K9",
+      "source_port": "bottoms",
+      "target": "furnace_P4a",
+      "target_port": "in"
+    },
+    {
+      "id": "e_p4a_k10",
+      "kind": "process",
+      "source": "furnace_P4a",
+      "source_port": "out",
+      "target": "column_K10",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k10_fv11",
+      "kind": "process",
+      "source": "column_K10",
+      "source_port": "distillate",
+      "target": "valve_FV11",
+      "target_port": "in"
+    },
+    {
+      "id": "e_fv11_cond10",
+      "kind": "process",
+      "source": "valve_FV11",
+      "source_port": "out",
+      "target": "hx_cond10",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "e_cw_cond10",
+      "kind": "cooling",
+      "source": "src_cw",
+      "source_port": "out",
+      "target": "hx_cond10",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "e_cond10_cw",
+      "kind": "process",
+      "source": "hx_cond10",
+      "source_port": "cold_out",
+      "target": "sink_cw_out",
+      "target_port": "in"
+    },
+    {
+      "id": "e_cond10_e17",
+      "kind": "process",
+      "source": "hx_cond10",
+      "source_port": "hot_out",
+      "target": "sep_E17",
+      "target_port": "in"
+    },
+    {
+      "id": "e_e17_105",
+      "kind": "process",
+      "source": "sep_E17",
+      "source_port": "out",
+      "target": "sink_105",
+      "target_port": "in"
+    },
+    {
+      "id": "e_k10_h58",
+      "kind": "process",
+      "source": "column_K10",
+      "source_port": "bottoms",
+      "target": "pump_H58",
+      "target_port": "in"
+    },
+    {
+      "id": "e_h58_p4b",
+      "kind": "process",
+      "source": "pump_H58",
+      "source_port": "out",
+      "target": "furnace_P4b",
+      "target_port": "in"
+    },
+    {
+      "id": "e_p4b_105_180",
+      "kind": "process",
+      "source": "furnace_P4b",
+      "source_port": "out",
+      "target": "sink_105_180",
+      "target_port": "in"
+    }
+  ],
+  "id": "process_elou_avt",
+  "name": "ЭЛОУ-АВТ-4 / полная технологическая схема",
+  "nodes": [
+    {
+      "id": "src_feed",
+      "name": "Сырая нефть (сырьё)",
+      "params": {
+        "composition": {
+          "frac_105_180": 0.1,
+          "frac_180_240": 0.13,
+          "frac_240_300": 0.12,
+          "frac_300_350": 0.1,
+          "frac_62_105": 0.04,
+          "frac_mazut": 0.4,
+          "frac_nk62": 0.02,
+          "salt": 0.03,
+          "water": 0.06
+        },
+        "flow_kg_s": 100.0,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25.0
+      },
+      "type": "source",
+      "x": 40.0,
+      "y": 420.0
+    },
+    {
+      "id": "src_hot_pogo",
+      "name": "Горячие погоны К-2/К-3 (рекуперация)",
+      "params": {
+        "composition": {
+          "frac_105_180": 0.3,
+          "frac_180_240": 0.4,
+          "frac_240_300": 0.2,
+          "frac_300_350": 0.08,
+          "water": 0.02
+        },
+        "flow_kg_s": 60.0,
+        "pressure_bar": 1.5,
+        "temperature_c": 200.0
+      },
+      "type": "source",
+      "x": 40.0,
+      "y": 60.0
+    },
+    {
+      "id": "src_mazut",
+      "name": "Мазут (циркуляция)",
+      "params": {
+        "composition": {
+          "frac_mazut": 0.96,
+          "salt": 0.02,
+          "water": 0.02
+        },
+        "flow_kg_s": 60.0,
+        "pressure_bar": 2.0,
+        "temperature_c": 300.0
+      },
+      "type": "source",
+      "x": 40.0,
+      "y": 160.0
+    },
+    {
+      "id": "src_cw",
+      "name": "Оборотная вода",
+      "params": {
+        "composition": {
+          "water": 1.0
+        },
+        "flow_kg_s": 300.0,
+        "pressure_bar": 3.0,
+        "temperature_c": 20.0
+      },
+      "type": "source",
+      "x": 40.0,
+      "y": 640.0
+    },
+    {
+      "id": "src_gas",
+      "name": "Газ из Е-1 / топливный газ",
+      "params": {
+        "composition": {
+          "frac_62_105": 0.3,
+          "frac_nk62": 0.6,
+          "water": 0.1
+        },
+        "flow_kg_s": 10.0,
+        "pressure_bar": 2.0,
+        "temperature_c": 40.0
+      },
+      "type": "source",
+      "x": 1960.0,
+      "y": 40.0
+    },
+    {
+      "id": "src_brine",
+      "name": "Солёная вода с ЭЛОУ",
+      "params": {
+        "composition": {
+          "salt": 0.1,
+          "water": 0.9
+        },
+        "flow_kg_s": 8.0,
+        "pressure_bar": 3.0,
+        "temperature_c": 100.0
+      },
+      "type": "source",
+      "x": 40.0,
+      "y": 560.0
+    },
+    {
+      "id": "src_naphtha",
+      "name": "Нестабильный бензин с установок",
+      "params": {
+        "composition": {
+          "frac_105_180": 0.2,
+          "frac_62_105": 0.4,
+          "frac_nk62": 0.3,
+          "water": 0.1
+        },
+        "flow_kg_s": 30.0,
+        "pressure_bar": 1.5,
+        "temperature_c": 40.0
+      },
+      "type": "source",
+      "x": 2050.0,
+      "y": 700.0
+    },
+    {
+      "id": "pump_H1",
+      "name": "Н-1 сырьевые насосы",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 0.12
+      },
+      "type": "pump",
+      "x": 300.0,
+      "y": 420.0
+    },
+    {
+      "id": "pump_H20",
+      "name": "Н-20 подача обессоленной нефти в К-1",
+      "params": {
+        "nominal_flow": 0.12
+      },
+      "type": "pump",
+      "x": 1500.0,
+      "y": 420.0
+    },
+    {
+      "id": "pump_H6",
+      "name": "Н-6 нестабильный бензин в К-4",
+      "params": {
+        "nominal_flow": 0.05
+      },
+      "type": "pump",
+      "x": 820.0,
+      "y": 260.0
+    },
+    {
+      "id": "pump_H2",
+      "name": "Н-2/Н-3 отбензиненная нефть в печи",
+      "params": {
+        "nominal_flow": 0.1
+      },
+      "type": "pump",
+      "x": 1820.0,
+      "y": 580.0
+    },
+    {
+      "id": "pump_H4",
+      "name": "Н-4 откачка мазута из К-2",
+      "params": {
+        "nominal_flow": 0.08
+      },
+      "type": "pump",
+      "x": 2380.0,
+      "y": 480.0
+    },
+    {
+      "id": "pump_H58",
+      "name": "Н-58 фр. 105–180 °С из К-10",
+      "params": {
+        "nominal_flow": 0.03
+      },
+      "type": "pump",
+      "x": 3700.0,
+      "y": 380.0
+    },
+    {
+      "id": "valve_FV1",
+      "name": "FV-1/2/3 подача сырья",
+      "params": {
+        "cv": 0.02,
+        "initial_position": 0.6,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 480.0,
+      "y": 420.0
+    },
+    {
+      "id": "valve_PV1",
+      "name": "PV-1 давление верха К-1",
+      "params": {
+        "cv": 0.0022,
+        "initial_position": 0.5,
+        "response_rate": 0.15
+      },
+      "type": "valve",
+      "x": 1480.0,
+      "y": 180.0
+    },
+    {
+      "id": "valve_PV2",
+      "name": "PV-2 давление верха К-2",
+      "params": {
+        "cv": 0.0022,
+        "initial_position": 0.5,
+        "response_rate": 0.15
+      },
+      "type": "valve",
+      "x": 2320.0,
+      "y": 60.0
+    },
+    {
+      "id": "valve_PV4",
+      "name": "PV-4 давление верха К-4",
+      "params": {
+        "cv": 0.0012,
+        "initial_position": 0.5,
+        "response_rate": 0.15
+      },
+      "type": "valve",
+      "x": 1980.0,
+      "y": 160.0
+    },
+    {
+      "id": "valve_FV12",
+      "name": "FV-12 орошение/отбор НК–62 (К-9)",
+      "params": {
+        "cv": 0.0022,
+        "initial_position": 0.7,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 2920.0,
+      "y": 120.0
+    },
+    {
+      "id": "valve_FV11",
+      "name": "FV-11 орошение/отбор 62–105 (К-10)",
+      "params": {
+        "cv": 0.0021,
+        "initial_position": 0.7,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 3520.0,
+      "y": 120.0
+    },
+    {
+      "id": "valve_FV13",
+      "name": "FV-13 отбор фр. 140–240 на К-12",
+      "params": {
+        "cv": 0.0019,
+        "initial_position": 0.8,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 2600.0,
+      "y": 620.0
+    },
+    {
+      "id": "hx_T1",
+      "name": "Т-1…Т-11 подогрев сырой нефти",
+      "params": {
+        "area": 250.0,
+        "u": 300.0
+      },
+      "type": "heat_exchanger",
+      "x": 680.0,
+      "y": 420.0
+    },
+    {
+      "id": "hx_T17",
+      "name": "Т-17/Т-19/Т-22 подогрев обессоленной нефти",
+      "params": {
+        "area": 300.0,
+        "u": 300.0
+      },
+      "type": "heat_exchanger",
+      "x": 1680.0,
+      "y": 420.0
+    },
+    {
+      "id": "hx_cond1",
+      "name": "Х-1/3–Х-1/5, АВЗ-3 конденсация верха К-1",
+      "params": {
+        "area": 200.0,
+        "u": 400.0
+      },
+      "type": "heat_exchanger",
+      "x": 900.0,
+      "y": 140.0
+    },
+    {
+      "id": "hx_cond2",
+      "name": "Х-2/3–Х-2/5, АВЗ-4/5 конденсация верха К-2",
+      "params": {
+        "area": 200.0,
+        "u": 400.0
+      },
+      "type": "heat_exchanger",
+      "x": 2440.0,
+      "y": 140.0
+    },
+    {
+      "id": "hx_cond4",
+      "name": "Х-4/1–Х-4/3 конденсация ПБФ (К-4)",
+      "params": {
+        "area": 150.0,
+        "u": 400.0
+      },
+      "type": "heat_exchanger",
+      "x": 2050.0,
+      "y": 240.0
+    },
+    {
+      "id": "hx_cond9",
+      "name": "АВЗ-1/2, Х-20, Х-21/1 конденсация НК–62 (К-9)",
+      "params": {
+        "area": 120.0,
+        "u": 400.0
+      },
+      "type": "heat_exchanger",
+      "x": 3120.0,
+      "y": 120.0
+    },
+    {
+      "id": "hx_cond10",
+      "name": "Х-22, Х-21/2 конденсация 62–105 (К-10)",
+      "params": {
+        "area": 120.0,
+        "u": 400.0
+      },
+      "type": "heat_exchanger",
+      "x": 3720.0,
+      "y": 120.0
+    },
+    {
+      "id": "elou_1",
+      "name": "Э-1/Э-3/Э-5 ЭЛОУ 1-я ступень",
+      "params": {
+        "initial_level": 4.0,
+        "limits": {
+          "level_low": 3.8,
+          "level_low_low": 3.5,
+          "pressure_high": 980665.0,
+          "pressure_high_high": 1176798.0,
+          "pressure_low": 441299.25,
+          "pressure_low_low": 392266.0,
+          "temperature_high": 413.15,
+          "temperature_high_high": 423.15
+        },
+        "salt_efficiency": 0.9,
+        "vessel_area": 9.08,
+        "water_efficiency": 0.8
+      },
+      "type": "elou",
+      "x": 900.0,
+      "y": 420.0
+    },
+    {
+      "id": "elou_2",
+      "name": "Э-2/Э-4/Э-6 ЭЛОУ 2-я ступень",
+      "params": {
+        "initial_level": 4.0,
+        "limits": {
+          "level_low": 3.8,
+          "level_low_low": 3.5,
+          "pressure_high": 980665.0,
+          "pressure_high_high": 1176798.0,
+          "pressure_low": 441299.25,
+          "pressure_low_low": 392266.0,
+          "temperature_high": 413.15,
+          "temperature_high_high": 423.15
+        },
+        "salt_efficiency": 0.8,
+        "vessel_area": 9.08,
+        "water_efficiency": 0.7
+      },
+      "type": "elou",
+      "x": 1120.0,
+      "y": 420.0
+    },
+    {
+      "id": "tank_R11",
+      "name": "Р-11/Р-12 сырьевые резервуары",
+      "params": {
+        "initial_level": 2.5,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6
+        },
+        "vessel_area": 30.0
+      },
+      "type": "separator",
+      "x": 180.0,
+      "y": 420.0
+    },
+    {
+      "id": "tank_R13",
+      "name": "Р-13/Р-14/Р-15 резервуары бензина",
+      "params": {
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6
+        },
+        "vessel_area": 30.0
+      },
+      "type": "separator",
+      "x": 2600.0,
+      "y": 700.0
+    },
+    {
+      "id": "sep_E15",
+      "name": "Е-15 буферная ёмкость обессоленной нефти",
+      "params": {
+        "initial_level": 2.5,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6
+        },
+        "vessel_area": 12.6
+      },
+      "type": "separator",
+      "x": 1340.0,
+      "y": 420.0
+    },
+    {
+      "id": "sep_E16",
+      "name": "Е-16 сбор солёной воды с ЭЛОУ",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 9.08
+      },
+      "type": "separator",
+      "x": 180.0,
+      "y": 560.0
+    },
+    {
+      "id": "sep_E1",
+      "name": "Е-1 водоотделитель верха К-1",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 7.07
+      },
+      "type": "separator",
+      "x": 1180.0,
+      "y": 200.0
+    },
+    {
+      "id": "sep_E2",
+      "name": "Е-2 водоотделитель верха К-2",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 7.07
+      },
+      "type": "separator",
+      "x": 2600.0,
+      "y": 200.0
+    },
+    {
+      "id": "sep_E3",
+      "name": "Е-3 рефлюксная ёмкость К-4",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 3.14
+      },
+      "type": "separator",
+      "x": 2360.0,
+      "y": 300.0
+    },
+    {
+      "id": "sep_E18",
+      "name": "Е-18 рефлюкс верха К-9",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 4.52
+      },
+      "type": "separator",
+      "x": 3360.0,
+      "y": 120.0
+    },
+    {
+      "id": "sep_E17",
+      "name": "Е-17 рефлюкс верха К-10",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 2.01
+      },
+      "type": "separator",
+      "x": 4000.0,
+      "y": 120.0
+    },
+    {
+      "id": "sep_C1K",
+      "name": "С-1К сепаратор после демеркаптанизации",
+      "params": {
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5
+        },
+        "vessel_area": 2.01
+      },
+      "type": "separator",
+      "x": 3260.0,
+      "y": 640.0
+    },
+    {
+      "id": "reactor_K124",
+      "name": "К-12/4 реактор демеркаптанизации",
+      "params": {
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6,
+          "pressure_high": 686465.5,
+          "pressure_high_high": 784532.0,
+          "pressure_low": 98066.5,
+          "temperature_high": 573.15,
+          "temperature_high_high": 593.15,
+          "temperature_low": 423.15
+        },
+        "vessel_area": 7.07
+      },
+      "type": "separator",
+      "x": 2900.0,
+      "y": 640.0
+    },
+    {
+      "id": "column_K1",
+      "name": "К-1 атмосферная ректификация",
+      "params": {
+        "feed_stage": 16,
+        "initial_level": 2.5,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6,
+          "pressure_high": 441299.25,
+          "pressure_high_high": 470719.2,
+          "pressure_low": 98066.5,
+          "pressure_low_low": 78453.2,
+          "temperature_bottom_high": 573.15,
+          "temperature_bottom_high_high": 593.15,
+          "temperature_top_high": 523.15,
+          "temperature_top_high_high": 543.15
+        },
+        "nominal_pressure": 196133.0,
+        "num_stages": 28,
+        "preset": "k1",
+        "solver_n_iter": 80,
+        "sump_area": 15.9,
+        "top_cut": [
+          "frac_nk62",
+          "frac_62_105",
+          "water"
+        ]
+      },
+      "type": "column",
+      "x": 1900.0,
+      "y": 420.0
+    },
+    {
+      "id": "column_K2",
+      "name": "К-2 ректификация (разделение мазута)",
+      "params": {
+        "feed_stage": 6,
+        "initial_level": 2.5,
+        "limits": {
+          "level_low": 1.0,
+          "level_low_low": 0.6,
+          "pressure_high": 98066.5,
+          "pressure_high_high": 147099.75,
+          "pressure_low": 19613.3,
+          "pressure_low_low": 14709.975,
+          "temperature_bottom_high": 553.15,
+          "temperature_bottom_high_high": 573.15,
+          "temperature_top_high": 453.15,
+          "temperature_top_high_high": 473.15
+        },
+        "nominal_pressure": 58839.9,
+        "num_stages": 30,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 19.63,
+        "top_cut": [
+          "frac_105_180"
+        ]
+      },
+      "type": "column",
+      "x": 2200.0,
+      "y": 420.0
+    },
+    {
+      "id": "column_K31",
+      "name": "К-3/1 отпарная фр. 140–240 °С",
+      "params": {
+        "feed_stage": 5,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 441299.25,
+          "pressure_high_high": 490332.5,
+          "pressure_low": 147099.75,
+          "temperature_bottom_high": 613.15,
+          "temperature_bottom_high_high": 633.15,
+          "temperature_top_high": 583.15,
+          "temperature_top_high_high": 603.15
+        },
+        "nominal_pressure": 294199.5,
+        "num_stages": 10,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 3.14,
+        "top_cut": [
+          "frac_180_240"
+        ]
+      },
+      "type": "column",
+      "x": 2700.0,
+      "y": 460.0
+    },
+    {
+      "id": "column_K32",
+      "name": "К-3/2 отпарная фр. 240–300 °С",
+      "params": {
+        "feed_stage": 5,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 441299.25,
+          "pressure_high_high": 490332.5,
+          "pressure_low": 147099.75,
+          "temperature_bottom_high": 633.15,
+          "temperature_bottom_high_high": 653.15,
+          "temperature_top_high": 593.15,
+          "temperature_top_high_high": 613.15
+        },
+        "nominal_pressure": 294199.5,
+        "num_stages": 10,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 3.14,
+        "top_cut": [
+          "frac_240_300"
+        ]
+      },
+      "type": "column",
+      "x": 2880.0,
+      "y": 460.0
+    },
+    {
+      "id": "column_K33",
+      "name": "К-3/3 отпарная фр. 300–350 °С",
+      "params": {
+        "feed_stage": 5,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 441299.25,
+          "pressure_high_high": 490332.5,
+          "pressure_low": 147099.75,
+          "temperature_bottom_high": 673.15,
+          "temperature_bottom_high_high": 693.15,
+          "temperature_top_high": 653.15,
+          "temperature_top_high_high": 673.15
+        },
+        "nominal_pressure": 294199.5,
+        "num_stages": 10,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 3.14,
+        "top_cut": [
+          "frac_300_350"
+        ]
+      },
+      "type": "column",
+      "x": 3060.0,
+      "y": 460.0
+    },
+    {
+      "id": "column_K4",
+      "name": "К-4 стабилизация бензина",
+      "params": {
+        "feed_stage": 12,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 1078731.5,
+          "pressure_high_high": 1176798.0,
+          "pressure_low": 588399.0,
+          "pressure_low_low": 539365.75,
+          "temperature_bottom_high": 603.15,
+          "temperature_bottom_high_high": 623.15,
+          "temperature_top_high": 533.15,
+          "temperature_top_high_high": 553.15
+        },
+        "nominal_pressure": 784532.0,
+        "num_stages": 25,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 4.52,
+        "top_cut": [
+          "frac_nk62"
+        ]
+      },
+      "type": "column",
+      "x": 2080.0,
+      "y": 340.0
+    },
+    {
+      "id": "column_K7",
+      "name": "К-7 газосепаратор/абсорбер",
+      "params": {
+        "feed_stage": 12,
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 441299.25,
+          "pressure_high_high": 490332.5,
+          "pressure_low": 98066.5,
+          "pressure_low_low": 78453.2,
+          "temperature_bottom_high": 473.15,
+          "temperature_bottom_high_high": 493.15,
+          "temperature_top_high": 453.15,
+          "temperature_top_high_high": 473.15
+        },
+        "nominal_pressure": 196133.0,
+        "num_stages": 25,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 3.14,
+        "top_cut": [
+          "frac_nk62"
+        ]
+      },
+      "type": "column",
+      "x": 2140.0,
+      "y": 40.0
+    },
+    {
+      "id": "column_K9",
+      "name": "К-9 вторичная перегонка (НК–62)",
+      "params": {
+        "feed_stage": 15,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 294199.5,
+          "pressure_high_high": 343232.75,
+          "pressure_low": 98066.5,
+          "pressure_low_low": 78453.2,
+          "temperature_bottom_high": 533.15,
+          "temperature_bottom_high_high": 553.15,
+          "temperature_top_high": 473.15,
+          "temperature_top_high_high": 493.15
+        },
+        "nominal_pressure": 196133.0,
+        "num_stages": 30,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 7.07,
+        "top_cut": [
+          "frac_nk62"
+        ]
+      },
+      "type": "column",
+      "x": 2700.0,
+      "y": 240.0
+    },
+    {
+      "id": "column_K10",
+      "name": "К-10 вторичная перегонка (62–105)",
+      "params": {
+        "feed_stage": 15,
+        "initial_level": 2.0,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 98066.5,
+          "pressure_high_high": 147099.75,
+          "pressure_low": 19613.3,
+          "pressure_low_low": 14709.975,
+          "temperature_bottom_high": 533.15,
+          "temperature_bottom_high_high": 553.15,
+          "temperature_top_high": 453.15,
+          "temperature_top_high_high": 473.15
+        },
+        "nominal_pressure": 58839.9,
+        "num_stages": 30,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 7.07,
+        "top_cut": [
+          "frac_62_105"
+        ]
+      },
+      "type": "column",
+      "x": 3300.0,
+      "y": 240.0
+    },
+    {
+      "id": "column_K12",
+      "name": "К-12/3 отпарная демеркаптанизации",
+      "params": {
+        "feed_stage": 2,
+        "initial_level": 1.5,
+        "limits": {
+          "level_low": 0.8,
+          "level_low_low": 0.5,
+          "pressure_high": 980665.0,
+          "pressure_high_high": 1078731.5,
+          "pressure_low": 294199.5,
+          "pressure_low_low": 245166.25,
+          "temperature_bottom_high": 633.15,
+          "temperature_bottom_high_high": 653.15,
+          "temperature_top_high": 613.15,
+          "temperature_top_high_high": 633.15
+        },
+        "nominal_pressure": 588399.0,
+        "num_stages": 4,
+        "solver_n_iter": 80,
+        "solver_tol": 0.003,
+        "sump_area": 5.3,
+        "top_cut": [
+          "frac_180_240"
+        ]
+      },
+      "type": "column",
+      "x": 3100.0,
+      "y": 640.0
+    },
+    {
+      "id": "furnace_P1",
+      "name": "П-1 печь нагрева отбензиненной нефти",
+      "params": {
+        "initial_fuel_flow": 0.8,
+        "limits": {
+          "temperature_high": 638.15,
+          "temperature_high_high": 653.15
+        },
+        "max_heat_duty": 60000000.0,
+        "response_tau": 60.0
+      },
+      "type": "heater",
+      "x": 2080.0,
+      "y": 540.0
+    },
+    {
+      "id": "furnace_P3",
+      "name": "П-3 печь К-4 (рибойлер)",
+      "params": {
+        "initial_fuel_flow": 0.15,
+        "limits": {
+          "temperature_high": 638.15,
+          "temperature_high_high": 653.15
+        },
+        "max_heat_duty": 40000000.0,
+        "response_tau": 60.0
+      },
+      "type": "heater",
+      "x": 2200.0,
+      "y": 700.0
+    },
+    {
+      "id": "furnace_P4a",
+      "name": "П-4 контур К-9 (циркуляция)",
+      "params": {
+        "initial_fuel_flow": 0.15,
+        "limits": {
+          "temperature_high": 623.15,
+          "temperature_high_high": 638.15
+        },
+        "max_heat_duty": 40000000.0,
+        "response_tau": 60.0
+      },
+      "type": "heater",
+      "x": 2880.0,
+      "y": 300.0
+    },
+    {
+      "id": "furnace_P4b",
+      "name": "П-4 контур К-10 (циркуляция)",
+      "params": {
+        "initial_fuel_flow": 0.04,
+        "limits": {
+          "temperature_high": 623.15,
+          "temperature_high_high": 638.15
+        },
+        "max_heat_duty": 40000000.0,
+        "response_tau": 60.0
+      },
+      "type": "heater",
+      "x": 3480.0,
+      "y": 380.0
+    },
+    {
+      "id": "sink_vapour",
+      "name": "Газы/пары верха К-1, К-2",
+      "params": {},
+      "type": "sink",
+      "x": 1680.0,
+      "y": 60.0
+    },
+    {
+      "id": "sink_offgas",
+      "name": "Сухой газ верха К-7",
+      "params": {},
+      "type": "sink",
+      "x": 2480.0,
+      "y": 40.0
+    },
+    {
+      "id": "sink_benzene",
+      "name": "Бензин 85–180 °С (защелачивание/товар)",
+      "params": {},
+      "type": "sink",
+      "x": 2700.0,
+      "y": 120.0
+    },
+    {
+      "id": "sink_kerosene",
+      "name": "Обессеренный керосин (К-12)",
+      "params": {},
+      "type": "sink",
+      "x": 3400.0,
+      "y": 640.0
+    },
+    {
+      "id": "sink_diesel",
+      "name": "Фр. 240–300 °С (дизельное топливо)",
+      "params": {},
+      "type": "sink",
+      "x": 3020.0,
+      "y": 300.0
+    },
+    {
+      "id": "sink_gasoil",
+      "name": "Фр. 300–350 °С (компонент мазута)",
+      "params": {},
+      "type": "sink",
+      "x": 3300.0,
+      "y": 400.0
+    },
+    {
+      "id": "sink_fuel_oil",
+      "name": "Мазут",
+      "params": {},
+      "type": "sink",
+      "x": 3360.0,
+      "y": 500.0
+    },
+    {
+      "id": "sink_stabgas",
+      "name": "ПБФ (верха К-4)",
+      "params": {},
+      "type": "sink",
+      "x": 2500.0,
+      "y": 360.0
+    },
+    {
+      "id": "sink_62",
+      "name": "Фр. НК–62 °С",
+      "params": {},
+      "type": "sink",
+      "x": 3620.0,
+      "y": 240.0
+    },
+    {
+      "id": "sink_105",
+      "name": "Фр. 62–105 °С",
+      "params": {},
+      "type": "sink",
+      "x": 4280.0,
+      "y": 140.0
+    },
+    {
+      "id": "sink_105_180",
+      "name": "Фр. 105–180 °С",
+      "params": {},
+      "type": "sink",
+      "x": 3860.0,
+      "y": 420.0
+    },
+    {
+      "id": "sink_cw_out",
+      "name": "Оборотная вода (выход)",
+      "params": {},
+      "type": "sink",
+      "x": 1400.0,
+      "y": 640.0
+    },
+    {
+      "id": "sink_brine",
+      "name": "Солёная вода → канализация",
+      "params": {},
+      "type": "sink",
+      "x": 380.0,
+      "y": 560.0
+    },
+    {
+      "id": "sink_hot_ret",
+      "name": "Возврат горячего теплоносителя",
+      "params": {},
+      "type": "sink",
+      "x": 40.0,
+      "y": 100.0
+    }
+  ],
+  "schema_version": "1.1"
+}

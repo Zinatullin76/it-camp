@@ -69,12 +69,15 @@ class GateValve(BaseEquipment):
         if self.state.failed:
             return
         if action_type in ("TURN_ON", "OPEN"):
-            self.target_opening = 1.0
+            self.target_opening = self.opening = 1.0
         elif action_type in ("TURN_OFF", "CLOSE"):
-            self.target_opening = 0.0
+            self.target_opening = self.opening = 0.0
         elif action_type == "SET_VALUE" and value is not None:
-            self.target_opening = 1.0 if value >= 0.5 else 0.0
-        self.state.running = self.opening >= 0.5
+            self.target_opening = self.opening = 1.0 if value >= 0.5 else 0.0
+        elif action_type in ("FAIL", "INJECT_FAILURE"):
+            self.inject_failure("MECHANICAL_FAILURE")
+            self.opening = self.target_opening = 0.0
+        self.state.running = self.opening >= 0.5 and not self.state.failed
 
     def reset(self) -> None:
         super().reset()

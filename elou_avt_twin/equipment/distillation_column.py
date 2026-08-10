@@ -24,7 +24,7 @@ class DistillationColumn(BaseEquipment):
         self.l_profile = np.zeros(self.num_stages)
         self.v_profile = np.zeros(self.num_stages)
         
-        self.reflux_ratio = 2.0
+        self.reflux_ratio = float(self.params.get("initial_reflux_ratio", 2.0))
         self.boilup_ratio = 1.5
         self.side_draw_fraction = float(self.params.get("side_draw_fraction", 0.10))
         self._side_cut = self.params.get("side_draw_cut") or []

@@ -22,11 +22,14 @@ Stage numbering is top-to-bottom: stage 1 is the (total) condenser stage,
 stage N the reboiler stage; the feed enters on stage `feed_stage`.
 """
 
+import logging
+
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 
 # Minimum internal flow before a profile is flagged as non-physical.
 _MIN_FLOW = 1e-9
+logger = logging.getLogger("elou_avt.mesh_solver")
 
 
 class DistillationSolver:
@@ -94,7 +97,8 @@ class DistillationSolver:
                 hF_kg = self.thermo.calculate_enthalpy(
                     feed_stream.temperature, feed_stream.pressure, dict(comp)
                 )
-        except Exception:
+        except (ValueError, FloatingPointError) as exc:
+            logger.debug("Feed enthalpy calculation failed; using zero fallback: %s", exc)
             hF_kg = 0.0
         return F_mol, z, mean_m, hF_kg * mean_m
 
@@ -105,7 +109,8 @@ class DistillationSolver:
                 feed_stream.temperature, self.pressure, feed_stream.composition
             )
             return float(np.clip(1.0 - beta, 0.0, 1.0))
-        except Exception:
+        except (ValueError, FloatingPointError) as exc:
+            logger.debug("Feed flash failed; assuming liquid feed quality: %s", exc)
             return 1.0
 
     # ------------------------------------------------------------------
@@ -174,9 +179,11 @@ class DistillationSolver:
                    - F[j] * hFj[j] - C * hV[j + 1])
             L[j] = num / denom
             V[j + 1] = L[j] + C
-            if getattr(self, '_trace_clamp', False):
-                if L[j] < min_flow or V[j + 1] < min_flow:
-                    print('  CLAMP stage', j, 'L', round(float(L[j]),1), 'V', round(float(V[j+1]),1))
+            if getattr(self, "_trace_clamp", False) and (L[j] < min_flow or V[j + 1] < min_flow):
+                logger.debug(
+                    "Stage %d flow clamp: L=%.3f, V=%.3f",
+                    j, float(L[j]), float(V[j + 1]),
+                )
             L[j] = max(L[j], min_flow)
             V[j + 1] = max(V[j + 1], min_flow)
         B = max(F_total - D, min_flow)
@@ -394,8 +401,11 @@ class DistillationSolver:
                 np.full(n, self.pressure), self.names, x, T_guess=T
             )
             delta_raw = float(np.max(np.abs(T_new - T)))
-            if getattr(self, '_trace', False):
-                print('  it', it, 'delta_raw', round(delta_raw,4), 'Ttop', round(float(T_new[0]),1), 'Tbot', round(float(T_new[-1]),1), 'Tfb', round(float(T_new[self.f-1]),1))
+            if getattr(self, "_trace", False):
+                logger.debug(
+                    "MESH iteration=%d dT=%.4g Ttop=%.1f Tbot=%.1f Tfeed=%.1f",
+                    it, delta_raw, float(T_new[0]), float(T_new[-1]), float(T_new[self.f - 1]),
+                )
             T = omega * T + (1.0 - omega) * T_new
             delta_T = float(np.max(np.abs(T - prev_T)))
             prev_T = T.copy()

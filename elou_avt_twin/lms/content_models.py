@@ -112,6 +112,7 @@ class ExpectedAction(BaseModel):
     seq: int = 0
     object_id: str = ""
     action_type: str = ""
+    attribute: str = ""
     value: Any = None
     description: str = ""
     deadline_t: Optional[float] = None

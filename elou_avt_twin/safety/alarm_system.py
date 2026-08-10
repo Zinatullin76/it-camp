@@ -61,7 +61,7 @@ DEFAULT_SETPOINTS: Dict[str, AlarmSetpoint] = {
     ),
     "furnace_temperature": AlarmSetpoint(
         parameter="furnace_temperature",
-        low_low=300.0, low=400.0, high=700.0, high_high=750.0,
+        high=700.0, high_high=750.0,
         unit="K",
     ),
 }

@@ -21,7 +21,7 @@ class Valve(BaseEquipment):
 
     def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
         super().__init__(equipment_id, params or {})
-        init_pos = self.params.get("initial_position")
+        init_pos = self.params.get("initial_position", self.params.get("valve_position"))
         self.position = 0.0
         self._position = 0.0
         self.target_position = 0.0
@@ -34,6 +34,7 @@ class Valve(BaseEquipment):
     def _apply_params(self) -> None:
         self.cv = self.params.get("cv", self.params.get("flow_coefficient_si", 0.01))
         self.response_rate = self.params.get("response_rate", 0.4)
+        self.legacy_constant = self.params.get("valve_constant")
 
     def step(self, dt: float, **inputs) -> Dict[str, Any]:
         inlet: Stream = inputs.get("inlet_stream")
@@ -46,11 +47,37 @@ class Valve(BaseEquipment):
         self.position = max(0.0, min(1.0, self.position))
         self._position = self.position
         if inlet is None:
-            # Standalone testing: use the SAME SI Cv formula as the live branch
-            # (Q = Cv * x * sqrt(dP/rho), rho defaulting to the oil density).
+            # Legacy scalar API had no upstream process stream; treat an
+            # unconfigured valve as closed rather than fabricating flow.
+            if not self.params:
+                return {"outlet_stream": None, "position": self.position, "flow_out": 0.0}
             delta_p = max(0.0, inputs.get("delta_p", 1e4))
             flow_out = calculate_valve_flow(self.cv, self.position, delta_p, 850.0)
             return {"outlet_stream": None, "position": self.position, "flow_out": flow_out}
+
+        # Legacy isolated-equipment contract.  Keep it deterministic for old
+        # scenarios/tests while process schemes use the SI-Cv branch below.
+        if self.legacy_constant is not None:
+            k = max(float(self.legacy_constant), 1e-12)
+            available_dp = max(0.0, float(inlet.pressure))
+            mass_flow = min(inlet.mass_flow, k * self.position * available_dp ** 0.5)
+            pressure_drop = min(available_dp, (mass_flow / k) ** 2)
+            outlet = inlet.copy_with(
+                pressure=max(1000.0, inlet.pressure - pressure_drop),
+                mass_flow=mass_flow,
+            )
+            blocked = self.position <= 1e-9 or mass_flow <= 1e-12
+            if blocked:
+                outlet = inlet.copy_with(mass_flow=0.0)
+                pressure_drop = 0.0
+            return {
+                "outlet_stream": outlet,
+                "position": self.position,
+                "flow_out": mass_flow,
+                "mass_flow_kg_s": mass_flow,
+                "pressure_drop_pa": pressure_drop,
+                "blocked": blocked,
+            }
         design_dp = self.params.get("design_delta_p", 2e5)
         # Restriction grows as the valve closes below its normal opening. At
         # the normal position there is no extra pressure loss (nominal dP);
@@ -81,6 +108,8 @@ class Valve(BaseEquipment):
             "outlet_stream": outlet,
             "position": self.position,
             "flow_out": mass_flow,
+            "mass_flow_kg_s": mass_flow,
+            "pressure_drop_pa": dp,
             "inlet_pressure": inlet.pressure,
             "outlet_pressure": out_pressure,
             "dp": dp,
@@ -134,7 +163,7 @@ class Valve(BaseEquipment):
 
     def reset(self) -> None:
         super().reset()
-        init_pos = self.params.get("initial_position")
+        init_pos = self.params.get("initial_position", self.params.get("valve_position"))
         self.position = self._position = self.target_position = 0.0
         if init_pos is not None:
             self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))

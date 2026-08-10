@@ -105,6 +105,11 @@ class SimulationEngine:
         self._node_map: Dict[str, SchemeNode] = {}
         self._edges = []
         self._topo_order: List[str] = []
+        # Recycle loops (e.g. column -> furnace -> column) cannot be ordered by
+        # Kahn's algorithm.  Cycle nodes are torn: the broken edges are listed
+        # here and fed from the previous step's streams each step so the loop
+        # converges across steps.
+        self._tear_edges: List[str] = []
         self._last_outputs: Dict[str, Any] = {}
         self._last_streams: Dict[str, Any] = {}
         self._alarm_setpoints: Dict[str, Any] = {}
@@ -260,6 +265,14 @@ class SimulationEngine:
         from models.stream import Stream
         outputs: Dict[str, Any] = {}
         streams: Dict[str, Stream] = {}
+        # Tear edges (cycle back-edges) have no upstream value ready this step:
+        # reuse the previous step's stream so recycle loops converge across
+        # steps instead of being dropped from the calculation entirely.
+        if self._tear_edges and self._last_streams:
+            for key in self._tear_edges:
+                prev = self._last_streams.get(key)
+                if prev is not None:
+                    streams[key] = prev
         # Downstream valves limit the flow of their exclusive upstream line
         # (previous step's valve throughput). The source itself is a fixed
         # flow boundary and is never clamped; restrictions make the equipment
@@ -527,7 +540,17 @@ class SimulationEngine:
                 brine = b_out.mass_flow if b_out is not None else 0.0
                 vs = self._vessel_state.get(nid)
                 cap = self._outlet_line_capacity(nid, "oil_out")
-                if vs is not None:
+                if h is not None and h["flow"] > 0.0:
+                    # The oil drain line is solved hydraulically (a single-outlet
+                    # ELOU builds a drain tree): the real flow through the outlet
+                    # valve comes from the level static head across the drain and
+                    # valve resistances, so the line solver's answer is used.  A
+                    # multi-outlet ELOU builds no drain tree (h is None) and keeps
+                    # the level-drain fallback below.
+                    oil_q = max(0.0, h["flow"])
+                    if cap is not None:
+                        oil_q = max(0.0, min(oil_q, cap))
+                elif vs is not None:
                     rho = s_out.density if s_out is not None and s_out.density > 0 else 850.0
                     if vs["level"] > 1e-9:
                         head = max(rho * 9.81 * vs["level"], 0.0)
@@ -699,19 +722,10 @@ class SimulationEngine:
             self._attach_level(state, nid, node, incoming, out, dt)
             self._register_node_outputs(streams, nid, ntype, out)
 
-        # A column whose bottom leaves through a pump / line (no level control
-        # valve) draws freely: the outflow equals the MESH bottoms, so the sump
-        # level holds instead of ramping up.  A bottoms valve already recorded
-        # the throttled draw for its column, so it is left untouched here.
-        for nid in self._vessel_state:
-            if nid in self._vessel_q_out:
-                continue
-            node = self._node_map.get(nid)
-            if node is None or node.type != "column":
-                continue
-            out = outputs.get(nid, {})
-            b = out.get("bottoms")
-            self._vessel_q_out[nid] = b.mass_flow if b is not None else 0.0
+        # A column without a bottoms level valve has no controlled draw: the
+        # level is a pure integrator of (MESH bottoms inflow - actual draw), so
+        # it accumulates until the operator opens a bottoms valve.  Only a real
+        # bottoms valve (recorded above) writes _vessel_q_out for its column.
 
         # Back-pressure feedback: a throttling valve raises the pressure on its
         # inlet (dead-heading). Propagate that rise to the equipment feeding it
@@ -777,6 +791,7 @@ class SimulationEngine:
         self._vessel_q_in.clear()
         self._vessel_q_out.clear()
         self._vessel_active.clear()
+        self._tear_edges = []
         self._extend_equipment_from_scheme(scheme)
         self._rebuild_topology(scheme)
         self._configure_alarm_setpoints(scheme)
@@ -1024,6 +1039,27 @@ class SimulationEngine:
                     indeg[edge.target] -= 1
                     if indeg[edge.target] == 0:
                         queue.append(edge.target)
+        # Cycles (recycle loops): nodes never reached by Kahn stay with a
+        # positive residual in-degree.  Process them too by tearing: pick the
+        # leftover node with the fewest unsatisfied in-edges, cut those edges
+        # (they become "tear edges" fed from the previous step's streams), and
+        # repeat.  The cut makes the remaining edges acyclic, so the whole
+        # recycle loop runs every step and converges across steps.
+        leftover = {nid for nid, d in indeg.items() if d > 0}
+        order_index = {nid: i for i, nid in enumerate(self._node_map)}
+        tear_edges: List[str] = []
+        while leftover:
+            pending: Dict[str, int] = {}
+            for edge in self._edges:
+                if edge.source in leftover and edge.target in leftover:
+                    pending[edge.target] = pending.get(edge.target, 0) + 1
+            nid = min(leftover, key=lambda n: (pending.get(n, 0), order_index.get(n, 0)))
+            for edge in self._edges:
+                if edge.source in leftover and edge.target == nid:
+                    tear_edges.append(f"{edge.source}:{edge.source_port}")
+            leftover.remove(nid)
+            order.append(nid)
+        self._tear_edges = tear_edges
         self._topo_order = order
 
     def _compute_flow_limits(self, outputs: Dict[str, Any]) -> Dict[str, Optional[float]]:
@@ -1124,7 +1160,8 @@ class SimulationEngine:
     # side streams and the superheated-steam ПП channel).  Each pass is its own
     # hydraulic line, exactly like an exchanger channel.
     _FURNACE_PORT_PAIRS = {
-        "in": "out", "in2": "out2", "in3": "out3", "in4": "out4", "pp_in": "pp_out",
+        "in": "out", "in2": "out2", "in3": "out3", "in4": "out4",
+        "pp_in": "pp_out", "pp1_in": "pp1_out", "pp2_in": "pp2_out",
     }
     # Fallback per-channel resistance of a heat exchanger when the scheme
     # carries no delta_p: 0.1 atm (Pa) at the reference flow.
@@ -1229,6 +1266,11 @@ class SimulationEngine:
                 elif up_node.type in _CONTROL_VALVE_TYPES:
                     continue
                 elif up_node.type == "sink":
+                    continue
+                elif up_node.type in ("heat_exchanger", "heater"):
+                    # A heat exchanger / furnace has several independent passes
+                    # with their own supply sources, so a valve sitting after one
+                    # of them is on that pass, not on the column bottoms line.
                     continue
                 else:
                     res, acc = walk(up, pumps)
@@ -1684,7 +1726,13 @@ class SimulationEngine:
             if is_vessel:
                 vs = self._vessel_boundary(root_nid)
                 drain_id = f"{root_nid}__drain"
-                tree_nodes[drain_id] = {"type": "res", "k": vs["k_drain"], "head": 0.0}
+                # The drain resistance must see the static head of the liquid
+                # column.  Separator/tank p_src already includes it (head 0);
+                # a column/ELOU anchors p_src to the downstream sink pressure
+                # instead, so the level head is added here or the drain line
+                # would solve with zero differential -> zero flow.
+                static_head = max(0.0, 850.0 * 9.81 * vs["level"] - (vs["p_src"] - vs["p_base"]))
+                tree_nodes[drain_id] = {"type": "res", "k": vs["k_drain"], "head": static_head}
                 children[root_nid] = [drain_id]
                 element_count += 1
                 visit(drain_id, {root_nid, drain_id}, by_source.get(root_nid, []))
@@ -1880,6 +1928,11 @@ class SimulationEngine:
                     self._vessel_active.add(rv)
                     q = self._vessel_q.setdefault(rv, {"in": 0.0, "out": 0.0})
                     q["out"] = max(0.0, r["flow"])
+                    # A separator / tank is not handled by the ELOU/column
+                    # branches below, so the drain-line flow must reach the
+                    # level balance here.  Without it _integrate_levels reads
+                    # q_out = 0 and the level can only rise.
+                    self._vessel_q_out[rv] = q["out"]
             result.update(solved)
         for nid in self._vessel_active:
             vs = self._vessel_state.get(nid)
@@ -2133,6 +2186,30 @@ class SimulationEngine:
                 streams[f"{nid}:side_draw"] = out["side_draw"]
             if out.get("bottoms") is not None:
                 streams[f"{nid}:bottoms"] = out["bottoms"]
+            # Scheme columns expose section/named ports beyond the three model
+            # outputs (K-2/K-3 sections, stabilizer product, circulation).  Map
+            # each outgoing scheme port to the matching model product so edges
+            # referencing it carry a real stream instead of dying silently.
+            for edge in self._edges:
+                if edge.source != nid:
+                    continue
+                port = edge.source_port or "out"
+                key = f"{nid}:{port}"
+                if key in streams:
+                    continue
+                p = port.lower()
+                if p == "product":
+                    src = out.get("bottoms")
+                elif p.endswith("_out") or p == "bottoms":
+                    src = out.get("bottoms")
+                elif p.endswith("_vap") or p == "distillate":
+                    src = out.get("distillate")
+                elif p.endswith("_liq") or p.startswith("circ") or p == "side_draw":
+                    src = out.get("side_draw")
+                else:
+                    src = out.get("distillate") or out.get("side_draw")
+                if src is not None:
+                    streams[key] = src
         elif ntype == "elou":
             # ELOU: desalted oil leaves via the right port (oil_out), the
             # salt/water brine via the bottom port (out).

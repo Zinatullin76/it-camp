@@ -25,14 +25,19 @@ import {
   CRITERION_KEYS,
   EventTimeline,
   ObjectSelect,
+  RELATIONS,
   ScenarioModal,
   TagPicker,
   actionLabel,
   asString,
   asStringArray,
+  attrLabel,
   competencyOpts,
   equipmentOpts,
+  isDirectionalAction,
   numOr,
+  deadlineNum,
+  relationLabel,
   typeLabel,
 } from '../../lms/scenarioEditor';
 
@@ -510,7 +515,7 @@ function TaskModal({ task, scenarios, moduleScenario, equipment, competencies, o
       target_state: targetState.map(({ rowKey: _k, ...c }) => ({ ...c, value: numOr(asString(c.value)) })),
       restrictions: restrictions.map(({ rowKey: _k, ...r }) => ({ ...r, value: numOr(asString(r.value)) })),
       criteria: criteria.map(({ rowKey: _k, ...c }) => ({ ...c, weight: Number(c.weight) || 1 })),
-      expected_actions: expectedActions.map(({ rowKey: _k, ...a }) => ({ ...a, value: numOr(asString(a.value)) })),
+      expected_actions: expectedActions.map(({ rowKey: _k, ...a }) => ({ ...a, value: numOr(asString(a.value)), deadline_t: deadlineNum(a.deadline_t) })),
       critical_errors: criticalErrors.map(({ rowKey: _k, ...r }) => ({ ...r, value: numOr(asString(r.value)) })),
     });
   };
@@ -564,7 +569,7 @@ function TaskModal({ task, scenarios, moduleScenario, equipment, competencies, o
               <ObjectSelect equipment={equipment} width={150} value={c.object_id} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, object_id: v } : x))} />
               <AttrSelect equipment={equipment} width={120} value={c.attribute} onChange={(v) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, attribute: v } : x))} />
               <select className="scenario-select" value={c.relation} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, relation: e.target.value } : x))}>
-                {['==', '!=', '>', '<', '>=', '<=', 'between'].map((r) => <option key={r} value={r}>{r}</option>)}
+                {RELATIONS.map((r) => <option key={r} value={r}>{relationLabel(r)}</option>)}
               </select>
               <input className="form-input" style={{ width: 90 }} placeholder="значение" value={asString(c.value)} onChange={(e) => setTargetState((rs) => rs.map((x) => x.rowKey === c.rowKey ? { ...x, value: e.target.value } : x))} />
               {c.relation === 'between' && (
@@ -592,6 +597,7 @@ function TaskModal({ task, scenarios, moduleScenario, equipment, competencies, o
         </div>
 
         <div className="card-title" style={{ marginTop: 10 }}>Ожидаемые действия (expected_actions)</div>
+        <div className="muted" style={{ marginBottom: 6 }}>«Срок, с» — время на выполнение действия с начала практики; если не указано, контроль по сроку не применяется.</div>
         <div className="col" style={{ gap: 6 }}>
           {expectedActions.map((a) => (
             <div className="row" key={a.rowKey} style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -600,12 +606,18 @@ function TaskModal({ task, scenarios, moduleScenario, equipment, competencies, o
                 <option value="">— действие —</option>
                 {ACTION_TYPES.map((t) => <option key={t} value={t}>{actionLabel(t)}</option>)}
               </select>
-              <input className="form-input" style={{ width: 80 }} placeholder="знач." value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
+              <AttrSelect equipment={equipment} width={120} value={a.attribute ?? ''} onChange={(v) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, attribute: v } : x))} />
+              {isDirectionalAction(a.action_type) ? (
+                <span className="sc-hint" style={{ width: 80 }}>↑/↓</span>
+              ) : (
+                <input className="form-input" style={{ width: 80 }} placeholder="знач." value={asString(a.value)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, value: e.target.value } : x))} />
+              )}
+              <input className="form-input" style={{ width: 90 }} type="number" min={0} placeholder="срок, с" title="Время на выполнение действия, с" value={a.deadline_t == null ? '' : String(a.deadline_t)} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, deadline_t: e.target.value === '' ? null : Number(e.target.value) } : x))} />
               <input className="form-input" style={{ flex: 1 }} placeholder="описание" value={a.description} onChange={(e) => setExpectedActions((rs) => rs.map((x) => x.rowKey === a.rowKey ? { ...x, description: e.target.value } : x))} />
               <button className="btn btn-danger" onClick={() => setExpectedActions((rs) => rs.filter((x) => x.rowKey !== a.rowKey))}>✕</button>
             </div>
           ))}
-          <button className="btn" onClick={() => setExpectedActions((rs) => [...rs, { seq: rs.length + 1, object_id: '', action_type: 'TURN_ON', value: '', description: '', deadline_t: null, weight: 1, rowKey: nextExp }])}>+ Действие</button>
+          <button className="btn" onClick={() => setExpectedActions((rs) => [...rs, { seq: rs.length + 1, object_id: '', action_type: 'TURN_ON', attribute: '', value: '', description: '', deadline_t: null, weight: 1, rowKey: nextExp }])}>+ Действие</button>
         </div>
 
         <div className="card-title" style={{ marginTop: 10 }}>Запрещённые действия (restrictions)</div>
@@ -949,7 +961,7 @@ export default function ModuleConstructorPage() {
                   <div className="card-title">Целевое состояние</div>
                   {task.target_state.length === 0 ? <div className="muted">—</div> : task.target_state.map((c, i) => (
                     <div key={i} className="muted" style={{ fontSize: 12 }}>
-                      {c.object_id}.{c.attribute} {c.relation} {asString(c.value)}
+                      {c.object_id}.{attrLabel(c.attribute)} {relationLabel(c.relation)} {asString(c.value)}
                     </div>
                   ))}
                 </div>
@@ -964,7 +976,7 @@ export default function ModuleConstructorPage() {
                 <div className="card-title">Ожидаемые действия</div>
                 {task.expected_actions.length === 0 ? <div className="muted">—</div> : task.expected_actions.map((a, i) => (
                   <div key={i} className="muted" style={{ fontSize: 12 }}>
-                    {i + 1}. {a.action_type} → {a.object_id} {a.value != null && asString(a.value) !== '' ? `=${asString(a.value)}` : ''} {a.description ? `(${a.description})` : ''}
+                    {i + 1}. {actionLabel(a.action_type)} → {a.object_id} {a.attribute ? ` (${attrLabel(a.attribute)})` : ''} {a.value != null && asString(a.value) !== '' ? `=${asString(a.value)}` : ''} {a.description ? `(${a.description})` : ''}
                   </div>
                 ))}
               </div>

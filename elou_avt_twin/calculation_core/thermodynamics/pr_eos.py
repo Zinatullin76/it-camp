@@ -105,6 +105,12 @@ class PengRobinsonThermodynamics(ThermodynamicModel):
         self.R = R_GAS
         self.T_REF = 298.15
         self._param_cache: Dict[Tuple[str, ...], Dict[str, np.ndarray]] = {}
+        # Small per-instance cache for repeated enthalpy evaluations. A plain
+        # dict avoids the global lifetime/self-retention behaviour of
+        # functools.lru_cache on bound methods, which matters in long-running
+        # training sessions that create many thermodynamic model instances.
+        self._enthalpy_cache: Dict[Tuple[float, float, Tuple[Tuple[str, float], ...], str], float] = {}
+        self._enthalpy_cache_limit = 1024
 
     # -- component / composition helpers ------------------------------------
 
@@ -261,10 +267,36 @@ class PengRobinsonThermodynamics(ThermodynamicModel):
     # -- Public interface (matches ThermodynamicModel) ------------------------
 
     def calculate_enthalpy(self, T: float, P: float, composition: Dict[str, float], phase: Optional[Phase] = None) -> float:
-        """Specific enthalpy [J/kg] of a stream at T,P (auto phase if None)."""
+        """Specific enthalpy [J/kg] of a stream at T,P (auto phase if None).
+
+        Thermodynamic calls are a hot path: the same T/P/composition tuple is
+        evaluated repeatedly by heat exchangers and hydraulic iterations.  The
+        immutable cache key below avoids re-running the PR flash for identical
+        states while keeping the public API dict-based.
+        """
         names, z = self._to_molar(composition)
         if not names:
             return 0.0
+        phase_value = phase.value if isinstance(phase, Phase) else (phase or "AUTO")
+        key = (float(T), float(P), tuple(sorted((str(k), float(v)) for k, v in composition.items())), phase_value)
+        cached = self._enthalpy_cache.get(key)
+        if cached is not None:
+            return cached
+        value = self._calculate_enthalpy_uncached(key[0], key[1], key[2], key[3])
+        if len(self._enthalpy_cache) >= self._enthalpy_cache_limit:
+            # FIFO eviction is deterministic and cheap; thermodynamic states
+            # in a simulation are strongly localized, so a tiny cache is enough.
+            self._enthalpy_cache.pop(next(iter(self._enthalpy_cache)))
+        self._enthalpy_cache[key] = value
+        return value
+
+    def _calculate_enthalpy_uncached(
+        self, T: float, P: float, composition_key: Tuple[Tuple[str, float], ...], phase_value: str
+    ) -> float:
+        """Non-cached implementation of :meth:`calculate_enthalpy`."""
+        composition = dict(composition_key)
+        names, z = self._to_molar(composition)
+        phase = None if phase_value == "AUTO" else Phase(phase_value)
         if phase is None or phase == Phase.TWO_PHASE:
             beta, x, y = self.flash_molar(T, P, names, z)
             if beta <= 0.0:

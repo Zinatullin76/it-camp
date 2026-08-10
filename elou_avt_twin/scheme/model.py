@@ -15,7 +15,9 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger("elou_avt.scheme")
 
-DEFAULT_SCHEME_PATH = Path(__file__).resolve().parent.parent / "schemes" / "process_elou_avt.json"
+SCHEMES_DIR = Path(__file__).resolve().parent.parent / "schemes"
+DEFAULT_SCHEME_PATH = SCHEMES_DIR / "process_elou_avt.json"
+LEGACY_DEFAULT_SCHEME_PATH = SCHEMES_DIR / "default.json"
 
 
 class SchemeNode(BaseModel):
@@ -117,6 +119,9 @@ def load_scheme(path: Optional[Union[Path, str]] = None) -> ProcessScheme:
     Applies ``migrate_scheme_data`` so legacy schemes load cleanly.
     """
     path = Path(path) if path else DEFAULT_SCHEME_PATH
+    if not path.exists() and path == DEFAULT_SCHEME_PATH and LEGACY_DEFAULT_SCHEME_PATH.exists():
+        logger.warning("Canonical scheme %s not found; loading fallback %s.", path, LEGACY_DEFAULT_SCHEME_PATH)
+        path = LEGACY_DEFAULT_SCHEME_PATH
     if not path.exists():
         logger.warning("Scheme file %s not found; using empty scheme.", path)
         return ProcessScheme()

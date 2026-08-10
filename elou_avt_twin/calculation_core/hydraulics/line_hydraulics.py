@@ -433,8 +433,9 @@ def solve_branched_network(
     def walk_isolated(nid: str) -> None:
         for c in children.get(nid, []):
             if nodes[c]["type"] == "sink":
+                prev = result.get(c, {})
                 result[c] = {
-                    "flow": 0.0,
+                    "flow": prev.get("flow", 0.0),
                     "p_in": nodes[c]["sink_p"],
                     "p_out": nodes[c]["sink_p"],
                 }
@@ -497,8 +498,11 @@ def solve_branched_network(
         if ntype == "sink":
             # Record the sink boundary itself so callers see what landed on it
             # (a root-level direct sink never passes through a fork branch).
+            # A sink may be fed from several branches: accumulate rather than
+            # overwrite so a shared sink reports the full inflow.
+            prev = result.get(nid, {})
             result[nid] = {
-                "flow": max(0.0, q_in),
+                "flow": prev.get("flow", 0.0) + max(0.0, q_in),
                 "p_in": float(info["sink_p"]),
                 "p_out": float(info["sink_p"]),
             }
@@ -610,8 +614,9 @@ def solve_branched_network(
                 w = branch_demand(c, p_fork)
                 share = q * (w / w_total)
                 if nodes[c]["type"] == "sink":
+                    prev = result.get(c, {})
                     result[c] = {
-                        "flow": share,
+                        "flow": prev.get("flow", 0.0) + share,
                         "p_in": nodes[c]["sink_p"],
                         "p_out": nodes[c]["sink_p"],
                     }
@@ -631,8 +636,9 @@ def solve_branched_network(
             for c in kids:
                 w = share if c in live else 0.0
                 if nodes[c]["type"] == "sink":
+                    prev = result.get(c, {})
                     result[c] = {
-                        "flow": w,
+                        "flow": prev.get("flow", 0.0) + w,
                         "p_in": nodes[c]["sink_p"],
                         "p_out": nodes[c]["sink_p"],
                     }
@@ -641,8 +647,9 @@ def solve_branched_network(
         else:
             for c in kids:
                 if nodes[c]["type"] == "sink":
+                    prev = result.get(c, {})
                     result[c] = {
-                        "flow": 0.0,
+                        "flow": prev.get("flow", 0.0),
                         "p_in": nodes[c]["sink_p"],
                         "p_out": nodes[c]["sink_p"],
                     }

@@ -1,6 +1,7 @@
 import { api } from '../../api';
 import type { LmsMonitorOperator } from '../../types';
 import { Card, Chip, Empty, Err, Loader, Page, fmtClock, usePoll } from '../../lms/ui';
+import { actionLabel } from '../../lms/scenarioEditor';
 
 export default function MonitoringPage() {
   const { data, error, loading } = usePoll<LmsMonitorOperator[]>(() => api.lmsMonitoring(), 4000);
@@ -50,7 +51,7 @@ export default function MonitoringPage() {
                     </td>
                     <td className="muted" style={{ fontSize: 11.5, maxWidth: 260 }}>
                       {op.last_action
-                        ? `${String(op.last_action.action_type ?? '')} ${String(op.last_action.equipment_id ?? '')}`
+                        ? `${actionLabel(String(op.last_action.action_type ?? ''))} ${String(op.last_action.equipment_id ?? '')}`
                         : '—'}
                     </td>
                     <td>

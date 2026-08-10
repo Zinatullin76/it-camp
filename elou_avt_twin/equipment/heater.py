@@ -4,7 +4,7 @@ heater.py
 Rigorous furnace model with fuel-air combustion and energy balance.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from .base_equipment import BaseEquipment, EquipmentState
 from models.stream import Stream, Phase
 
@@ -29,6 +29,7 @@ class Heater(BaseEquipment):
         self._channel_pairs = {
             "in": "out", "in2": "out2", "in3": "out3",
             "in4": "out4", "pp_in": "pp_out",
+            "pp1_in": "pp1_out", "pp2_in": "pp2_out",
         }
         self._channel_ports = list(self._channel_pairs.keys())
         self._apply_params()
@@ -49,6 +50,10 @@ class Heater(BaseEquipment):
         one outlet stream per active section under its outlet port name.
         """
         thermo = inputs.get("thermo")
+        # ``inlet_stream`` is the canonical single-stream compatibility API;
+        # multi-pass furnaces use explicit ``in``, ``in2`` ... ports.
+        if inputs.get("inlet_stream") is not None and inputs.get("in") is None:
+            inputs["in"] = inputs["inlet_stream"]
         channel_ports = [p for p in self._channel_ports if inputs.get(p) is not None]
         if not channel_ports or not thermo:
             return {}
@@ -58,7 +63,10 @@ class Heater(BaseEquipment):
             # temperature.
             self.fuel_flow = 0.0
             self.duty = 0.0
-            return {self._channel_pairs[p]: inputs[p] for p in channel_ports}
+            out = {self._channel_pairs[p]: inputs[p] for p in channel_ports}
+            if len(channel_ports) == 1 and channel_ports[0] == "in":
+                out["outlet_stream"] = out.get("out")
+            return out
 
         # Fuel flow dynamics
         tau = self.params.get("response_tau", 60.0)
@@ -120,6 +128,9 @@ class Heater(BaseEquipment):
         self.duty = delivered
         self.outlet_temp = sum(temps) / len(temps) if temps else 293.15
         self.duty_limited = delivered < duty_total - 1e-6
+        # Preserve the single-stream API alongside explicit furnace ports.
+        if len(channel_ports) == 1 and channel_ports[0] == "in":
+            out["outlet_stream"] = out.get("out")
         return out
 
     def get_state(self) -> EquipmentState:

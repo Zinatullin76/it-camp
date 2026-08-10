@@ -58,6 +58,7 @@ class Pump(BaseEquipment):
         self.diagnostics: list[PhysicsDiagnostic] = []
         self._apply_params()
         self.speed = self.nominal_speed
+        self.state.running = bool(self.params.get("initial_running", True))
 
     @property
     def speed_ratio(self) -> float:
@@ -237,3 +238,4 @@ class Pump(BaseEquipment):
         self.cavitating = False
         self.diagnostics = []
         self.speed = self.nominal_speed
+        self.state.running = bool(self.params.get("initial_running", True))
