@@ -14,6 +14,23 @@ import {
   useAsync,
 } from '../lms/ui';
 
+const ERROR_LABELS: Record<string, string> = {
+  WRONG_SEQUENCE: 'Нарушение последовательности действий',
+  DELAYED_ACTION: 'Действие выполнено с задержкой',
+  WRONG_EQUIPMENT: 'Выбрано неправильное оборудование',
+  WRONG_ACTION_TYPE: 'Выбран неправильный тип действия',
+  WRONG_PARAMETER_VALUE: 'Задано неправильное значение параметра',
+  MISSED_ACTION: 'Пропущено обязательное действие',
+  REGULATORY_VIOLATION: 'Нарушение технологического регламента',
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  LOW: 'низкий',
+  MEDIUM: 'средний',
+  HIGH: 'высокий',
+  CRITICAL: 'критический',
+};
+
 function qualTone(q: string): 'q-ok' | 'q-warn' | 'q-bad' {
   if (q.includes('ОТЛИЧНО')) return 'q-ok';
   if (q.includes('НЕ СДАНО')) return 'q-bad';
@@ -104,9 +121,9 @@ export default function DebriefPage() {
               <ul className="err-list">
                 {d.errors.map((e, i) => (
                   <li key={i} className="err-item">
-                    <div className="err-title">{e.rule_error_type}</div>
+                    <div className="err-title">{ERROR_LABELS[e.rule_error_type] ?? e.rule_error_type}</div>
                     <div className="err-meta">
-                      {e.severity && `Уровень: ${e.severity} · `}Время: {fmtClock(e.timestamp)}
+                      {e.severity && `Уровень: ${SEVERITY_LABELS[e.severity] ?? e.severity} · `}Время: {fmtClock(e.timestamp)}
                     </div>
                     {e.cause && <div className="err-meta">Причина: {e.cause}</div>}
                     {e.consequence && <div className="err-meta">Последствие: {e.consequence}</div>}
@@ -166,7 +183,7 @@ export default function DebriefPage() {
                   <tbody>
                     {d.alarms.slice(0, 20).map((a, i) => (
                       <tr key={i}>
-                        <td className="num">{fmtClock(Number(a.timestamp ?? 0))}</td>
+                        <td className="num">{fmtClock(Number(a.raised_at ?? a.timestamp ?? 0))}</td>
                         <td>{String(a.parameter ?? a.description ?? '—')}</td>
                         <td className="num">{a.actual_value != null ? Number(a.actual_value).toFixed(1) : '—'}</td>
                       </tr>

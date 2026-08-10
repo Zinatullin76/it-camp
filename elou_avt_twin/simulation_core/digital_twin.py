@@ -41,6 +41,7 @@ from models.base import (
     Severity,
 )
 from models.scenario import Scenario
+from events.error_tracker import ExpectedAction
 from simulation_core.engine import SimulationEngine
 from scenarios.scenario_registry import SCENARIO_REGISTRY
 
@@ -122,6 +123,7 @@ class DigitalTwin:
         if self._engine is None:
             self.create_simulation()
         self._apply_initial_state(self._scenario.initial_state)
+        self._register_reference_actions(self._scenario.reference_actions)
         logger.info("Scenario loaded: %s — %s", scenario_id, self._scenario.name)
 
     def load_scenario_object(self, scenario: Scenario) -> None:
@@ -131,7 +133,32 @@ class DigitalTwin:
             self.create_simulation()
         self._scenario = scenario
         self._apply_initial_state(scenario.initial_state)
+        self._register_reference_actions(scenario.reference_actions)
         logger.info("Scenario object loaded: %s — %s", scenario.id, scenario.name)
+
+    def _register_reference_actions(self, actions: List[Dict[str, Any]]) -> None:
+        """Arm online error checks from the scenario's reference plan."""
+        if self._engine is None:
+            return
+        for item in actions:
+            equipment_id = item.get("equipment") or item.get("equipment_id") or item.get("object_id")
+            action_type = item.get("action") or item.get("action_type")
+            if not equipment_id or not action_type:
+                continue
+            deadline = item.get("deadline_t", item.get("t"))
+            if deadline is None:
+                continue
+            self._engine.register_expected_action(ExpectedAction(
+                equipment_id=str(equipment_id),
+                action_type=str(action_type),
+                value=None if item.get("value") in (None, "") else item.get("value"),
+                deadline=float(deadline),
+                description=str(item.get("description", "")),
+                consequence=str(
+                    item.get("consequence")
+                    or "Невыполнение обязательного шага нарушает регламент сценария."
+                ),
+            ))
 
     def _apply_initial_state(self, initial_state: Dict[str, Any]) -> None:
         """Apply scenario initial conditions to equipment.

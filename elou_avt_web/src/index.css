@@ -2351,6 +2351,110 @@ html[data-theme='light'] .badge-accent { background: rgba(2, 132, 199, 0.08); }
 .practice-bar .grow { flex: 1; }
 .practice-bar-title { font-weight: 800; }
 
+.practice-alarm-trigger {
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.practice-alarm-trigger:hover,
+.practice-alarm-trigger[aria-expanded="true"] {
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.practice-alarm-panel {
+  position: absolute;
+  top: 48px;
+  right: 12px;
+  z-index: 30;
+  width: min(460px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 72px));
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+}
+
+.practice-alarm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.practice-alarm-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.practice-alarm-head span,
+.practice-alarm-values {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.practice-alarm-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.practice-alarm-list {
+  max-height: min(500px, calc(100vh - 132px));
+  overflow-y: auto;
+}
+
+.practice-alarm-row {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+}
+
+.practice-alarm-row:last-child { border-bottom: 0; }
+.practice-alarm-row.severity-critical { border-left-color: var(--danger); }
+
+.practice-alarm-row-top,
+.practice-alarm-values {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practice-alarm-row-top {
+  margin-bottom: 5px;
+  color: var(--warn);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.practice-alarm-row strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.alarm-state-active { color: var(--danger); }
+.alarm-state-cleared { color: var(--ok); }
+.practice-alarm-empty { padding: 20px 12px; color: var(--muted); text-align: center; }
+
+@media (max-width: 700px) {
+  .practice-alarm-panel { top: 84px; }
+}
+
 /* ---- Login quick accounts ---- */
 .login-quick {
   display: flex;

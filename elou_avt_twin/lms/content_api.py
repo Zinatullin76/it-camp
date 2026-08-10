@@ -279,6 +279,14 @@ def start_practice(module_id: int, current_user: Principal = Depends(get_current
         module_id, current_user.username))
 
 
+@router.post("/practice/{session_id}/ready",
+             dependencies=[Depends(require_permission("start_training"))])
+def ready_practice(session_id: str, current_user: Principal = Depends(get_current_user)):
+    from api_server import ensure_session_layer
+    ensure_session_layer()
+    return _call(lambda: get_service().ready_practice(session_id, current_user.username))
+
+
 @router.post("/practice/{session_id}/finish",
              dependencies=[Depends(require_permission("start_training"))])
 def finish_practice(session_id: str, current_user: Principal = Depends(get_current_user)):

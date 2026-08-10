@@ -85,6 +85,7 @@ export interface ApiState {
   equipment: Record<string, NodeTelemetry>;
   active_failures: string[];
   alarms: AlarmData[];
+  alarm_history?: AlarmData[];
   errors: unknown[];
   controllers?: Record<string, ControllerSnap>;
 }

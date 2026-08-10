@@ -326,6 +326,9 @@ def _serialize_state():
             "equipment": _build_node_telemetry(twin),
             "active_failures": s.active_failures,
             "alarms": [a.model_dump() for a in s.alarms],
+            "alarm_history": [
+                a.model_dump() for a in twin._engine._alarm_system.get_alarm_history()
+            ],
             "errors": [e.model_dump() for e in s.errors[-20:]],
             "controllers": control_system.snapshot(),
         })
