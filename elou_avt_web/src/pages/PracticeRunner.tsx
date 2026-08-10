@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
-import type { LmsPracticeTask } from '../types';
+import type { LmsPracticeTask, TaskCondition } from '../types';
 import ScadaScheme from '../scada/ScadaScheme';
 import { useSimulation } from '../lms/sim';
 import { Err, Loader } from '../lms/ui';
+
+function condLabel(c: TaskCondition): string {
+  const rel = c.relation ?? '==';
+  const v = typeof c.value === 'number' ? String(c.value) : String(c.value ?? '');
+  if (rel === 'between') return `${c.object_id}.${c.attribute} ∈ [${v}; ${String(c.value2 ?? '')}]`;
+  return `${c.object_id}.${c.attribute} ${rel} ${v}`;
+}
 
 export default function PracticeRunner() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -77,6 +84,19 @@ export default function PracticeRunner() {
           Завершить задание
         </button>
       </div>
+
+      {task?.goal && (
+        <div className="practice-goal">
+          <span className="muted">Цель:</span> {task.goal}
+          {(task.target_state ?? []).length > 0 && (
+            <span className="practice-goal-conds">
+              {task.target_state!.map((c, i) => (
+                <span className="chip chip-info" key={i}>{condLabel(c)}</span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
 
       {error ? (
         <div style={{ padding: 20 }}>

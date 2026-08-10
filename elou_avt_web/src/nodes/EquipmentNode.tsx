@@ -62,6 +62,7 @@ const SYMBOL: Record<string, Partial<MnemoItem>> = {
   angle_valve: { t: 'valve', vt: 'angle' },
   gate_valve: { t: 'valve', vt: 'gate' },
   mixer: { t: 'mix' },
+  splitter: { t: 'mix' },
   elou: { t: 'ed', w: 120, h: 44, lv: 'lv' },
   heat_exchanger: { t: 'hx', w: 132, h: 40 },
   heater: { t: 'fur', w: 118, h: 66 },
@@ -159,6 +160,25 @@ const handles = (type: string, schemeParams?: Record<string, unknown>) => {
             />
           ))}
           <Handle type="source" position={Position.Right} id="out" style={right(50)} />
+        </>
+      );
+    }
+    case 'splitter': {
+      // Разъединитель делит поток на n ветвей: один вход слева, n выходов
+      // справа (зеркально смесителю).
+      const n = typeof schemeParams?.num_outputs === 'number' ? Math.max(1, Math.min(8, schemeParams.num_outputs)) : 2;
+      return (
+        <>
+          <Handle type="target" position={Position.Left} id="in" style={left(50)} />
+          {Array.from({ length: n }, (_, i) => (
+            <Handle
+              key={`out${i}`}
+              type="source"
+              position={Position.Right}
+              id={`out${i}`}
+              style={right(n === 1 ? 50 : 20 + (i * 60) / (n - 1))}
+            />
+          ))}
         </>
       );
     }
@@ -419,7 +439,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
 
   return (
     <div
-      className={`mn-node${selected ? ' sel' : ''}${scaleFactor !== 1 ? ' scaled' : ''}`}
+      className={`mn-node state-${state}${selected ? ' sel' : ''}${scaleFactor !== 1 ? ' scaled' : ''}`}
       style={{ width: box.w, height: svgH + 6 }}
       onDoubleClick={edit ? (e) => { e.stopPropagation(); renameNode(); } : undefined}
       onContextMenu={edit ? (e) => {
@@ -477,7 +497,7 @@ function MnemoEquipmentNode({ id, data, selected }: NodeProps<EquipmentNode>) {
           })}
         </div>
       )}
-      {telemetry?.failed ? (
+      {state === 'alarm' || state === 'fault' ? (
         <span className="mn-node-alarm">АВАРИЯ</span>
       ) : null}
       {nodeHandles}

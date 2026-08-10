@@ -28,7 +28,7 @@ from models.base import (
 from models.scenario import Scenario, ScenarioEvent
 from equipment import (
     Pump, Valve, AngleValve, GateValve, Heater, HeatExchanger, DistillationColumn, ELOU, Tank,
-    Mixer, SeparatorS1K,
+    Mixer, Splitter, SeparatorS1K,
 )
 from equipment.columns import AtmosphericColumnK1, column_class_for
 from calculation_core.hydraulics.pressure_drop import calculate_pipe_pressure_drop
@@ -40,6 +40,15 @@ logger = logging.getLogger("elou_avt.engine")
 
 # Node types that behave as adjustable control valves (position throttling).
 _CONTROL_VALVE_TYPES = ("valve", "angle_valve")
+
+# Equipment that legitimately receives several incoming streams on different
+# ports (or as a boundary) and must NOT be treated as an implicit mixer:
+# multi-feed columns, multi-pass furnaces, exchangers, inventory vessels and
+# the explicit mixer/splitter/sink/source primitives.
+_MULTI_IN_BOUNDARY_TYPES = frozenset({
+    "elou", "heat_exchanger", "heater", "column", "separator",
+    "tank", "separator_s1k", "mixer", "splitter", "sink",
+})
 
 
 class SimulationEngine:
@@ -99,6 +108,7 @@ class SimulationEngine:
         self._last_outputs: Dict[str, Any] = {}
         self._last_streams: Dict[str, Any] = {}
         self._alarm_setpoints: Dict[str, Any] = {}
+        self._alarm_setpoint_overrides: Dict[str, Any] = {}
         self._measured_params: Dict[str, int] = {}
         self._has_scheme_limits = False
         self._extend_equipment_from_scheme(self._scheme)
@@ -205,16 +215,22 @@ class SimulationEngine:
         new_state.active_failures = list(self._active_failures)
 
         # 5. Evaluate alarms
-        alarm_values: Dict[str, float] = {"feed_flow": new_state.feed_flow}
+        alarm_values: Dict[str, float] = {}
         if not self._has_scheme_limits:
-            # Demo/deprecated aggregates, used when a scheme carries no limits.
-            alarm_values.update({
-                "column_pressure": new_state.pressure.get("column", 0.0),
-                "column_temperature": new_state.temperature.get("column", 0.0),
-                "furnace_temperature": new_state.temperature.get("furnace_outlet", 0.0),
-            })
+            # Demo/deprecated aggregates, used when a scheme carries no limits
+            # but still has the matching equipment. Skipped for empty/minimal
+            # schemes so demo alarms do not hang on a bare canvas.
+            node_types = {nd.type for nd in self._node_map.values()}
+            if "elou" in node_types or "pump" in node_types:
+                alarm_values["feed_flow"] = new_state.feed_flow
+            if "column" in node_types:
+                alarm_values["column_pressure"] = new_state.pressure.get("column", 0.0)
+                alarm_values["column_temperature"] = new_state.temperature.get("column", 0.0)
+            if "heater" in node_types:
+                alarm_values["furnace_temperature"] = new_state.temperature.get("furnace_outlet", 0.0)
         self._fill_alarm_values(alarm_values, eq_outputs, new_state)
         new_alarms = self._alarm_system.evaluate(self._time, alarm_values)
+        self._bind_alarm_nodes(new_alarms)
         new_state.alarms = self._alarm_system.get_active_alarms()
 
         # 6. Save history (bounded to avoid unbounded memory growth)
@@ -338,6 +354,24 @@ class SimulationEngine:
                 )
                 if inlet is not None:
                     out = {"outlet_stream": inlet}
+            elif nid in self._junction_nodes:
+                # Implicit mixer: the node collects EVERY incoming stream (not
+                # only the port 'in') and passes the well-mixed stream through
+                # at the junction back-pressure.  Mass and energy are conserved
+                # by _merge_streams (Σṁ, mass-weighted composition/enthalpy);
+                # the outlet flow is the sum of the feeds, so the junction never
+                # creates or destroys mass.  Feeding line flows were solved by
+                # the hydraulic network down to this junction pressure.
+                inlets = [s for lst in incoming.values() for s in lst]
+                if not inlets:
+                    continue
+                inlet = self._merge_streams(inlets)
+                if inlet is None:
+                    continue
+                bp = self._mixer_back_pressure(nid, hyd)
+                if bp is not None:
+                    inlet = inlet.copy_with(pressure=float(bp))
+                out = {"outlet_stream": inlet, "flow_out": inlet.mass_flow}
             elif ntype == "pump":
                 inlet = self._merge_streams(incoming.get("in"))
                 if inlet is None:
@@ -397,6 +431,33 @@ class SimulationEngine:
                     dt, inlet_streams=inlets, thermo=self.thermo,
                     back_pressure=self._mixer_back_pressure(nid, hyd),
                 )
+            elif ntype == "splitter":
+                # Разъединитель: один вход, n выходов.  Каждая ветвь решена
+                # линиевым солвером как отдельное ответвление с общей
+                # (junction) давлением на выходе узла, так что распределение
+                # масс между выходами берётся из гидравлики downstream.
+                inlet = self._merge_streams(incoming.get("in"))
+                if inlet is None:
+                    continue
+                h_spl = hyd.get(nid)
+                branch_flows = None
+                if h_spl is not None:
+                    flows: Dict[str, float] = {}
+                    for edge in self._edges:
+                        if edge.source != nid:
+                            continue
+                        bh = hyd.get(edge.target)
+                        if bh is not None:
+                            flows[edge.source_port] = max(0.0, bh["flow"])
+                    if flows:
+                        branch_flows = flows
+                out = eq.step(
+                    dt, inlet_stream=inlet, thermo=self.thermo,
+                    branch_flows=branch_flows,
+                    junction_pressure=h_spl["p_out"] if h_spl is not None else None,
+                )
+                for i, s in enumerate(out.get("outlet_streams") or []):
+                    out[f"out{i}"] = s
             elif ntype == "separator_s1k":
                 inlets = [s for lst in incoming.values() for s in lst]
                 if not inlets:
@@ -418,7 +479,7 @@ class SimulationEngine:
             # physically consistent flow and pressure from the line solver
             # (one shared mass flow, pressure dropping along the chain).
             h = hyd.get(nid)
-            if h is not None and ntype != "mixer":
+            if h is not None and ntype not in ("mixer", "splitter") and nid not in self._junction_nodes:
                 if ntype == "elou":
                     # An ELOU splits the feed into desalted oil (right port) and
                     # brine (bottom port).  Both streams leave the vessel; the
@@ -450,17 +511,37 @@ class SimulationEngine:
                         out["power"] = (h["flow"] / max(inlet.density, 1e-6)) * dp_hyd / max(eq.efficiency, 1e-6)
                         eq.power = out["power"]
             if ntype == "elou":
-                # The ELOU absorbs its inlet line (the model splits the feed
-                # into oil and brine with fixed fractions, so the hydraulic
-                # solver must not re-divide it downstream).  Feed the vessel
-                # inventory balance with the model's total outlet flow so the
-                # level stays steady instead of ramping with the inlet only.
+                # The ELOU is a dehydrator stage: its oil outlet is a physical
+                # drain driven by the static head of the liquid level through
+                # the outlet-line resistance, clamped by the tightest valve on
+                # the oil line -- like a buffer tank, NOT a feed-following
+                # split.  The outflow therefore does not track the feed:
+                #   - cutting the feed drains the level down (Q_out > Q_in);
+                #   - throttling the outlet valve lets the level build up
+                #     (Q_in > Q_out);
+                #   - opening the outlet valve draws the level down again.
+                # The level is a consequence of the mass balance and can be
+                # moved in both directions (asymmetric behaviour removed).
                 s_out = out.get("outlet_stream")
                 b_out = out.get("brine_stream")
-                self._vessel_q_out[nid] = (
-                    (s_out.mass_flow if s_out is not None else 0.0)
-                    + (b_out.mass_flow if b_out is not None else 0.0)
-                )
+                brine = b_out.mass_flow if b_out is not None else 0.0
+                vs = self._vessel_state.get(nid)
+                cap = self._outlet_line_capacity(nid, "oil_out")
+                if vs is not None:
+                    rho = s_out.density if s_out is not None and s_out.density > 0 else 850.0
+                    if vs["level"] > 1e-9:
+                        head = max(rho * 9.81 * vs["level"], 0.0)
+                        oil_q = math.sqrt(head / max(vs.get("k_drain", 1e-9), 1e-12))
+                    else:
+                        oil_q = 0.0
+                    if cap is not None:
+                        oil_q = max(0.0, min(oil_q, cap))
+                else:
+                    model_out = s_out.mass_flow if s_out is not None else 0.0
+                    oil_q = max(0.0, min(model_out, cap)) if cap is not None else model_out
+                if s_out is not None:
+                    out["outlet_stream"] = s_out.copy_with(mass_flow=oil_q)
+                self._vessel_q_out[nid] = oil_q + brine
             if ntype == "column":
                 # The MESH bottoms product is the inflow to the bottoms sump:
                 # the level integrates (bottoms_in - bottoms_drawn), so a bigger
@@ -564,57 +645,56 @@ class SimulationEngine:
                 if os_ is None:
                     continue
                 col, pumps = self._column_of_bottoms_valve(nid)
-                if col is None:
-                    continue
-                vs = self._vessel_state.get(col)
-                lvl = vs["level"] if vs else 0.0
-                draw = 0.0
-                out_p = None
-                for e2 in self._edges:
-                    if e2.source != nid:
-                        continue
-                    t2 = self._node_map.get(e2.target)
-                    if t2 is not None and t2.type == "sink":
-                        out_p = float(t2.params.get("pressure_bar", 1.01325)) * 1e5
-                        break
-                if lvl > 1e-9:
-                    if pumps:
-                        # Pumped bottoms: the pump moves whatever the line can
-                        # take, so the draw is the line capacity - the tightest
-                        # of the pump throughputs and the valve's own opening.
-                        draw = os_.mass_flow
-                        if hasattr(eq, "current_capacity"):
-                            draw = float(eq.current_capacity(os_.density))
-                        pump_cap = None
-                        for p in pumps:
-                            peq = self._equipment.get(p)
-                            if peq is not None and hasattr(peq, "current_capacity"):
-                                c = float(peq.current_capacity(os_.density))
-                                pump_cap = c if pump_cap is None else min(pump_cap, c)
-                        if pump_cap is not None:
-                            draw = min(max(draw, 0.0), pump_cap)
-                    elif hasattr(eq, "draw_capacity"):
-                        # Direct sump valve: real hydraulics, the pressure
-                        # upstream is the column pressure plus the static head
-                        # rho*g*h of the liquid above the draw point; the flow
-                        # is set by the true dp down to the receiving sink.  An
-                        # empty sump (level ~ 0) cannot be drawn.
-                        p_col = vs["p_base"] if vs else 1.01325e5
-                        dp_extra = p_col - (out_p if out_p is not None else p_col)
-                        draw = eq.draw_capacity(lvl, os_.density, dp_extra=dp_extra)
-                    else:
-                        draw = os_.mass_flow
-                    if vs is not None:
-                        max_draw = lvl * vs["area"] * os_.density / max(dt, 1e-9)
-                        draw = min(max(draw, 0.0), max_draw)
-                if out_p is not None:
-                    out["inlet_pressure"] = os_.pressure
-                    out["outlet_pressure"] = out_p
-                    out["dp"] = max(0.0, os_.pressure - out_p)
-                    os_ = os_.copy_with(pressure=out_p)
-                out["outlet_stream"] = os_.copy_with(mass_flow=draw)
-                out["flow_out"] = draw
-                self._vessel_q_out[col] = draw
+                if col is not None:
+                    vs = self._vessel_state.get(col)
+                    lvl = vs["level"] if vs else 0.0
+                    draw = 0.0
+                    out_p = None
+                    for e2 in self._edges:
+                        if e2.source != nid:
+                            continue
+                        t2 = self._node_map.get(e2.target)
+                        if t2 is not None and t2.type == "sink":
+                            out_p = float(t2.params.get("pressure_bar", 1.01325)) * 1e5
+                            break
+                    if lvl > 1e-9:
+                        if pumps:
+                            # Pumped bottoms: the pump moves whatever the line can
+                            # take, so the draw is the line capacity - the tightest
+                            # of the pump throughputs and the valve's own opening.
+                            draw = os_.mass_flow
+                            if hasattr(eq, "current_capacity"):
+                                draw = float(eq.current_capacity(os_.density))
+                            pump_cap = None
+                            for p in pumps:
+                                peq = self._equipment.get(p)
+                                if peq is not None and hasattr(peq, "current_capacity"):
+                                    c = float(peq.current_capacity(os_.density))
+                                    pump_cap = c if pump_cap is None else min(pump_cap, c)
+                            if pump_cap is not None:
+                                draw = min(max(draw, 0.0), pump_cap)
+                        elif hasattr(eq, "draw_capacity"):
+                            # Direct sump valve: real hydraulics, the pressure
+                            # upstream is the column pressure plus the static head
+                            # rho*g*h of the liquid above the draw point; the flow
+                            # is set by the true dp down to the receiving sink.  An
+                            # empty sump (level ~ 0) cannot be drawn.
+                            p_col = vs["p_base"] if vs else 1.01325e5
+                            dp_extra = p_col - (out_p if out_p is not None else p_col)
+                            draw = eq.draw_capacity(lvl, os_.density, dp_extra=dp_extra)
+                        else:
+                            draw = os_.mass_flow
+                        if vs is not None:
+                            max_draw = lvl * vs["area"] * os_.density / max(dt, 1e-9)
+                            draw = min(max(draw, 0.0), max_draw)
+                    if out_p is not None:
+                        out["inlet_pressure"] = os_.pressure
+                        out["outlet_pressure"] = out_p
+                        out["dp"] = max(0.0, os_.pressure - out_p)
+                        os_ = os_.copy_with(pressure=out_p)
+                    out["outlet_stream"] = os_.copy_with(mass_flow=draw)
+                    out["flow_out"] = draw
+                    self._vessel_q_out[col] = draw
 
             self._attach_level(state, nid, node, incoming, out, dt)
             self._register_node_outputs(streams, nid, ntype, out)
@@ -712,11 +792,40 @@ class SimulationEngine:
         AlarmSetpoint per measurable physical limit of each node, keyed by
         '<node_id>_<parameter>' (e.g. 'column_K1_pressure').
         """
+        from copy import deepcopy
         from safety.alarm_system import AlarmSetpoint, DEFAULT_SETPOINTS
-        setpoints: Dict[str, AlarmSetpoint] = dict(DEFAULT_SETPOINTS)
+        setpoints: Dict[str, AlarmSetpoint] = {
+            k: deepcopy(v) for k, v in DEFAULT_SETPOINTS.items()
+        }
         measured: Dict[str, int] = {}
+        # Bare defaults for every measurable node so the operator can arm a
+        # threshold on any equipment even when the scheme carries no limits.
+        node_defaults = {
+            "column": ("pressure", "level", "temperature_top", "temperature_bottom"),
+            "elou": ("pressure", "temperature", "level"),
+            "separator": ("pressure", "temperature", "level"),
+            "separator_s1k": ("pressure", "temperature", "level"),
+            "tank": ("pressure", "temperature", "level"),
+            "heater": ("temperature",),
+        }
         for node in scheme.nodes:
+            if node.type not in node_defaults:
+                continue
+            for quantity in node_defaults[node.type]:
+                name = f"{node.id}_{quantity}"
+                if name in setpoints:
+                    continue
+                unit = "Pa" if quantity == "pressure" else ("K" if "temperature" in quantity else "m")
+                setpoints[name] = AlarmSetpoint(parameter=name, unit=unit)
+        for node in scheme.nodes:
+            # Column/tank defaults (K-1..K-4 presets, level limits) live on the
+            # equipment params, not on the scheme node. Fall back to them so a
+            # bare 'default' scheme still gets real alarm limits.
             limits = node.params.get("limits")
+            if not isinstance(limits, dict) or not limits:
+                eq = self._equipment.get(node.id)
+                eq_limits = eq.params.get("limits") if eq is not None else None
+                limits = eq_limits if isinstance(eq_limits, dict) else None
             if not isinstance(limits, dict) or not limits:
                 continue
             nid = node.id
@@ -760,12 +869,101 @@ class SimulationEngine:
                 s.high = limits.get("level_high", s.high)
                 s.unit = "m"
                 measured[f"{nid}_level"] = 1
+        # Manually set operator limits win over the scheme/equipment defaults.
+        for name, override in self._alarm_setpoint_overrides.items():
+            if name in setpoints:
+                setpoints[name] = override
         self._alarm_setpoints = setpoints
         self._measured_params = measured
         self._has_scheme_limits = any(
             isinstance(n.params.get("limits"), dict) for n in scheme.nodes
         )
         self._alarm_system.configure(setpoints)
+
+    def get_alarm_setpoints(self) -> Dict[str, Dict[str, Any]]:
+        """Return the active alarm setpoints (scheme defaults + manual overrides)."""
+        return {
+            name: {
+                "parameter": sp.parameter,
+                "low_low": sp.low_low,
+                "low": sp.low,
+                "high": sp.high,
+                "high_high": sp.high_high,
+                "unit": sp.unit,
+            }
+            for name, sp in self._alarm_setpoints.items()
+        }
+
+    def update_alarm_setpoint(
+        self,
+        parameter: str,
+        low_low: Optional[float] = None,
+        low: Optional[float] = None,
+        high: Optional[float] = None,
+        high_high: Optional[float] = None,
+        unit: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Override the alarm limits of one parameter (manual operator setting).
+
+        Only parameters that already produce alarm values can be edited.  The
+        change survives scheme reloads via ``_alarm_setpoint_overrides`` and is
+        applied immediately to the active alarm table.
+        """
+        from safety.alarm_system import AlarmSetpoint
+        sp = self._alarm_setpoints.get(parameter)
+        if sp is None:
+            raise KeyError(parameter)
+        if low_low is not None:
+            sp.low_low = low_low
+        if low is not None:
+            sp.low = low
+        if high is not None:
+            sp.high = high
+        if high_high is not None:
+            sp.high_high = high_high
+        if unit is not None:
+            sp.unit = unit
+        self._alarm_setpoint_overrides[parameter] = sp
+        self._alarm_setpoints[parameter] = sp
+        self._alarm_system.configure(self._alarm_setpoints)
+        return self.get_alarm_setpoints()[parameter]
+
+    def restore_alarm_setpoint(
+        self,
+        parameter: str,
+        low_low: Optional[float],
+        low: Optional[float],
+        high: Optional[float],
+        high_high: Optional[float],
+        unit: str,
+    ) -> bool:
+        """Restore a persisted override, assigning every field exactly.
+
+        Unlike ``update_alarm_setpoint`` (which only changes non-None fields)
+        this also clears limits to None, so a saved "no low_low" setting is
+        faithfully reproduced. Returns False when the parameter does not exist
+        in the current scheme (its override is then dropped).
+        """
+        from safety.alarm_system import AlarmSetpoint
+        if parameter not in self._alarm_setpoints:
+            return False
+        sp = AlarmSetpoint(
+            parameter=parameter,
+            low_low=low_low,
+            low=low,
+            high=high,
+            high_high=high_high,
+            unit=unit,
+        )
+        self._alarm_setpoint_overrides[parameter] = sp
+        self._alarm_setpoints[parameter] = sp
+        self._alarm_system.configure(self._alarm_setpoints)
+        return True
+
+    def reset_alarm_setpoints(self) -> None:
+        """Discard manual overrides and restore scheme/equipment defaults."""
+        self._alarm_setpoint_overrides.clear()
+        self._configure_alarm_setpoints(self._scheme)
 
     def _extend_equipment_from_scheme(self, scheme: ProcessScheme) -> None:
         """Create equipment instances for scheme nodes of supported types."""
@@ -794,6 +992,8 @@ class SimulationEngine:
                 self._equipment[node.id] = Tank(node.id, node.params)
             elif node.type == "mixer":
                 self._equipment[node.id] = Mixer(node.id, node.params)
+            elif node.type == "splitter":
+                self._equipment[node.id] = Splitter(node.id, node.params)
             elif node.type == "separator_s1k":
                 self._equipment[node.id] = SeparatorS1K(node.id, node.params)
 
@@ -805,6 +1005,15 @@ class SimulationEngine:
         for edge in self._edges:
             if edge.target in indeg:
                 indeg[edge.target] += 1
+        self._in_degree = indeg
+        # Simple nodes (valves, pumps, pass-throughs) that collect SEVERAL
+        # incoming streams are implicit mixers: they form a shared junction
+        # in the hydraulic network instead of breaking the tree.  Equipment
+        # with multi-port feeds stays a boundary (see _MULTI_IN_BOUNDARY_TYPES).
+        self._junction_nodes = {
+            nid for nid, d in indeg.items()
+            if d > 1 and self._node_map[nid].type not in _MULTI_IN_BOUNDARY_TYPES
+        }
         queue: List[str] = [nid for nid, d in indeg.items() if d == 0]
         order: List[str] = []
         while queue:
@@ -979,6 +1188,15 @@ class SimulationEngine:
             "p_src": p_base + static_head,
             "p_out": p_base + static_head,
             "k_drain": k_drain,
+            # A fully filled vessel is a rigid, incompressible boundary: it can
+            # accept no more mass than its outflow removes.  Once the level
+            # reaches the rim the feeding line dead-heads (inlet flow -> 0)
+            # until the level drops back below the rim (see _integrate_levels).
+            "full": False,
+            # Barrier pressure for a full vessel: far above anything any pump or
+            # source in the model can deliver, so the inlet line dead-heads and
+            # the inflow is truly zero instead of being silently absorbed.
+            "p_block": p_base + 1e9,
         }
         self._vessel_state[nid] = vs
         return vs
@@ -1084,6 +1302,43 @@ class SimulationEngine:
         col_eq = self._equipment.get(nid)
         return float(getattr(col_eq, "pressure", None) or (params.get("pressure_bar", 1.01325) * 1e5))
 
+    def _outlet_line_capacity(self, nid: str, port: str, density: float = 850.0) -> Optional[float]:
+        """Physical throughput of a vessel's outlet line starting at ``port``.
+
+        Walks the downstream elements (valves, pumps, pass-throughs) up to the
+        receiving sink and returns the tightest capacity of the line; None when
+        nothing restricts the flow (no throttling element on the path).  This is
+        the real drain capacity of an ELOU oil outlet whose line carries no
+        solved hydraulics (a multi-outlet vessel builds no downstream tree), so
+        a closed outlet valve holds the oil back instead of vanishing.
+        """
+        seen: set = {nid}
+        queue = [
+            e.target
+            for e in self._edges
+            if e.source == nid and e.source_port == port
+        ]
+        cap: Optional[float] = None
+        while queue:
+            nxt = queue.pop(0)
+            if nxt in seen or nxt not in self._node_map:
+                continue
+            seen.add(nxt)
+            node = self._node_map[nxt]
+            if node.type == "sink":
+                continue
+            if node.type in _CONTROL_VALVE_TYPES:
+                eq = self._equipment.get(nxt)
+                if eq is not None and hasattr(eq, "current_capacity"):
+                    c = float(eq.current_capacity(density))
+                    cap = c if cap is None else min(cap, c)
+            # Pumps and pass-through elements do not restrict a drain line;
+            # pipe resistance is secondary to the control valve here.
+            queue.extend(
+                e.target for e in self._edges if e.source == nxt
+            )
+        return cap
+
     def _integrate_levels(self, dt: float) -> None:
         """Advance each buffer vessel's level: dL/dt = (Q_in - Q_out)/(rho*A)."""
         for nid, vs in self._vessel_state.items():
@@ -1100,10 +1355,35 @@ class SimulationEngine:
                 qi = max(0.0, q.get("in", 0.0))
             qo = max(0.0, self._vessel_q_out.get(nid, 0.0))
             lvl = vs["level"] + (qi - qo) / max(850.0 * vs["area"], 1e-6) * dt
-            if lvl > vs["height"]:
+            deadband = max(0.01 * vs["height"], 0.02)
+            if lvl >= vs["height"]:
+                # Overflow: a fully filled vessel cannot accept more mass than
+                # its outflow drains (incompressible liquid).  If the inflow
+                # still exceeds the drain there is nowhere for the liquid to
+                # go, so the feeding line dead-heads: the effective inflow is
+                # capped at the outflow and the level stays on the rim.  The
+                # blocked excess is never created (mass-conserving) -- the
+                # upstream hydraulics reflect it as a pressure rise instead.
                 lvl = vs["height"]
-            if lvl < 0.0:
+                vs["full"] = True
+                if node is not None and node.type == "column":
+                    # A column's inflow is the MESH bottoms product, not a
+                    # solved tree flow, so the dead-heading p_block cannot cut
+                    # it -- cap the effective inflow at the draw explicitly.
+                    self._vessel_q_in[nid] = qo
+            elif vs.get("full") and lvl >= vs["height"] - deadband:
+                # Hysteresis: a vessel that has just reached the rim stays
+                # "full" (inlet line dead-headed) until its level drops a
+                # little below the rim, otherwise a level resting exactly on
+                # the rim would flip full/not-full every step and the inlet
+                # flow would oscillate between the full line capacity and
+                # zero while the vessel can accept no mass at all.
+                vs["full"] = True
+            elif lvl < 0.0:
                 lvl = 0.0
+                vs["full"] = False
+            else:
+                vs["full"] = False
             vs["level"] = lvl
             node = self._node_map.get(nid)
             if node is not None and node.type in ("column", "elou"):
@@ -1192,6 +1472,18 @@ class SimulationEngine:
                     # every feeding line terminates here as a sink, and each
                     # valve upstream must drop to the junction pressure.
                     return True
+                if nxt in self._junction_nodes:
+                    # Implicit mixer: a junction terminates every feeding line
+                    # as a sink at its downstream pressure, so any upstream
+                    # path that reaches it has found its sink.
+                    return True
+                if nt in self._TRANSIT_NODE_TYPES:
+                    # An inventory vessel (ELOU / separator / tank) is a live
+                    # inventory boundary: every feeding line terminates here as
+                    # a sink at the vessel's own pressure, whatever its
+                    # in-degree (an ELOU can be fed by several lines at once,
+                    # e.g. through parallel preheat trains).
+                    return True
                 if indeg.get(nxt, 0) > 1:
                     continue
                 if nt == "sink":
@@ -1246,7 +1538,7 @@ class SimulationEngine:
                             # side draw / bottoms streams.
                             vs = self._vessel_boundary(nxt)
                             children.setdefault(cur, []).append(nxt)
-                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt, "absorb": True}
+                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_block"] if vs.get("full") else vs["p_out"], "vessel": nxt, "absorb": True}
                             sink_ids.append(nxt)
                             # The column is shared by all its feeding lines, so
                             # it must never be claimed by a single tree.
@@ -1271,7 +1563,7 @@ class SimulationEngine:
                         # pressure the separator's outlets carry.
                         vs = self._vessel_boundary(nxt)
                         children.setdefault(cur, []).append(nxt)
-                        tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"]}
+                        tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_block"] if vs.get("full") else vs["p_out"]}
                         sink_ids.append(nxt)
                         shared_sink_nodes.add(nxt)
                         continue
@@ -1307,8 +1599,24 @@ class SimulationEngine:
                         element_count += 1
                         visit(ch_key, seen | {ch_key}, by_source.get(nxt, []), pair)
                         continue
-                    if indeg.get(nxt, 0) > 1:
-                        continue  # merge point breaks the tree
+                    if nxt in self._junction_nodes:
+                        # Implicit mixer: several streams enter a simple node
+                        # (a valve, pump or pass-through).  The node behaves as
+                        # a junction at the pressure of the first element
+                        # downstream of it, and every feeding line terminates
+                        # here as a sink at that pressure.  The node is shared
+                        # (never claimed), so each upstream valve drops to the
+                        # junction pressure and all feeding branches are solved
+                        # in one network -- exactly like an explicit mixer.
+                        p_mix = self._mixer_back_pressure(nxt, {})
+                        children.setdefault(cur, []).append(nxt)
+                        tree_nodes[nxt] = {
+                            "type": "sink",
+                            "sink_p": float(p_mix if p_mix is not None else 1.01325e5),
+                        }
+                        sink_ids.append(nxt)
+                        shared_sink_nodes.add(nxt)
+                        continue
                     if ntype in self._TRANSIT_NODE_TYPES:
                         vs = self._vessel_boundary(nxt)
                         children.setdefault(cur, []).append(nxt)
@@ -1320,7 +1628,7 @@ class SimulationEngine:
                             # the hydraulic solver must not re-divide them, so no
                             # downstream tree is built and the outlet streams
                             # propagate as model-driven pass-throughs.
-                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_out"], "vessel": nxt, "absorb": True}
+                            tree_nodes[nxt] = {"type": "sink", "sink_p": vs["p_block"] if vs.get("full") else vs["p_out"], "vessel": nxt, "absorb": True}
                             sink_ids.append(nxt)
                             if len(by_source.get(nxt, [])) <= 1:
                                 vessel_roots.append(nxt)
@@ -1837,6 +2145,10 @@ class SimulationEngine:
                 streams[f"{nid}:out_t"] = out["out_t"]
             if out.get("out_b") is not None:
                 streams[f"{nid}:out_b"] = out["out_b"]
+        elif ntype == "splitter":
+            # Разъединитель публикует по одному потоку на каждую ветвь.
+            for i, s in enumerate(out.get("outlet_streams") or []):
+                streams[f"{nid}:out{i}"] = s
         elif ntype == "heater":
             # A multi-pass furnace publishes one stream per section outlet.
             for in_port, out_port in self._FURNACE_PORT_PAIRS.items():
@@ -1853,6 +2165,138 @@ class SimulationEngine:
         """Return the per-port streams of the most recent step (for telemetry)."""
         return self._last_streams
 
+    def _collect_node_params(
+        self,
+        eq_outputs: Dict[str, Any],
+        prev_state: SimulationState,
+    ) -> Dict[str, Dict[str, Any]]:
+        """Per-node measured parameters (flow, pressure, temperature, level,
+        duty, valve position) derived from this step's equipment outputs and
+        port streams. Mirrors the live telemetry serializer so history series
+        match what the operator sees in the inspector, but computed from the
+        physical outputs of the current step rather than the last snapshot."""
+        streams = self._last_streams
+        equip = self._equipment
+        node_params: Dict[str, Dict[str, Any]] = {}
+
+        for nid, node in self._node_map.items():
+            ntype = node.type
+            out = eq_outputs.get(nid, {})
+            eq = equip.get(nid)
+            s = out.get("outlet_stream")
+            if s is None:
+                s = streams.get(f"{nid}:out")
+
+            p: Dict[str, Any] = {}
+
+            if ntype == "pump":
+                p["flow_kg_s"] = out.get("flow_out", 0.0)
+                p["power_w"] = out.get("power", 0.0)
+                p["pressure_bar"] = round(s.pressure / 1e5, 4) if s else None
+                p["temperature_c"] = round(s.temperature - 273.15, 3) if s else None
+                if eq is not None and getattr(eq, "efficiency", None) is not None:
+                    p["efficiency"] = eq.efficiency
+                if eq is not None and getattr(eq, "speed", None) is not None:
+                    p["speed_rpm"] = round(eq.speed, 1)
+            elif ntype in ("valve", "angle_valve"):
+                p["position"] = round(out.get("position", 0.0) * 100.0, 2)
+                p["flow_kg_s"] = out.get("flow_out", 0.0)
+                if out.get("inlet_pressure"):
+                    p["pressure_in_bar"] = round(out["inlet_pressure"] / 1e5, 4)
+                if out.get("outlet_pressure"):
+                    p["pressure_out_bar"] = round(out["outlet_pressure"] / 1e5, 4)
+            elif ntype == "gate_valve":
+                p["flow_kg_s"] = round(out.get("flow_out", 0.0), 3)
+                p["blocked"] = bool(out.get("blocked", False))
+            elif ntype in ("separator", "separator_s1k", "tank"):
+                s_ref = s or out.get("out_b") or out.get("out_t")
+                p["level_m"] = out.get("level")
+                p["in_flow"] = round(out.get("in_flow", 0.0), 3)
+                p["out_flow"] = round(out.get("out_flow", 0.0), 3)
+                p["flow_kg_s"] = round(out.get("out_flow", 0.0), 3)
+                if s_ref is not None:
+                    p["pressure_bar"] = round(s_ref.pressure / 1e5, 4)
+                    p["temperature_c"] = round(s_ref.temperature - 273.15, 3)
+                p["volume_m3"] = out.get("volume_m3")
+            elif ntype == "mixer":
+                if s is not None:
+                    p["flow_kg_s"] = round(s.mass_flow, 3)
+                    p["temperature_c"] = round(s.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(s.pressure / 1e5, 4)
+            elif ntype == "splitter":
+                # Телеметрия разъединителя: состояние первой ветви (у всех
+                # ветвей общий состав/температура, давление — junction).
+                s0 = out.get("out0") or streams.get(f"{nid}:out0")
+                if s0 is not None:
+                    p["flow_kg_s"] = round(s0.mass_flow, 3)
+                    p["temperature_c"] = round(s0.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(s0.pressure / 1e5, 4)
+            elif ntype == "elou":
+                if s is not None:
+                    p["flow_kg_s"] = round(s.mass_flow, 3)
+                    p["temperature_c"] = round(s.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(s.pressure / 1e5, 4)
+                if eq is not None and getattr(eq, "power_consumption", None) is not None:
+                    p["power_w"] = eq.power_consumption
+                p["level_m"] = out.get("level", prev_state.level.get(nid))
+                p["volume_m3"] = out.get("volume_m3")
+            elif ntype == "heat_exchanger":
+                p["duty_w"] = out.get("duty", 0.0)
+                for key, raw in (
+                    ("t_cold_in_c", "t_cold_in"), ("t_cold_out_c", "t_cold_out"),
+                    ("t_hot_in_c", "t_hot_in"), ("t_hot_out_c", "t_hot_out"),
+                ):
+                    v = out.get(raw)
+                    if v is not None:
+                        p[key] = round(v - 273.15, 3)
+            elif ntype == "heater":
+                if eq is not None:
+                    p["duty_w"] = getattr(eq, "duty", 0.0)
+                    p["fuel_flow"] = getattr(eq, "fuel_flow", 0.0)
+                    if getattr(eq, "outlet_temp", None) is not None:
+                        p["outlet_temp_c"] = round(eq.outlet_temp - 273.15, 3)
+                p["flow_kg_s"] = round(out.get("flow_out", 0.0), 3)
+            elif ntype == "column":
+                dist = out.get("distillate")
+                side = out.get("side_draw")
+                bott = out.get("bottoms")
+                p["distillate_flow"] = round(dist.mass_flow, 3) if dist else 0.0
+                p["side_draw_flow"] = round(side.mass_flow, 3) if side else 0.0
+                p["bottoms_flow"] = round(bott.mass_flow, 3) if bott else 0.0
+                p["flow_kg_s"] = round(
+                    (dist.mass_flow if dist else 0.0)
+                    + (side.mass_flow if side else 0.0)
+                    + (bott.mass_flow if bott else 0.0), 3)
+                if dist is not None:
+                    p["top_temp_c"] = round(dist.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(dist.pressure / 1e5, 4)
+                if bott is not None:
+                    p["bottom_temp_c"] = round(bott.temperature - 273.15, 3)
+                p["level_m"] = out.get("level", prev_state.level.get(nid))
+                p["volume_m3"] = out.get("volume_m3")
+            elif ntype == "source":
+                if s is not None:
+                    p["flow_kg_s"] = round(s.mass_flow, 3)
+                    p["temperature_c"] = round(s.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(s.pressure / 1e5, 4)
+            elif ntype == "sink":
+                for edge in self._edges:
+                    if edge.target == nid:
+                        s_in = streams.get(f"{edge.source}:{edge.source_port}")
+                        if s_in is not None:
+                            break
+                else:
+                    s_in = None
+                if s_in is not None:
+                    p["flow_kg_s"] = round(s_in.mass_flow, 3)
+                    p["temperature_c"] = round(s_in.temperature - 273.15, 3)
+                    p["pressure_bar"] = round(s_in.pressure / 1e5, 4)
+
+            if p:
+                node_params[nid] = p
+
+        return node_params
+
     def _first_of_type(self, ntype: str) -> Optional[str]:
         """Return the id of the first scheme node of a given type (topo order)."""
         for nid in self._topo_order:
@@ -1860,6 +2304,36 @@ class SimulationEngine:
             if node is not None and node.type == ntype:
                 return nid
         return None
+
+    def _bind_alarm_nodes(self, alarms: List[Alarm]) -> None:
+        """Bind every triggered alarm to a concrete scheme node.
+
+        Per-node parameters already carry a '<node_id>_<quantity>' key, so the
+        node is recovered by the longest matching node-id prefix. Aggregate
+        parameters (feed_flow, column_*, furnace_*) are bound to the first node
+        of the equipment type that produced them, so the mnemo node lights up
+        for the object the alarm actually concerns.
+        """
+        aggregate_map = {
+            "feed_flow": ("pump", "elou"),
+            "column_pressure": ("column",),
+            "column_temperature": ("column",),
+            "furnace_temperature": ("heater",),
+        }
+        node_ids = list(self._node_map.keys())
+        for alarm in alarms:
+            param = alarm.parameter
+            best: Optional[str] = None
+            for nid in node_ids:
+                if param.startswith(nid + "_") and (best is None or len(nid) > len(best)):
+                    best = nid
+            if best is None:
+                for ntype in aggregate_map.get(param, ()):
+                    best = self._first_of_type(ntype)
+                    if best is not None:
+                        break
+            if best is not None:
+                alarm.node_id = best
 
     def _fill_alarm_values(
         self,
@@ -1875,26 +2349,26 @@ class SimulationEngine:
                 dist = out.get("distillate")
                 bott = out.get("bottoms")
                 if dist is not None:
-                    if f"{nid}_pressure" in self._measured_params:
+                    if f"{nid}_pressure" in self._alarm_setpoints:
                         alarm_values[f"{nid}_pressure"] = dist.pressure
-                    if f"{nid}_temperature_top" in self._measured_params:
+                    if f"{nid}_temperature_top" in self._alarm_setpoints:
                         alarm_values[f"{nid}_temperature_top"] = dist.temperature
-                if bott is not None and f"{nid}_temperature_bottom" in self._measured_params:
+                if bott is not None and f"{nid}_temperature_bottom" in self._alarm_setpoints:
                     alarm_values[f"{nid}_temperature_bottom"] = bott.temperature
-                if f"{nid}_level" in self._measured_params:
+                if f"{nid}_level" in self._alarm_setpoints:
                     alarm_values[f"{nid}_level"] = out.get("level", new_state.level.get(nid, 2.0))
             elif ntype in ("elou", "separator", "separator_s1k", "tank"):
                 s = out.get("outlet_stream") or out.get("out_b") or out.get("out_t")
                 if s is not None:
-                    if f"{nid}_pressure" in self._measured_params:
+                    if f"{nid}_pressure" in self._alarm_setpoints:
                         alarm_values[f"{nid}_pressure"] = s.pressure
-                    if f"{nid}_temperature" in self._measured_params:
+                    if f"{nid}_temperature" in self._alarm_setpoints:
                         alarm_values[f"{nid}_temperature"] = s.temperature
-                if f"{nid}_level" in self._measured_params:
+                if f"{nid}_level" in self._alarm_setpoints:
                     alarm_values[f"{nid}_level"] = out.get("level", new_state.level.get(nid, 2.0))
             elif ntype == "heater":
                 s = out.get("out") or out.get("outlet_stream")
-                if s is not None and f"{nid}_temperature" in self._measured_params:
+                if s is not None and f"{nid}_temperature" in self._alarm_setpoints:
                     alarm_values[f"{nid}_temperature"] = s.temperature
 
     def _build_state(
@@ -2001,6 +2475,7 @@ class SimulationEngine:
             pump_states=pump_states,
             valve_positions=valve_positions,
             equipment_states=equipment_states,
+            node_params=self._collect_node_params(eq_outputs, prev_state),
             alarms=list(prev_state.alarms),
             active_failures=list(self._active_failures),
             errors=list(prev_state.errors),

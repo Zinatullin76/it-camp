@@ -35,6 +35,7 @@ class Alarm(BaseModel):
     threshold: float
     severity: Severity
     description: str
+    node_id: Optional[str] = None
 
 class ErrorEvent(BaseModel):
     error_type: str
@@ -66,6 +67,7 @@ class SimulationState(BaseModel):
     pump_states: Dict[str, bool] = Field(default_factory=dict)
     valve_positions: Dict[str, float] = Field(default_factory=dict)
     equipment_states: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    node_params: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     controllers: Dict[str, Any] = Field(default_factory=dict)
     alarms: List[Alarm] = Field(default_factory=list)
     active_failures: List[str] = Field(default_factory=list)

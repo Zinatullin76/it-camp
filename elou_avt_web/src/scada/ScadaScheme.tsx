@@ -24,6 +24,7 @@ import type { EquipmentNode, EquipmentNodeData } from '../nodes/EquipmentNode';
 import Inspector from '../components/Inspector';
 import StreamEdge from '../components/StreamEdge';
 import TrendChart, { SERIES_META } from '../components/TrendChart';
+import { fmtSimTime } from '../lms/ui';
 
 const nodeTypes = { equipment: EquipmentNodeComponent };
 const edgeTypes = { stream: StreamEdge };
@@ -204,7 +205,7 @@ function ScadaInner({ live, user }: Props) {
           data: {
             ...n.data,
             telemetry: s.equipment?.[n.id] ?? null,
-            alarms: (s.alarms ?? []).filter((a) => a.parameter.startsWith(`${n.id}_`)),
+            alarms: (s.alarms ?? []).filter((a) => a.node_id === n.id || a.parameter.startsWith(`${n.id}_`)),
           },
         })),
       );
@@ -331,6 +332,23 @@ function ScadaInner({ live, user }: Props) {
               <div className="hmi-banner">
                 ЭЛОУ-АВТ · МНЕМОСХЕМА УСТАНОВКИ{user ? ` · ${user}` : ''}
               </div>
+              <div className="hmi-chips" style={{ marginTop: 6, justifyContent: 'center' }}>
+                <span className="chip chip-info">t = {(live?.simulation_time ?? 0).toFixed(0)} с</span>
+                <label className="chip chip-info speed-chip">
+                  ⏩ <select
+                    className="speed-select"
+                    value={live?.speed ?? 1}
+                    onChange={(e) => { void api.setSimulationSpeed(Number(e.target.value)); }}
+                    title="Скорость симуляции"
+                  >
+                    <option value={1}>1×</option>
+                    <option value={2}>2×</option>
+                    <option value={5}>5×</option>
+                    <option value={10}>10×</option>
+                    <option value={30}>30×</option>
+                  </select>
+                </label>
+              </div>
             </Panel>
             <Panel position="bottom-center">
               <div className="flow-legend">
@@ -376,6 +394,38 @@ function ScadaInner({ live, user }: Props) {
           <TrendChart history={history} param={trendParam} />
         </aside>
       </div>
+
+      {(live?.alarms?.length ?? 0) > 0 && (
+        <div className="mnemo-bottom scada-alarms">
+          <div className="mnemo-alarms">
+            <div className="panel-title">АВАРИИ · {live?.alarms?.length ?? 0}</div>
+            <div className="alarm-table-wrap">
+              <table className="alarm-table">
+                <thead>
+                  <tr>
+                    <th>Время</th>
+                    <th>Параметр</th>
+                    <th>Значение</th>
+                    <th>Уставка</th>
+                    <th>Описание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(live?.alarms ?? []).map((a) => (
+                    <tr key={a.id} className={`alarm-row sev-${String(a.severity).toLowerCase()}`}>
+                      <td>{fmtSimTime(a.timestamp)}</td>
+                      <td>{a.parameter}</td>
+                      <td>{a.actual_value.toFixed(2)}</td>
+                      <td>{a.threshold.toFixed(2)}</td>
+                      <td className="alarm-desc">{a.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {msg && <div className="toast">{msg}</div>}
     </div>

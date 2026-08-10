@@ -11,6 +11,7 @@ export const PALETTE: PaletteItem[] = [
   { type: 'angle_valve', label: 'Угловой клапан', category: 'equipment', color: '#38bdf8' },
   { type: 'gate_valve', label: 'Задвижка', category: 'equipment', color: '#38bdf8' },
   { type: 'mixer', label: 'Смеситель', category: 'equipment', color: '#38bdf8' },
+  { type: 'splitter', label: 'Разъединитель потока', category: 'equipment', color: '#38bdf8' },
   { type: 'elou', label: 'ЭЛОУ (электродегидратор)', category: 'equipment', color: '#38bdf8' },
   { type: 'heat_exchanger', label: 'Теплообменник', category: 'equipment', color: '#38bdf8' },
   { type: 'heater', label: 'Печь', category: 'equipment', color: '#fb923c' },
@@ -38,6 +39,10 @@ export const TYPE_COLORS: Record<string, string> = Object.fromEntries(PALETTE.ma
 // Human-readable labels/units for telemetry params (used in Inspector + on-scheme tags).
 export const PARAM_LABELS: Record<string, { label: string; unit: string }> = {
   flow_kg_s: { label: 'Расход', unit: 'кг/с' },
+  feed_flow: { label: 'Расход сырья', unit: 'кг/с' },
+  column_pressure: { label: 'Давление в колонне', unit: 'атм' },
+  column_temperature: { label: 'Температура в колонне', unit: 'K' },
+  furnace_temperature: { label: 'Температура печи', unit: 'K' },
   in_flow: { label: 'Расход вход', unit: 'кг/с' },
   out_flow: { label: 'Расход выход', unit: 'кг/с' },
   power_w: { label: 'Мощность', unit: 'кВт' },
@@ -92,6 +97,7 @@ export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
   separator: { level_mode: 'reflux' },
   separator_s1k: { level_mode: 'reflux' },
   mixer: { num_inputs: 2 },
+  splitter: { num_outputs: 2 },
 };
 
 // Node card size per type (width x height) — compact, matches the symbol.
@@ -103,6 +109,7 @@ export const NODE_SIZES: Record<string, { w: number; h: number }> = {
   angle_valve: { w: 84, h: 76 },
   gate_valve: { w: 40, h: 56 },
   mixer: { w: 144, h: 114 },
+  splitter: { w: 144, h: 114 },
   elou: { w: 120, h: 66 },
   heat_exchanger: { w: 132, h: 70 },
   heater: { w: 118, h: 88 },

@@ -61,7 +61,7 @@ def bisection_root(
     f: Callable[[float], float],
     lo: float,
     hi: float,
-    iters: int = 200,
+    iters: int = 60,
     tol: float = 1e-9,
 ) -> float:
     """Root of a monotone-decreasing function on [lo, hi]; f(lo) > 0, f(hi) <= 0."""
@@ -69,7 +69,7 @@ def bisection_root(
     if flo <= 0.0:
         return lo
     fhi = f(hi)
-    for _ in range(200):
+    for _ in range(60):
         if fhi <= 0.0:
             break
         hi *= 2.0
@@ -267,7 +267,13 @@ def solve_branched_network(
         return v
 
     def subtree_flow(nid: str, p_in: float) -> float:
-        key = (nid, round(p_in, 1))
+        # Cache key rounds the inlet pressure to 10 Pa.  A flow is quadratic in
+        # the pressure drop, so a 10 Pa uncertainty on a 2-5 atm drop changes
+        # the flow by well under 0.01% -- far below what the dynamic model can
+        # resolve.  Without the rounding every bisection iteration produces a
+        # unique key, the cache misses forever, and the nested bisections blow
+        # up exponentially (millions of calls per step on a large scheme).
+        key = (nid, round(p_in / 10.0) * 10.0)
         r = _flow_cache.get(key)
         if r is not None:
             return r

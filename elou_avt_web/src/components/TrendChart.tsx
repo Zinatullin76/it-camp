@@ -17,9 +17,11 @@ interface Props {
   history: HistoryResponse | null;
   param: string;
   height?: number;
+  label?: string;
+  unit?: string;
 }
 
-export default function TrendChart({ history, param, height = 190 }: Props) {
+export default function TrendChart({ history, param, height = 190, label, unit }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
 
@@ -39,7 +41,7 @@ export default function TrendChart({ history, param, height = 190 }: Props) {
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    const meta = SERIES_META[param] ?? { label: param, unit: '' };
+    const meta = label !== undefined ? { label, unit: unit ?? '' } : (SERIES_META[param] ?? { label: param, unit: '' });
     const values = history?.series[param] ?? [];
     const times = history?.times ?? [];
     chart.setOption(

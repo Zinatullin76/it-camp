@@ -22,6 +22,7 @@ REST API of the authoring & study system («Обуч.txt»).
         DELETE /lms/scenarios/{id}
         POST   /lms/scenarios/{id}/status         DRAFT/REVIEW/PUBLISHED/ARCHIVED
         GET    /lms/authoring/equipment           каталог оборудования схемы
+        GET    /lms/authoring/scenarios           все сценарии всех модулей
         GET    /lms/authoring/scenario-status/{id}
 
     Оператор (view_courses / view_own_results):
@@ -117,6 +118,13 @@ def publish_module(module_id: int, req: PublishWrite,
             dependencies=[Depends(require_permission("manage_courses"))])
 def authoring_equipment(current_user: Principal = Depends(get_current_user)):
     return get_service().equipment_catalog()
+
+
+@router.get("/authoring/scenarios",
+            dependencies=[Depends(require_permission("manage_courses"))])
+def authoring_scenarios(current_user: Principal = Depends(get_current_user)):
+    """Все сценарии всех модулей (для администратора)."""
+    return get_service().scenarios_catalog()
 
 
 @router.get("/authoring/scenario-status/{scenario_id}",

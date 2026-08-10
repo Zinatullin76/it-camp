@@ -9,6 +9,11 @@ from .base_equipment import BaseEquipment, EquipmentState
 from models.stream import Stream
 from calculation_core.hydraulics.pressure_drop import calculate_valve_flow
 
+# Default valve opening when a scheme carries no explicit initial_position.
+# 0.7 = 70% (operator requirement: control valves start open enough to pass
+# the feed, so a scheme that does not configure its valves is not dead-headed).
+DEFAULT_POSITION = 0.7
+
 class Valve(BaseEquipment):
     """
     Control valve with pressure drop calculation.
@@ -22,6 +27,8 @@ class Valve(BaseEquipment):
         self.target_position = 0.0
         if init_pos is not None:
             self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))
+        else:
+            self.position = self._position = self.target_position = DEFAULT_POSITION
         self._apply_params()
 
     def _apply_params(self) -> None:
@@ -48,7 +55,7 @@ class Valve(BaseEquipment):
         # Restriction grows as the valve closes below its normal opening. At
         # the normal position there is no extra pressure loss (nominal dP);
         # closing all the way imposes the full design drop (dead-heading).
-        nominal = max(0.0, self.params.get("initial_position", 1.0) or 0.0)
+        nominal = max(0.0, self.params.get("initial_position", DEFAULT_POSITION) or 0.0)
         if nominal > 1e-6:
             restriction = min(1.0, max(0.0, (nominal - self.position) / nominal))
         else:
@@ -131,6 +138,8 @@ class Valve(BaseEquipment):
         self.position = self._position = self.target_position = 0.0
         if init_pos is not None:
             self.position = self._position = self.target_position = max(0.0, min(1.0, float(init_pos)))
+        else:
+            self.position = self._position = self.target_position = DEFAULT_POSITION
 
 
 class AngleValve(Valve):
@@ -139,12 +148,12 @@ class AngleValve(Valve):
 
     Behaves exactly like a regular control valve (position set via
     apply_action("SET_VALUE"), throttling, dead-heading), but defaults to
-    fully open when no initial_position is configured, so adding it to a
-    scheme does not silently dead-head the line.
+    the standard DEFAULT_POSITION when no initial_position is configured,
+    so adding it to a scheme does not silently dead-head the line.
     """
 
     def __init__(self, equipment_id: str, params: Optional[Dict[str, Any]] = None):
         params = dict(params or {})
         if "initial_position" not in params:
-            params["initial_position"] = 1.0
+            params["initial_position"] = DEFAULT_POSITION
         super().__init__(equipment_id, params)

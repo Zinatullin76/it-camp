@@ -10,7 +10,7 @@ Validation is pure configuration checking — it never inspects runtime state.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,6 +35,7 @@ NODE_TYPES = {
     "separator",
     "separator_s1k",
     "mixer",
+    "splitter",
 }
 
 # Boundary node types.
@@ -59,6 +60,7 @@ PORT_SPECS: Dict[str, Set[str]] = {
     "separator": {"in", "out", "gas"},
     "separator_s1k": {"in_l", "in_r", "out_t", "out_b"},
     "mixer": {"out"},
+    "splitter": {"in"},
 }
 
 # Required equipment parameters per node type (ТЗ section 5 "Equipment").
@@ -133,6 +135,9 @@ def _valid_port(node: SchemeNode, port: str, direction: str) -> bool:
         return True
     # Смеситель объединяет n потоков: входы in0, in1, ...
     if node.type == "mixer" and direction == "target" and port.startswith("in"):
+        return True
+    # Разъединитель делит поток на n ветвей: выходы out0, out1, ...
+    if node.type == "splitter" and direction == "source" and port.startswith("out"):
         return True
     return False
 

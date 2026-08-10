@@ -23,6 +23,7 @@ import { mnemoLayout } from '../layout';
 import EquipmentNodeComponent, { SchemeEditorContext } from '../nodes/EquipmentNode';
 import type { EquipmentNode, EquipmentNodeData, TagCfg } from '../nodes/EquipmentNode';
 import Inspector from '../components/Inspector';
+import { fmtSimTime } from '../lms/ui';
 import EdgeInspector from '../components/EdgeInspector';
 import StreamEdge from '../components/StreamEdge';
 import type { StreamEdgeData } from '../components/StreamEdge';
@@ -32,17 +33,7 @@ const nodeTypes = { equipment: EquipmentNodeComponent };
 const edgeTypes = { stream: StreamEdge };
 
 
-const SCENARIOS = [
-  { id: 'NORMAL_OPERATION', label: 'Нормальная работа' },
-  { id: 'PUMP_FAILURE_001', label: 'Отказ насоса P-101' },
-  { id: 'TEMPERATURE_DEVIATION_001', label: 'Отклонение температуры' },
-  { id: 'PRESSURE_DEVIATION_001', label: 'Отклонение давления' },
-  { id: 'COMBINED_EMERGENCY_001', label: 'Комбинированная авария' },
-  { id: 'VALVE_FAILURE_001', label: 'Отказ клапана' },
-  { id: 'FEED_LOSS_001', label: 'Потеря питания' },
-  { id: 'STARTUP', label: 'Пуск установки' },
-  { id: 'SHUTDOWN', label: 'Останов установки' },
-];
+const SCENARIOS: { id: string; label: string }[] = [];
 
 const EDGE_STROKE = 2;
 
@@ -225,6 +216,7 @@ function toRfEdges(
 function HmiInner() {
   const { user, hasPermission } = useAuth();
   const canEditScheme = hasPermission('manage_scheme');
+  const canManageTwin = hasPermission('manage_twin');
   const [edit, setEdit] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState<EquipmentNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -235,7 +227,7 @@ function HmiInner() {
   const [trendParam, setTrendParam] = useState('column_pressure_bar');
   const [schemes, setSchemes] = useState<string[]>([]);
   const [currentScheme, setCurrentScheme] = useState('default');
-  const [scenario, setScenario] = useState('PUMP_FAILURE_001');
+  const [scenario, setScenario] = useState('');
   const [msg, setMsg] = useState('');
   const [dispMap, setDispMap] = useState<Record<string, string[]>>(loadDisp);
   const [tagsMap, setTagsMap] = useState<Record<string, Record<string, TagCfg>>>(loadTags);
@@ -484,7 +476,7 @@ function HmiInner() {
         data: {
           ...n.data,
           telemetry: s.equipment?.[n.id] ?? null,
-          alarms: (s.alarms ?? []).filter((a) => a.parameter.startsWith(`${n.id}_`)),
+          alarms: (s.alarms ?? []).filter((a) => a.node_id === n.id || a.parameter.startsWith(`${n.id}_`)),
         },
       })),
     );
@@ -839,16 +831,18 @@ function HmiInner() {
   return (
     <div className="hmi-page">
       <div className="hmi-toolbar">
-        <select
-          className="scenario-select"
-          value={scenario}
-          onChange={(e) => setScenario(e.target.value)}
-          title="Сценарий"
-        >
-          {SCENARIOS.map((s) => (
-            <option key={s.id} value={s.id}>{s.label}</option>
-          ))}
-        </select>
+        {SCENARIOS.length > 0 && (
+          <select
+            className="scenario-select"
+            value={scenario}
+            onChange={(e) => setScenario(e.target.value)}
+            title="Сценарий"
+          >
+            {SCENARIOS.map((s) => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+        )}
         <button className="btn btn-start" onClick={runScenario}>▶ Запустить</button>
         <button className="btn btn-stop" onClick={finishScenario}>⏹ Завершить</button>
         <button className="btn btn-ghost" onClick={() => api.resetScenario().then(applyTelemetry)}>⏮ Сброс</button>
@@ -895,6 +889,20 @@ function HmiInner() {
             <span className="dot" /> {connected ? 'LIVE · СВЯЗЬ ЕСТЬ' : 'ОТКЛЮЧЕНО'}
           </span>
           <span className="chip chip-info">t = {(live?.simulation_time ?? 0).toFixed(0)} с</span>
+          <label className="chip chip-info speed-chip">
+            ⏩ <select
+              className="speed-select"
+              value={live?.speed ?? 1}
+              onChange={(e) => { void api.setSimulationSpeed(Number(e.target.value)); }}
+              title="Скорость симуляции"
+            >
+              <option value={1}>1×</option>
+              <option value={2}>2×</option>
+              <option value={5}>5×</option>
+              <option value={10}>10×</option>
+              <option value={30}>30×</option>
+            </select>
+          </label>
           <span className={`chip ${(live?.alarms?.length ?? 0) > 0 ? 'chip-alarm' : 'chip-ok'}`}>
             ⚠ {(live?.alarms?.length ?? 0)} аварий
           </span>
@@ -1004,6 +1012,7 @@ function HmiInner() {
               nodeType={selectedNode?.data.nodeType ?? ''}
               schemeParams={selectedNode?.data.schemeParams ?? {}}
               telemetry={selectedTelemetry}
+              history={history}
               disp={selectedNode?.data.disp ?? []}
               onUpdateDisp={onUpdateDisp}
               onAction={onAction}
@@ -1013,6 +1022,7 @@ function HmiInner() {
               onUpdateParams={onUpdateParams}
               onUpdateSchemeParam={onUpdateSchemeParam}
               canEditScheme={canEditScheme && edit}
+              canManageTwin={canManageTwin}
             />
           )}
           {!selectedEdgeId && (
@@ -1031,6 +1041,40 @@ function HmiInner() {
             </>
           )}
         </aside>
+      </div>
+
+      <div className="mnemo-bottom scada-alarms">
+        <div className="mnemo-alarms">
+          <div className="panel-title">АВАРИИ · {live?.alarms?.length ?? 0}</div>
+          {(live?.alarms?.length ?? 0) === 0 ? (
+            <div className="mnemo-alarms-empty">Активных аварий нет</div>
+          ) : (
+            <div className="alarm-table-wrap">
+              <table className="alarm-table">
+                <thead>
+                  <tr>
+                    <th>Время</th>
+                    <th>Параметр</th>
+                    <th>Значение</th>
+                    <th>Уставка</th>
+                    <th>Описание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(live?.alarms ?? []).map((a) => (
+                    <tr key={a.id} className={`alarm-row sev-${String(a.severity).toLowerCase()}`}>
+                      <td>{fmtSimTime(a.timestamp)}</td>
+                      <td>{a.parameter}</td>
+                      <td>{a.actual_value.toFixed(2)}</td>
+                      <td>{a.threshold.toFixed(2)}</td>
+                      <td className="alarm-desc">{a.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {msg && <div className="toast">{msg}</div>}

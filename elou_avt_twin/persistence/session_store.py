@@ -160,6 +160,16 @@ CREATE INDEX IF NOT EXISTS idx_errors_session      ON error_events (session_id, 
 CREATE INDEX IF NOT EXISTS idx_errors_pending      ON error_events (ai_status);
 CREATE INDEX IF NOT EXISTS idx_expected_scenario   ON expected_actions (scenario_id);
 CREATE INDEX IF NOT EXISTS idx_ai_session          ON ai_classifications (session_id);
+
+CREATE TABLE IF NOT EXISTS alarm_setpoints (
+    parameter    TEXT PRIMARY KEY,
+    low_low      REAL,
+    low          REAL,
+    high         REAL,
+    high_high    REAL,
+    unit         TEXT,
+    updated_at   REAL NOT NULL
+);
 """
 
 _ACTION_TABLES = ("actions", "state_snapshots")
@@ -646,6 +656,39 @@ class SessionStore:
             (scenario_id,),
         ).fetchall()
         return [_decode(dict(r), "expected_actions") for r in rows]
+
+    # ------------------------------------------------------------------
+    # Alarm setpoints (manual operator overrides, survive restarts)
+    # ------------------------------------------------------------------
+
+    def save_alarm_setpoint(
+        self,
+        parameter: str,
+        low_low: Optional[float],
+        low: Optional[float],
+        high: Optional[float],
+        high_high: Optional[float],
+        unit: str,
+    ) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO alarm_setpoints (parameter, low_low, low, high, high_high, unit, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(parameter) DO UPDATE SET "
+                "low_low=excluded.low_low, low=excluded.low, high=excluded.high, "
+                "high_high=excluded.high_high, unit=excluded.unit, updated_at=excluded.updated_at",
+                (parameter, low_low, low, high, high_high, unit, time.time()),
+            )
+
+    def clear_alarm_setpoints(self) -> None:
+        with self._lock, self._conn:
+            self._conn.execute("DELETE FROM alarm_setpoints")
+
+    def load_alarm_setpoints(self) -> List[Dict[str, Any]]:
+        rows = self._conn.execute(
+            "SELECT parameter, low_low, low, high, high_high, unit FROM alarm_setpoints ORDER BY parameter"
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     # ------------------------------------------------------------------
     # Export

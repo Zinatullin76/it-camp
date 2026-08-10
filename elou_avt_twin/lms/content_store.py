@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS lms_scenarios (
     expected_actions TEXT NOT NULL DEFAULT '[]',
     success_criteria TEXT NOT NULL DEFAULT '[]',
     critical_errors  TEXT NOT NULL DEFAULT '[]',
+    target_state     TEXT NOT NULL DEFAULT '[]',
     final_state      TEXT NOT NULL DEFAULT '{}',
     competency_codes TEXT NOT NULL DEFAULT '[]',
     equipment_ids    TEXT NOT NULL DEFAULT '[]',
@@ -203,6 +204,81 @@ def _unjson(text: Optional[str], default: Any = None) -> Any:
         return default
 
 
+def _normalize_question_data(q: Dict[str, Any]) -> tuple:
+    """Return (options, answer) in the canonical frontend/backend format.
+
+    Canonical format:
+        single/multi  options [{key,label}]   answer [key] / [key,...]
+        match         options [{left,right}]  answer [{left,right}] (same pairs)
+        sequence      options [{label}]       answer [labels in order]
+        object        options [{key,label}]   answer [key]
+    """
+    kind = q.get("kind", "single")
+    options = q.get("options") or []
+    answer = q.get("answer")
+
+    if kind == "match":
+        pairs = answer if isinstance(answer, list) and answer else options
+        return list(pairs), list(pairs)
+
+    if kind == "sequence":
+        labels = [{"label": str(o.get("label", ""))} for o in options if o.get("label")]
+        seq = [str(x) for x in answer] if isinstance(answer, list) else []
+        return labels, seq
+
+    if kind == "object":
+        new_opts = []
+        for o in options:
+            key = str(o.get("key", "") or o.get("label", ""))
+            label = str(o.get("label", "") or o.get("key", ""))
+            new_opts.append({"key": key, "label": label})
+        key = str(answer[0]) if isinstance(answer, list) and answer else str(answer or "")
+        return new_opts, [key]
+
+    # single / multi
+    new_opts = []
+    keys = []
+    for i, o in enumerate(options):
+        if "key" in o:
+            key = str(o.get("key", ""))
+            label = str(o.get("label", "") or key)
+            new_opts.append({"key": key, "label": label})
+        else:
+            key = f"opt{i + 1}"
+            label = str(o.get("label", ""))
+            new_opts.append({"key": key, "label": label})
+        keys.append(key)
+
+    if kind == "single":
+        if isinstance(answer, list) and answer and all(isinstance(a, str) and a in keys for a in answer):
+            correct = [a for a in answer if a in keys]
+        elif isinstance(answer, str) and answer in keys:
+            correct = [answer]
+        else:
+            legacy = {str(o.get("label", "")): str(o.get("key", f"opt{idx + 1}"))
+                      for idx, o in enumerate(options)}
+            correct_keys = [str(o.get("key", f"opt{idx + 1}")) for idx, o in enumerate(options)
+                            if o.get("is_correct")]
+            if not correct_keys:
+                target = answer if isinstance(answer, list) else ([answer] if answer is not None else [])
+                correct_keys = [legacy.get(str(t), "") for t in target]
+            correct = correct_keys
+        return new_opts, correct
+
+    # multi
+    if isinstance(answer, list) and all(isinstance(a, str) and a in keys for a in answer):
+        correct = [a for a in answer if a in keys]
+    else:
+        legacy = {str(o.get("label", "")): str(o.get("key", f"opt{idx + 1}"))
+                  for idx, o in enumerate(options)}
+        correct_keys = [str(o.get("key", f"opt{idx + 1}")) for idx, o in enumerate(options)
+                        if o.get("is_correct")]
+        if not correct_keys and isinstance(answer, list):
+            correct_keys = [legacy.get(str(t), "") for t in answer]
+        correct = correct_keys
+    return new_opts, correct
+
+
 class LmsContentStore:
     """SQLite-backed store for the authoring & study system."""
 
@@ -218,6 +294,7 @@ class LmsContentStore:
             self._conn.execute("PRAGMA foreign_keys=ON;")
             self._conn.executescript(_SCHEMA)
             self._migrate_module_published()
+            self._migrate_scenario_target_state()
             self._conn.commit()
         logger.info("LmsContentStore opened: %s", self._path)
 
@@ -233,8 +310,21 @@ class LmsContentStore:
         cols = {r["name"] for r in self._conn.execute(
             "PRAGMA table_info(lms_course_modules)").fetchall()}
         if "published" not in cols:
-            self._conn.execute(
-                "ALTER TABLE lms_course_modules ADD COLUMN published INTEGER NOT NULL DEFAULT 0")
+            try:
+                self._conn.execute(
+                    "ALTER TABLE lms_course_modules ADD COLUMN published INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:
+                logger.debug("migration published: column already exists")
+
+    def _migrate_scenario_target_state(self) -> None:
+        cols = {r["name"] for r in self._conn.execute(
+            "PRAGMA table_info(lms_scenarios)").fetchall()}
+        if "target_state" not in cols:
+            try:
+                self._conn.execute(
+                    "ALTER TABLE lms_scenarios ADD COLUMN target_state TEXT NOT NULL DEFAULT '[]'")
+            except sqlite3.OperationalError:
+                logger.debug("migration target_state: column already exists")
 
     # ------------------------------------------------------------------
     # Module helpers
@@ -346,6 +436,18 @@ class LmsContentStore:
             self._conn.execute("DELETE FROM lms_tests WHERE id = ?", (test_id,))
             self._conn.commit()
 
+    def list_tests_all(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM lms_tests ORDER BY id").fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["competency_codes"] = _unjson(d.get("competency_codes"), [])
+            d["retry_required"] = bool(d["retry_required"])
+            d["shuffle"] = bool(d["shuffle"])
+            out.append(d)
+        return out
+
     def get_test(self, test_id: int, with_answers: bool = True) -> Optional[Dict[str, Any]]:
         with self._lock:
             row = self._conn.execute("SELECT * FROM lms_tests WHERE id = ?", (test_id,)).fetchone()
@@ -428,6 +530,32 @@ class LmsContentStore:
         d["answer"] = _unjson(d.get("answer"))
         d["required"] = bool(d["required"])
         return d
+
+    def migrate_question_formats(self) -> int:
+        """Convert legacy question data to the canonical {key,label} format.
+
+        single/multi: options [{label,is_correct}] -> [{key,label}], answer -> [keys]
+        match:        options [] -> answer (pairs [{left,right}])
+        sequence:     options [{label,is_correct}] -> [{label}], answer unchanged
+        object:       options [{label}] -> [{key,label}], answer -> [key]
+
+        Idempotent: rows already in the canonical format are left untouched.
+        """
+        changed = 0
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM lms_questions").fetchall()
+            for r in rows:
+                q = self._decode_question(dict(r))
+                new_options, new_answer = _normalize_question_data(q)
+                if new_options == q["options"] and new_answer == q["answer"]:
+                    continue
+                self._conn.execute(
+                    "UPDATE lms_questions SET options = ?, answer = ? WHERE id = ?",
+                    (_json(new_options), _json(new_answer), q["id"]),
+                )
+                changed += 1
+            self._conn.commit()
+        return changed
 
     # ------------------------------------------------------------------
     # Training tasks
@@ -521,6 +649,7 @@ class LmsContentStore:
                 _json([a.model_dump() for a in w.expected_actions]),
                 _json([c.model_dump() for c in w.success_criteria]),
                 _json([r.model_dump() for r in w.critical_errors]),
+                _json([c.model_dump() for c in w.target_state]),
                 _json(w.final_state), _json(w.competency_codes), _json(w.equipment_ids),
                 w.duration_min, 1 if w.is_exam else 0,
             )
@@ -528,17 +657,17 @@ class LmsContentStore:
                 self._conn.execute(
                     "UPDATE lms_scenarios SET title = ?, description = ?, goal = ?, "
                     "initial_state = ?, events = ?, expected_actions = ?, success_criteria = ?, "
-                    "critical_errors = ?, final_state = ?, competency_codes = ?, equipment_ids = ?, "
-                    "duration_min = ?, is_exam = ? WHERE id = ?",
+                    "critical_errors = ?, target_state = ?, final_state = ?, competency_codes = ?, "
+                    "equipment_ids = ?, duration_min = ?, is_exam = ? WHERE id = ?",
                     values + (int(row["id"]),),
                 )
                 self._conn.commit()
                 return int(row["id"])
             cur = self._conn.execute(
                 "INSERT INTO lms_scenarios (module_id, title, description, goal, initial_state, "
-                "events, expected_actions, success_criteria, critical_errors, final_state, "
-                "competency_codes, equipment_ids, duration_min, is_exam, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "events, expected_actions, success_criteria, critical_errors, target_state, "
+                "final_state, competency_codes, equipment_ids, duration_min, is_exam, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (module_id,) + values + (time.time(),),
             )
             self._conn.commit()
@@ -570,6 +699,19 @@ class LmsContentStore:
             )
             self._conn.commit()
 
+    def list_scenarios(self) -> List[Dict[str, Any]]:
+        """Все сценарии всех модулей с названиями модуля и курса."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT s.*, m.title AS module_title, m.course_id, "
+                "c.title AS course_title "
+                "FROM lms_scenarios s "
+                "LEFT JOIN lms_course_modules m ON m.id = s.module_id "
+                "LEFT JOIN lms_courses c ON c.id = m.course_id "
+                "ORDER BY s.id"
+            ).fetchall()
+        return [self._decode_scenario(dict(r)) for r in rows]
+
     @staticmethod
     def _decode_scenario(d: Dict[str, Any]) -> Dict[str, Any]:
         d["initial_state"] = _unjson(d.get("initial_state"), {})
@@ -577,6 +719,7 @@ class LmsContentStore:
         d["expected_actions"] = _unjson(d.get("expected_actions"), [])
         d["success_criteria"] = _unjson(d.get("success_criteria"), [])
         d["critical_errors"] = _unjson(d.get("critical_errors"), [])
+        d["target_state"] = _unjson(d.get("target_state"), [])
         d["final_state"] = _unjson(d.get("final_state"), {})
         d["competency_codes"] = _unjson(d.get("competency_codes"), [])
         d["equipment_ids"] = _unjson(d.get("equipment_ids"), [])

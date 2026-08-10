@@ -15,6 +15,7 @@ from .columns import (
 from .elou import ELOU
 from .tank import Tank
 from .mixer import Mixer
+from .splitter import Splitter
 from .separator_s1k import SeparatorS1K
 
 __all__ = [
@@ -34,5 +35,6 @@ __all__ = [
     "ELOU",
     "Tank",
     "Mixer",
+    "Splitter",
     "SeparatorS1K",
 ]

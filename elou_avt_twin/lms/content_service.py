@@ -201,6 +201,10 @@ class ContentService:
     def delete_scenario(self, scenario_id: int) -> None:
         self.store.delete_scenario(scenario_id)
 
+    def scenarios_catalog(self) -> List[Dict[str, Any]]:
+        """Все сценарии всех модулей (для администратора)."""
+        return self.store.list_scenarios()
+
     def set_scenario_status(self, scenario_id: int, status: str) -> Dict[str, Any]:
         s = self.store.get_scenario(scenario_id)
         if s is None:
@@ -266,7 +270,9 @@ class ContentService:
             "module_id": int(task["module_id"]),
             "module_title": module.get("title", ""),
             "title": task.get("title", ""),
-            "description": task.get("goal", ""),
+            "description": scenario.get("goal", "") or task.get("goal", ""),
+            "goal": scenario.get("goal", "") or task.get("goal", ""),
+            "target_state": scenario.get("target_state", []) or task.get("target_state", []),
             "scenario_id": f"LMS-{scenario['id']}",
             "scenario_name": scenario.get("title", ""),
             "category": "exam" if is_exam else "practice",
@@ -428,13 +434,14 @@ class ContentService:
             raise KeyError(f"Сессия '{session_id}' не найдена")
         actions = session_store.get_actions(session_id)
         task = None
+        scenario = None
         # find task by scenario binding
         scenario_id = session.get("scenario_id", "")
         if scenario_id.startswith("LMS-"):
             try:
                 sid = int(scenario_id.split("-", 1)[1])
-                task = self.store.get_scenario(sid)
-                task = self.store.get_task_by_module(int(task["module_id"])) if task else None
+                scenario = self.store.get_scenario(sid)
+                task = self.store.get_task_by_module(int(scenario["module_id"])) if scenario else None
             except (TypeError, ValueError):
                 task = None
         if task is None:
@@ -457,7 +464,13 @@ class ContentService:
                       "feedback_good": [], "feedback_bad": ["Задание не найдено для оценки"]}
             module_id = 0
         else:
-            result = assess.practice_criteria(task, actions, telemetry, dur)
+            # Цель сценария (target_state) участвует в оценке вместе с заданием:
+            # условия обоих источников должны быть выполнены.
+            eval_task = dict(task)
+            sc_target = (scenario or {}).get("target_state") or []
+            if sc_target:
+                eval_task["target_state"] = list(task.get("target_state") or []) + list(sc_target)
+            result = assess.practice_criteria(eval_task, actions, telemetry, dur)
             module_id = int(task["module_id"])
             good, bad = assess.practice_feedback(result)
             result["feedback_good"] = good

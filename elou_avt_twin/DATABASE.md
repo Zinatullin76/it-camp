@@ -402,6 +402,7 @@ elou_avt_twin/sessions.db
 | `expected_actions` | TEXT DEFAULT '[]' | Ожидаемые действия (JSON) |
 | `success_criteria` | TEXT DEFAULT '[]' | Критерии успеха (JSON) |
 | `critical_errors` | TEXT DEFAULT '[]' | Критические ошибки (JSON) |
+| `target_state` | TEXT DEFAULT '[]' | Цель как результат (JSON, TaskCondition[]) |
 | `final_state` | TEXT DEFAULT '{}' | Финальное состояние (JSON-объект) |
 | `competency_codes` | TEXT DEFAULT '[]' | Компетенции (JSON) |
 | `equipment_ids` | TEXT DEFAULT '[]' | Объекты (JSON) |
@@ -554,6 +555,7 @@ actions ──< state_snapshots.action_id
 - `lms_scenarios.initial_state` / `final_state` — `{ "<id>_running": bool, "<id>_position": %, "<id>_fuel_flow": ... }`
 - `lms_scenarios.events` — `[ScenarioEventDef{time, event_type, object_id, param, value, severity, message}]`
 - `lms_scenarios.success_criteria` — `[Criterion]`
+- `lms_scenarios.target_state` — `[TaskCondition]` (цель как результат, напр. `{object_id: "col_4", attribute: "level_m", relation: ">=", value: 2.5}`); участвует в оценке практики вместе с `lms_training_tasks.target_state`
 - `lms_assessments.answers` / `criteria_scores` / `feedback_good` / `feedback_bad` — JSON
 - `state_snapshots.*` — JSON-словари телеметрии
 - `actions.old_value` / `new_value` — JSON

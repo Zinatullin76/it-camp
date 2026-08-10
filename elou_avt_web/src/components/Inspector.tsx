@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { NodeTelemetry, EquipmentSpec } from '../types';
+import type { NodeTelemetry, EquipmentSpec, AlarmSetpoint, HistoryResponse } from '../types';
 import { TYPE_COLORS, fmtValue, PARAM_LABELS } from '../schemeConfig';
+import TrendChart from './TrendChart';
 import { api } from '../api';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   nodeType: string;
   schemeParams: Record<string, unknown>;
   telemetry: NodeTelemetry | null;
+  history?: HistoryResponse | null;
   disp?: string[];
   onUpdateDisp?: (nodeId: string, keys: string[]) => void;
   onAction: (equipmentId: string, actionType: string, value?: number | null) => Promise<void>;
@@ -21,7 +23,26 @@ interface Props {
   canManageTwin?: boolean;
 }
 
-export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, onUpdateSchemeParam, canEditScheme = true, canManageTwin = true }: Props) {
+const PA_PER_ATM = 101325;
+
+// Plant-wide aggregate alarm parameters (no node_id) shown on the equipment
+// they describe: column_pressure -> any column, feed_flow -> ELOU/pumps, ...
+const AGGREGATE_ALARM_NODE_TYPES: Record<string, string[]> = {
+  feed_flow: ['elou', 'pump'],
+  column_pressure: ['column'],
+  column_temperature: ['column'],
+  furnace_temperature: ['heater'],
+};
+
+const toDisplay = (unit: string, v: number | null): string => {
+  if (v === null) return '';
+  return String(unit === 'Pa' ? v / PA_PER_ATM : v);
+};
+
+const toEngine = (unit: string, s: string): number =>
+  Number(unit === 'Pa' ? Number(s) * PA_PER_ATM : s);
+
+export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, telemetry, history = null, disp = [], onUpdateDisp, onAction, onFailure, onRename, onDelete, onUpdateParams, onUpdateSchemeParam, canEditScheme = true, canManageTwin = true }: Props) {
   const [valvePos, setValvePos] = useState(60);
   const [fuel, setFuel] = useState(0.8);
   const [reflux, setReflux] = useState(2.0);
@@ -31,12 +52,41 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
   const [name, setName] = useState('');
   const [spec, setSpec] = useState<EquipmentSpec | null>(null);
   const [draft, setDraft] = useState<Record<string, number>>({});
+  const [alarmSetpoints, setAlarmSetpoints] = useState<AlarmSetpoint[]>([]);
+  const [alarmDraft, setAlarmDraft] = useState<Record<string, { low_low: string; low: string; high: string; high_high: string }>>({});
+  const [alarmMsg, setAlarmMsg] = useState<string>('');
+  const [trendParam, setTrendParam] = useState('');
   const hydratedNode = useRef<string | null>(null);
   const nameHydrated = useRef<string | null>(null);
+
+  const loadAlarmSetpoints = () => {
+    if (!nodeId) return;
+    api.getAlarmSetpoints()
+      .then((resp) => {
+        const mine = resp.setpoints.filter(
+          (s) => s.node_id === nodeId || (s.node_id === null && (AGGREGATE_ALARM_NODE_TYPES[s.parameter] ?? []).includes(nodeType)),
+        );
+        setAlarmSetpoints(mine);
+        const d: Record<string, { low_low: string; low: string; high: string; high_high: string }> = {};
+        mine.forEach((s) => {
+          d[s.parameter] = {
+            low_low: toDisplay(s.unit, s.low_low),
+            low: toDisplay(s.unit, s.low),
+            high: toDisplay(s.unit, s.high),
+            high_high: toDisplay(s.unit, s.high_high),
+          };
+        });
+        setAlarmDraft(d);
+      })
+      .catch(() => undefined);
+  };
 
   useEffect(() => {
     setSpec(null);
     setDraft({});
+    setAlarmSetpoints([]);
+    setAlarmDraft({});
+    setAlarmMsg('');
     if (!nodeId) return;
     api.getEquipmentSpec(nodeId)
       .then((s) => {
@@ -48,6 +98,7 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         setDraft(d);
       })
       .catch(() => undefined);
+    loadAlarmSetpoints();
   }, [nodeId]);
 
   useEffect(() => {
@@ -75,6 +126,27 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       return;
     }
     if (trimmed !== nodeName) onRename(nodeId, trimmed);
+  };
+
+  const saveAlarmSetpoints = () => {
+    setAlarmMsg('');
+    const requests = alarmSetpoints.map((s) => {
+      const d = alarmDraft[s.parameter];
+      const patch: { low_low?: number; low?: number; high?: number; high_high?: number } = {};
+      if (d) {
+        if (d.low_low !== '') patch.low_low = toEngine(s.unit, d.low_low);
+        if (d.low !== '') patch.low = toEngine(s.unit, d.low);
+        if (d.high !== '') patch.high = toEngine(s.unit, d.high);
+        if (d.high_high !== '') patch.high_high = toEngine(s.unit, d.high_high);
+      }
+      return api.updateAlarmSetpoint(s.parameter, patch);
+    });
+    Promise.all(requests)
+      .then(() => {
+        setAlarmMsg('Уставки сохранены');
+        loadAlarmSetpoints();
+      })
+      .catch(() => setAlarmMsg('Ошибка сохранения уставок'));
   };
 
   if (!nodeId) {
@@ -320,6 +392,29 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
           </div>
         );
       }
+      case 'splitter': {
+        // Настройка числа выходов доступна в редакторе схемы.
+        if (!canEditScheme) return null;
+        const n = typeof schemeParams?.num_outputs === 'number' ? schemeParams.num_outputs : 2;
+        return (
+          <div className="ctrl-group">
+            <div className="panel-title" style={{ margin: 0 }}>ЧИСЛО ВЫХОДОВ</div>
+            <label className="ctrl-label">
+              Выходы разъединителя: {n}
+              <input
+                type="number"
+                min={1}
+                max={8}
+                step={1}
+                value={n}
+                onChange={(e) =>
+                  onUpdateSchemeParam?.(nodeId, 'num_outputs', Math.max(1, Math.min(8, Number(e.target.value))))
+                }
+              />
+            </label>
+          </div>
+        );
+      }
       default:
         return null;
     }
@@ -347,6 +442,18 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       );
     });
 
+  // Per-node history series for the currently selected equipment. The backend
+  // emits each node's measurable params as '<node_id>:<param>', so we pick the
+  // matching prefix and let the operator flip between them.
+  const nodeSeries = Object.keys(history?.series ?? {})
+    .filter((k) => k.startsWith(`${nodeId}:`))
+    .map((k) => k.slice(nodeId.length + 1))
+    .filter((k) => (history?.series[`${nodeId}:${k}`] ?? []).length > 0);
+  const activeTrendParam =
+    nodeSeries.includes(trendParam) ? trendParam : (nodeSeries[0] ?? '');
+  const trendLabel = PARAM_LABELS[activeTrendParam]?.label ?? activeTrendParam;
+  const trendUnit = PARAM_LABELS[activeTrendParam]?.unit ?? '';
+
   return (
     <div>
       <div className="inspector-header" style={{ borderLeft: `3px solid ${color}` }}>
@@ -370,6 +477,29 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         ● {statusText}
       </div>
       <div className="param-list">{paramRows}</div>
+      {nodeSeries.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="panel-title">ГРАФИК ПАРАМЕТРА</div>
+          <select
+            className="scenario-select full"
+            value={activeTrendParam}
+            onChange={(e) => setTrendParam(e.target.value)}
+          >
+            {nodeSeries.map((k) => (
+              <option key={k} value={k}>
+                {PARAM_LABELS[k]?.label ?? k} ({PARAM_LABELS[k]?.unit ?? ''})
+              </option>
+            ))}
+          </select>
+          <TrendChart
+            history={history}
+            param={`${nodeId}:${activeTrendParam}`}
+            height={150}
+            label={trendLabel}
+            unit={trendUnit}
+          />
+        </div>
+      )}
       {canEditScheme && onUpdateDisp && (
         <div style={{ marginTop: 12 }}>
           <div className="panel-title">ПОКАЗЫВАТЬ НА СХЕМЕ</div>
@@ -397,6 +527,45 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
         </div>
       )}
       {control && <div style={{ marginTop: 12 }}>{control}</div>}
+      {canManageTwin && alarmSetpoints.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="panel-title">ОГРАНИЧЕНИЯ (АВАРИЙНЫЕ УСТАВКИ)</div>
+          <div className="param-editor">
+            {alarmSetpoints.map((s) => {
+              const d = alarmDraft[s.parameter] ?? { low_low: '', low: '', high: '', high_high: '' };
+              const short = s.parameter.replace(`${nodeId}_`, '');
+              return (
+                <div key={s.parameter} style={{ borderTop: '1px solid var(--border, #26374a)', paddingTop: 6, marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 4 }}>
+                    {PARAM_LABELS[short]?.label ?? short}
+                    <span style={{ color: '#7f93a6', marginLeft: 6 }}>{s.unit === 'Pa' ? 'атм' : s.unit}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 4 }}>
+                    <label className="ctrl-label" style={{ fontSize: 10 }} title="Нижний аварийный минимум">
+                      НН
+                      <input type="number" value={d.low_low} onChange={(e) => setAlarmDraft((p) => ({ ...p, [s.parameter]: { ...p[s.parameter], low_low: e.target.value } }))} />
+                    </label>
+                    <label className="ctrl-label" style={{ fontSize: 10 }} title="Нижний предупредительный">
+                      Н
+                      <input type="number" value={d.low} onChange={(e) => setAlarmDraft((p) => ({ ...p, [s.parameter]: { ...p[s.parameter], low: e.target.value } }))} />
+                    </label>
+                    <label className="ctrl-label" style={{ fontSize: 10 }} title="Верхний предупредительный">
+                      В
+                      <input type="number" value={d.high} onChange={(e) => setAlarmDraft((p) => ({ ...p, [s.parameter]: { ...p[s.parameter], high: e.target.value } }))} />
+                    </label>
+                    <label className="ctrl-label" style={{ fontSize: 10 }} title="Верхний аварийный максимум">
+                      ВВ
+                      <input type="number" value={d.high_high} onChange={(e) => setAlarmDraft((p) => ({ ...p, [s.parameter]: { ...p[s.parameter], high_high: e.target.value } }))} />
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+            <button className="btn btn-start" onClick={saveAlarmSetpoints}>Применить уставки</button>
+            {alarmMsg && <div className="inspector-hint">{alarmMsg}</div>}
+          </div>
+        </div>
+      )}
       {canEditScheme && canManageTwin && spec?.editable && spec.params.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <div className="panel-title">ФИЗ. СВОЙСТВА</div>

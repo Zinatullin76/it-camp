@@ -11,6 +11,7 @@ import type {
   ModuleStudy,
   PracticeStartResult,
   Question,
+  ScenarioCatalogItem,
   ScenarioDefinition,
   ScenarioStatus,
   Scheme,
@@ -112,7 +113,16 @@ export const api = {
     json<{ ok: boolean }>(`/auth/users/${userId}/deactivate`, { method: 'POST' }),
 
   getState: () => json<ApiState>('/state'),
+  getSimulationSpeed: () => json<{ speed: number }>('/simulation/speed'),
+  setSimulationSpeed: (speed: number) =>
+    json<{ speed: number }>('/simulation/speed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ speed }),
+    }),
   getHistory: (limit = 600) => json<HistoryResponse>(`/history?limit=${limit}`),
+  getNodeHistory: (nodeId: string, limit = 600) =>
+    json<HistoryResponse>(`/history/node/${nodeId}?limit=${limit}`),
   getScheme: () => json<Scheme>('/scheme'),
 
   listSchemes: () => json<{ current: string; schemes: string[] }>('/schemes'),
@@ -153,6 +163,20 @@ export const api = {
     }),
 
   injectFailure: (equipmentId: string) => json<ApiState>(`/failure/${equipmentId}`, { method: 'POST' }),
+
+  getAlarmSetpoints: () => json<import('./types').AlarmSetpointsResponse>('/alarms/setpoints'),
+
+  updateAlarmSetpoint: (
+    parameter: string,
+    patch: { low_low?: number | null; low?: number | null; high?: number | null; high_high?: number | null; unit?: string },
+  ) =>
+    json<{ ok: boolean; setpoint: import('./types').AlarmSetpoint }>(`/alarms/setpoints/${parameter}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }),
+
+  resetAlarmSetpoints: () => json<{ ok: boolean }>('/alarms/setpoints', { method: 'DELETE' }),
 
   getEquipmentSpec: (nodeId: string) => json<EquipmentSpec>(`/equipment/spec/${nodeId}`),
 
@@ -280,6 +304,7 @@ export const api = {
   // ---- LMS: конструктор (авторство контента) ----
   lmsAuthoringModule: (id: number) => json<ModuleAuthoringView>(`/lms/authoring/modules/${id}`),
   lmsAuthoringEquipment: () => json<EquipmentItem[]>('/lms/authoring/equipment'),
+  lmsAuthoringScenarios: () => json<ScenarioCatalogItem[]>('/lms/authoring/scenarios'),
   lmsPublishModule: (id: number, published = true) =>
     json<ModuleAuthoringView>(`/lms/modules/${id}/publish`, {
       method: 'POST',
@@ -359,6 +384,7 @@ export const api = {
       expected_actions?: Record<string, unknown>[];
       success_criteria?: Record<string, unknown>[];
       critical_errors?: Record<string, unknown>[];
+      target_state?: Record<string, unknown>[];
       final_state?: Record<string, unknown>;
       competency_codes?: string[];
       equipment_ids?: string[];

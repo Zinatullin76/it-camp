@@ -16,6 +16,8 @@ export default defineConfig({
       '/input': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/scenario': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/failure': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/alarms': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/simulation': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/command': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/controllers': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/training': { target: 'http://127.0.0.1:8000', changeOrigin: true },

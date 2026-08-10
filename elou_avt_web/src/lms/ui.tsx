@@ -19,6 +19,19 @@ export function fmtClock(ts?: number | null): string {
   return new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+/** Simulation time (seconds from scenario start) as `t = MM:SS` / `t = H:MM:SS`. */
+export function fmtSimTime(s?: number | null): string {
+  if (s == null || !Number.isFinite(s)) return '—';
+  const total = Math.max(0, Math.floor(s));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  if (h > 0) {
+    return `t = ${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  }
+  return `t = ${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
 export function fmtDur(s?: number | null): string {
   if (s == null || !Number.isFinite(s)) return '—';
   const m = Math.floor(s / 60);

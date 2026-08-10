@@ -75,7 +75,7 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
         },
         "initial_position": {
             "label": "Начальное открытие", "unit": "%", "scale": 0.01,
-            "min": 0.0, "max": 100.0, "step": 1.0, "default": 0.0,
+            "min": 0.0, "max": 100.0, "step": 1.0, "default": 70.0,
         },
     },
     "angle_valve": {
@@ -93,7 +93,7 @@ PARAM_SPEC: Dict[str, Dict[str, Dict[str, Any]]] = {
         },
         "initial_position": {
             "label": "Начальное открытие", "unit": "%", "scale": 0.01,
-            "min": 0.0, "max": 100.0, "step": 1.0, "default": 100.0,
+            "min": 0.0, "max": 100.0, "step": 1.0, "default": 70.0,
         },
     },
     "gate_valve": {

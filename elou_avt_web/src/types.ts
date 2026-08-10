@@ -60,11 +60,27 @@ export interface AlarmData {
   threshold: number;
   severity: string;
   description: string;
+  node_id?: string | null;
+}
+
+export interface AlarmSetpoint {
+  parameter: string;
+  node_id: string | null;
+  low_low: number | null;
+  low: number | null;
+  high: number | null;
+  high_high: number | null;
+  unit: string;
+}
+
+export interface AlarmSetpointsResponse {
+  setpoints: AlarmSetpoint[];
 }
 
 export interface ApiState {
   status: string;
   simulation_time: number;
+  speed?: number;
   feed: {
     flow_kg_s: number;
     flow_m3_h: number;
@@ -221,6 +237,8 @@ export interface LmsPracticeTask {
   id: number;
   title: string;
   description: string;
+  goal?: string;
+  target_state?: TaskCondition[];
   scenario_id: string;
   category: TaskCategory;
   difficulty: Difficulty;
@@ -501,12 +519,19 @@ export interface ScenarioDefinition {
   expected_actions: ExpectedAction[];
   success_criteria: Criterion[];
   critical_errors: RestrictionRule[];
+  target_state: TaskCondition[];
   final_state: Record<string, unknown>;
   competency_codes: string[];
   equipment_ids: string[];
   duration_min: number;
   is_exam: boolean;
   created_at: number;
+}
+
+export interface ScenarioCatalogItem extends ScenarioDefinition {
+  module_title: string;
+  course_id: number | null;
+  course_title: string;
 }
 
 export interface EquipmentItem {

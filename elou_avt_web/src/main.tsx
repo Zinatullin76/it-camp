@@ -31,6 +31,7 @@ import RolesPage from './pages/admin/RolesPage';
 import AdminGroupsPage from './pages/admin/GroupsPage';
 import AdminCoursesPage from './pages/admin/CoursesPage';
 import AdminTasksPage from './pages/admin/TasksPage';
+import AdminScenariosPage from './pages/admin/ScenariosPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
 
@@ -72,6 +73,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/groups', label: 'Группы', ico: '▦' },
   { to: '/admin/courses', label: 'Курсы', ico: '▤' },
   { to: '/admin/tasks', label: 'Задания', ico: '▣' },
+  { to: '/admin/scenarios', label: 'Сценарии', ico: '▸' },
   { to: '/admin/settings', label: 'Настройки', ico: '☰' },
   { to: '/admin/logs', label: 'Журнал системы', ico: '☷' },
 ];
@@ -227,6 +229,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
               <Route path="/admin/groups" element={<RequirePermission permissions={['manage_users', 'manage_groups']}><AdminGroupsPage /></RequirePermission>} />
               <Route path="/admin/courses" element={<RequirePermission permissions={['manage_courses']}><AdminCoursesPage /></RequirePermission>} />
               <Route path="/admin/tasks" element={<RequirePermission permissions={['manage_practice_tasks']}><AdminTasksPage /></RequirePermission>} />
+              <Route path="/admin/scenarios" element={<RequirePermission permissions={['manage_courses']}><AdminScenariosPage /></RequirePermission>} />
               <Route path="/admin/settings" element={<RequirePermission permissions={['manage_settings']}><SettingsPage /></RequirePermission>} />
               <Route path="/admin/logs" element={<RequirePermission permissions={['view_logs']}><LogsPage /></RequirePermission>} />
 

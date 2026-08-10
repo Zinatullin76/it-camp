@@ -82,11 +82,43 @@ class StartSessionRequest(BaseModel):
     scenario_id: str = "NORMAL_OPERATION"
     operator_id: str = "demo"
 
+class AlarmSetpointRequest(BaseModel):
+    low_low: Optional[float] = None
+    low: Optional[float] = None
+    high: Optional[float] = None
+    high_high: Optional[float] = None
+    unit: Optional[str] = None
+
+class SimulationSpeedRequest(BaseModel):
+    speed: float = Field(1.0, ge=1.0, le=30.0)
+
 lock = threading.RLock()
 twin = DigitalTwin(_load_config())
 twin.create_simulation()
 twin.load_scenario("NORMAL_OPERATION")
 twin.start()
+
+# Simulation time multiplier (1x = 1 sim-second per real second).
+# The loop accumulates real time * speed and runs whole 1.0 s steps, so the
+# physics timestep never changes and numerical behaviour stays identical.
+SIM_SPEED_MIN = 1.0
+SIM_SPEED_MAX = 30.0
+_sim_speed = 1.0
+
+def get_sim_speed() -> float:
+    with lock:
+        return _sim_speed
+
+def set_sim_speed(speed: float) -> float:
+    global _sim_speed
+    speed = float(speed)
+    if speed < SIM_SPEED_MIN:
+        speed = SIM_SPEED_MIN
+    if speed > SIM_SPEED_MAX:
+        speed = SIM_SPEED_MAX
+    with lock:
+        _sim_speed = speed
+    return _sim_speed
 
 # Unified controller catalogue (Этап 3 contract) — the HMI renders faceplates
 # from /controllers and sends changes via /command.
@@ -130,8 +162,28 @@ def _remember_scheme(name: str) -> None:
         logger.exception("Failed to write last-used scheme marker.")
 
 
+def _restore_alarm_setpoints() -> None:
+    """Apply manually saved alarm setpoints from the database at startup."""
+    try:
+        store = SessionStore()
+        try:
+            restored = 0
+            for sp in store.load_alarm_setpoints():
+                if twin._engine.restore_alarm_setpoint(
+                    sp["parameter"], sp["low_low"], sp["low"], sp["high"], sp["high_high"], sp["unit"] or "",
+                ):
+                    restored += 1
+            if restored:
+                logger.info("Restored %d saved alarm setpoint(s).", restored)
+        finally:
+            store.close()
+    except Exception:
+        logger.exception("Failed to restore alarm setpoints")
+
+
 scheme_store: ProcessScheme = load_scheme(SCHEME_DIR / f"{_last_used_scheme()}.json")
 twin._engine.set_scheme(scheme_store)
+_restore_alarm_setpoints()
 
 # The LMS content layer (lms/content_*.py) reads the simulator singletons
 # through this bridge; re-configured whenever the session layer is created.
@@ -271,7 +323,13 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
 
 
 def _build_history() -> Dict[str, Any]:
-    """Time series of key process variables from the engine state history."""
+    """Time series of key process variables from the engine state history.
+
+    Plant-wide aggregate series (feed_flow, column_*, ...) keep the legacy
+    trend charts working, while each node also contributes its own series
+    under '<node_id>:<param>' keys so the inspector can draw per-equipment
+    graphs (e.g. 'elo_5:level_m', 'val_3:flow_kg_s').
+    """
     history = twin.get_history()
     times: list = []
     series: Dict[str, list] = {
@@ -284,6 +342,9 @@ def _build_history() -> Dict[str, Any]:
         "column_level": [],
         "valve_fv101_position": [],
     }
+    # Per-node series are materialised lazily on first use so a scheme change
+    # never leaves stale keys behind.
+    node_series: Dict[str, Dict[str, list]] = {}
     for st in history:
         times.append(round(st.timestamp, 1))
         series["feed_flow"].append(round(st.feed_flow, 3))
@@ -297,6 +358,15 @@ def _build_history() -> Dict[str, Any]:
         if valve_pos is None and st.valve_positions:
             valve_pos = next(iter(st.valve_positions.values()))
         series["valve_fv101_position"].append(round((valve_pos or 0.0) * 100.0, 2))
+        for nid, params in st.node_params.items():
+            bucket = node_series.setdefault(nid, {})
+            for key, value in params.items():
+                if not isinstance(value, (int, float)):
+                    continue
+                bucket.setdefault(key, []).append(value)
+    for nid, params in node_series.items():
+        for key, values in params.items():
+            series[f"{nid}:{key}"] = values
     return {"times": times, "series": series}
 
 
@@ -306,6 +376,7 @@ def _serialize_state():
         return _sanitize({
             "status": twin._status.value,
             "simulation_time": twin._simulation_time,
+            "speed": _sim_speed,
             "feed": {
                 "flow_kg_s": inputs["flow_kg_s"],
                 "flow_m3_h": inputs["flow_kg_s"] * 4.235,
@@ -410,10 +481,75 @@ def auth_deactivate(user_id: int):
 def state():
     return _serialize_state()
 
+@app.get("/simulation/speed", dependencies=[Depends(require_permission("view_scheme"))])
+def get_simulation_speed():
+    return {"speed": get_sim_speed()}
+
+@app.post("/simulation/speed", dependencies=[Depends(require_permission("send_commands"))])
+def set_simulation_speed(req: SimulationSpeedRequest):
+    return {"speed": set_sim_speed(req.speed)}
+
 @app.get("/alarms", dependencies=[Depends(require_permission("view_scheme"))])
 def alarms():
     with lock:
         return [a.model_dump() for a in twin.get_alarms()]
+
+@app.get("/alarms/setpoints", dependencies=[Depends(require_permission("view_scheme"))])
+def alarm_setpoints():
+    """Alarm thresholds of every measured parameter, grouped by equipment node.
+
+    Parameter names encode the equipment: '<node_id>_<quantity>' for per-node
+    limits (e.g. 'elo_5_level') and bare names (e.g. 'feed_flow') for the
+    plant-wide aggregates.
+    """
+    with lock:
+        node_ids = {n.id for n in scheme_store.nodes}
+        result = []
+        for name, s in twin._engine.get_alarm_setpoints().items():
+            node_id = next((nid for nid in node_ids if name.startswith(f"{nid}_")), None)
+            result.append({"parameter": name, "node_id": node_id, **s})
+        return {"setpoints": result}
+
+@app.put("/alarms/setpoints/{parameter}", dependencies=[Depends(require_permission("manage_twin"))])
+def update_alarm_setpoint(parameter: str, req: AlarmSetpointRequest):
+    """Manually override the alarm thresholds of one parameter (persisted)."""
+    with lock:
+        try:
+            updated = twin._engine.update_alarm_setpoint(
+                parameter,
+                low_low=req.low_low,
+                low=req.low,
+                high=req.high,
+                high_high=req.high_high,
+                unit=req.unit,
+            )
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"Параметр '{parameter}' не найден")
+        try:
+            ensure_session_layer()
+            session_store.save_alarm_setpoint(
+                updated["parameter"],
+                updated["low_low"],
+                updated["low"],
+                updated["high"],
+                updated["high_high"],
+                updated["unit"] or "",
+            )
+        except Exception:
+            logger.exception("Failed to persist alarm setpoint '%s'", parameter)
+        return {"ok": True, "setpoint": updated}
+
+@app.delete("/alarms/setpoints", dependencies=[Depends(require_permission("manage_twin"))])
+def reset_alarm_setpoints():
+    """Discard all manual overrides and restore the scheme defaults."""
+    with lock:
+        twin._engine.reset_alarm_setpoints()
+        try:
+            ensure_session_layer()
+            session_store.clear_alarm_setpoints()
+        except Exception:
+            logger.exception("Failed to clear persisted alarm setpoints")
+        return {"ok": True}
 
 @app.get("/events", dependencies=[Depends(require_permission("view_scheme"))])
 def events():
@@ -691,6 +827,24 @@ def history(limit: int = 600):
             data["series"][k] = data["series"][k][-limit:]
     return data
 
+@app.get("/history/node/{node_id}", dependencies=[Depends(require_permission("view_scheme"))])
+def history_node(node_id: str, limit: int = 600):
+    """Return recent time series of one equipment node (per-node params).
+
+    The times axis is the same as the plant-wide history; series are keyed by
+    the bare parameter name ('level_m', 'flow_kg_s', ...) so the inspector can
+    render per-equipment graphs directly.
+    """
+    data = _build_history()
+    prefix = f"{node_id}:"
+    out_series = {k[len(prefix):]: v for k, v in data["series"].items() if k.startswith(prefix)}
+    times = data["times"]
+    if limit > 0:
+        times = times[-limit:]
+        for k in out_series:
+            out_series[k] = out_series[k][-limit:]
+    return {"times": times, "series": out_series}
+
 @app.get("/scheme", dependencies=[Depends(require_permission("view_scheme"))])
 def get_scheme():
     """Return the current P&ID scheme graph (nodes + edges)."""
@@ -848,11 +1002,43 @@ def _safe_step() -> None:
 
 
 def simulation_loop():
+    """Advance the simulation by 1.0 s whole steps at a rate of speed * real time.
+
+    Whole steps keep the physical timestep constant; the speed multiplier only
+    changes how many steps wall-clock time buys. The accumulator never runs
+    more than SIM_SPEED_MAX steps per tick, and if the steps are SLOWER than
+    real time (heavy MESH columns), the accumulated lag is dropped instead of
+    being paid back in a burst -- otherwise a slow step would queue up a burst
+    of steps under the simulation lock and starve the HTTP layer for tens of
+    seconds (e.g. scheme save requests hang).
+    """
+    acc = 0.0
+    last = time.monotonic()
     while True:
-        time.sleep(1.0)
+        time.sleep(0.05)
+        now = time.monotonic()
+        dt = now - last
+        last = now
+        if dt > 1.0:
+            dt = 1.0
+        acc += dt * get_sim_speed()
+        if acc < 1.0:
+            continue
+        steps = int(acc)
+        if steps > SIM_SPEED_MAX:
+            steps = SIM_SPEED_MAX
+        acc -= steps
+        t0 = time.monotonic()
         with lock:
             if twin._status.value == "RUNNING":
-                _safe_step()
+                for _ in range(steps):
+                    _safe_step()
+        elapsed = time.monotonic() - t0
+        # Симуляция отстаёт от реального времени (шаг дольше 1 реальной
+        # секунды): долг не копим, иначе следующий тик стартует пачку
+        # тяжёлых шагов под lock и заблокирует HTTP-слой.
+        if elapsed > 1.0:
+            acc = 0.0
 
 threading.Thread(target=simulation_loop, daemon=True).start()
 

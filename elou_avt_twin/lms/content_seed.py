@@ -41,6 +41,18 @@ def _opt(label: str, is_correct: bool = False) -> Dict:
     return {"label": label, "is_correct": is_correct}
 
 
+def _keyed_opts(options: List[Dict]) -> tuple:
+    """Convert legacy [{label, is_correct}] to [{key, label}] plus correct keys."""
+    out: List[Dict] = []
+    correct: List[str] = []
+    for i, o in enumerate(options):
+        key = f"opt{i + 1}"
+        out.append({"key": key, "label": str(o.get("label", ""))})
+        if o.get("is_correct"):
+            correct.append(key)
+    return out, correct
+
+
 def build_theory_content(course_id: int, db: LmsStore, store: LmsContentStore) -> None:
     """Теория + контроль знаний для двух теоретических модулей курса."""
     modules = {m["title"]: m for m in db.get_modules(course_id)}
@@ -129,32 +141,32 @@ def _lesson_equipment():
 
 
 def _questions_device():
+    opts1, keys1 = _keyed_opts([_opt("Первичная переработка сернистой нефти", True),
+                                _opt("Каталитический крекинг"),
+                                _opt("Производство смазочных масел")])
+    opts2, keys2 = _keyed_opts([_opt("Стабильный бензин", True),
+                                _opt("Керосиновые фракции", True),
+                                _opt("Металлопрокат"),
+                                _opt("Мазут", True)])
     return [
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Назначение установки ЭЛОУ-АВТ",
             text="Что производит установка ЭЛОУ-АВТ?",
-            options=[_opt("Первичная переработка сернистой нефти", True),
-                     _opt("Каталитический крекинг"),
-                     _opt("Производство смазочных масел")],
-            answer="Первичная переработка сернистой нефти", max_score=2.0,
+            options=opts1, answer=keys1, max_score=2.0,
         ),
         QuestionWrite(
             kind=QuestionKind.MULTI,
             title="Продукты установки",
             text="Выберите все продукты установки:",
-            options=[_opt("Стабильный бензин", True),
-                     _opt("Керосиновые фракции", True),
-                     _opt("Металлопрокат"),
-                     _opt("Мазут", True)],
-            answer=["Стабильный бензин", "Керосиновые фракции", "Мазут"],
-            max_score=3.0, penalty=0.5,
+            options=opts2, answer=keys2, max_score=3.0, penalty=0.5,
         ),
         QuestionWrite(
             kind=QuestionKind.SEQUENCE,
             title="Технологический поток",
             text="Расположите звенья цепи в правильном порядке:",
-            options=[_opt("Насос"), _opt("ЭЛОУ"), _opt("Колонна К-1"), _opt("Печь")],
+            options=[{"label": "Насос"}, {"label": "ЭЛОУ"},
+                     {"label": "Колонна К-1"}, {"label": "Печь"}],
             answer=["Насос", "ЭЛОУ", "Печь", "Колонна К-1"],
             max_score=4.0,
         ),
@@ -162,41 +174,42 @@ def _questions_device():
             kind=QuestionKind.OBJECT,
             title="Центральный узел",
             text="Выберите узел подготовки сырья на мнемосхеме:",
-            options=[_opt("elou_1"), _opt("column_K1"), _opt("pump_H1")],
-            answer="elou_1", max_score=2.0,
+            options=[{"key": "elou_1", "label": "elou_1"},
+                     {"key": "column_K1", "label": "column_K1"},
+                     {"key": "pump_H1", "label": "pump_H1"}],
+            answer=["elou_1"], max_score=2.0,
         ),
     ]
 
 
 def _questions_equipment():
+    opts1, keys1 = _keyed_opts([_opt("По минимальному давлению на всасе", True),
+                                _opt("По температуре продукта"),
+                                _opt("По уровню в ёмкости")])
+    pairs1 = [{"left": "Колонна К-1", "right": "Давление верха"},
+              {"left": "Печь П-1", "right": "Температура уходящих газов"},
+              {"left": "ЭЛОУ", "right": "Уровень раздела фаз"}]
+    opts3, keys3 = _keyed_opts([_opt("Блокировка по напряжению", True),
+                                _opt("Блокировка по расходу"),
+                                _opt("Блокировка по давлению")])
     return [
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Условие отключения насоса",
             text="По какому признаку отключается центробежный насос?",
-            options=[_opt("По минимальному давлению на всасе", True),
-                     _opt("По температуре продукта"),
-                     _opt("По уровню в ёмкости")],
-            answer="По минимальному давлению на всасе", max_score=2.0,
+            options=opts1, answer=keys1, max_score=2.0,
         ),
         QuestionWrite(
             kind=QuestionKind.MATCH,
             title="Оборудование — параметр",
             text="Сопоставьте оборудование и контролируемый параметр:",
-            options=[],
-            answer=[{"left": "Колонна К-1", "right": "Давление верха"},
-                    {"left": "Печь П-1", "right": "Температура уходящих газов"},
-                    {"left": "ЭЛОУ", "right": "Уровень раздела фаз"}],
-            max_score=3.0,
+            options=pairs1, answer=pairs1, max_score=3.0,
         ),
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Электродегидратор",
             text="Какая блокировка действует при уровне нефтепродукта ниже 3500 мм?",
-            options=[_opt("Блокировка по напряжению", True),
-                     _opt("Блокировка по расходу"),
-                     _opt("Блокировка по давлению")],
-            answer="Блокировка по напряжению", max_score=2.0,
+            options=opts3, answer=keys3, max_score=2.0,
         ),
     ]
 
@@ -264,22 +277,25 @@ def _lesson_startup():
 
 
 def _questions_startup():
+    opts1, keys1 = _keyed_opts([_opt("С проверки готовности систем и регламентных процедур", True),
+                                _opt("С розжига печей"),
+                                _opt("С подачи продукции в товарные парки")])
+    opts3, keys3 = _keyed_opts([_opt("Н-1 — насос подачи сырья", True),
+                                _opt("Н-20 — резервный насос"),
+                                _opt("Насос откачки ПБФ")])
     return [
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Начало пуска",
             text="С чего начинается пуск установки?",
-            options=[_opt("С проверки готовности систем и регламентных процедур", True),
-                     _opt("С розжига печей"),
-                     _opt("С подачи продукции в товарные парки")],
-            answer="С проверки готовности систем и регламентных процедур", max_score=2.0,
+            options=opts1, answer=keys1, max_score=2.0,
         ),
         QuestionWrite(
             kind=QuestionKind.SEQUENCE,
             title="Этапы пуска",
             text="Расположите этапы пуска в правильном порядке:",
-            options=[_opt("Розжиг печей"), _opt("Прокачка контура"),
-                     _opt("Подготовка систем"), _opt("Выход на режим")],
+            options=[{"label": "Розжиг печей"}, {"label": "Прокачка контура"},
+                     {"label": "Подготовка систем"}, {"label": "Выход на режим"}],
             answer=["Подготовка систем", "Прокачка контура", "Розжиг печей", "Выход на режим"],
             max_score=4.0,
         ),
@@ -287,10 +303,7 @@ def _questions_startup():
             kind=QuestionKind.SINGLE,
             title="Подача сырья",
             text="Какой насос запускают для подачи сырья на установку?",
-            options=[_opt("Н-1 — насос подачи сырья", True),
-                     _opt("Н-20 — резервный насос"),
-                     _opt("Насос откачки ПБФ")],
-            answer="Н-1 — насос подачи сырья", max_score=2.0,
+            options=opts3, answer=keys3, max_score=2.0,
         ),
     ]
 
@@ -319,25 +332,24 @@ def _lesson_mode_enter():
 
 
 def _questions_mode_enter():
+    opts1, keys1 = _keyed_opts([_opt("Давление и температура верха", True),
+                                _opt("Расход пара из котлов-утилизаторов"),
+                                _opt("Уровень нефтепродукта в резервуаре")])
+    pairs2 = [{"left": "Печь П-1", "right": "Температура нагрева сырья"},
+              {"left": "Колонна К-1", "right": "Давление верха"},
+              {"left": "Насос Н-1", "right": "Расход сырья"}]
     return [
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Параметр верха колонны",
             text="Какой параметр контролируется на верху колонны К-1?",
-            options=[_opt("Давление и температура верха", True),
-                     _opt("Расход пара из котлов-утилизаторов"),
-                     _opt("Уровень нефтепродукта в резервуаре")],
-            answer="Давление и температура верха", max_score=2.0,
+            options=opts1, answer=keys1, max_score=2.0,
         ),
         QuestionWrite(
             kind=QuestionKind.MATCH,
             title="Оборудование — параметр",
             text="Сопоставьте оборудование и параметр, выводимый на режим:",
-            options=[],
-            answer=[{"left": "Печь П-1", "right": "Температура нагрева сырья"},
-                    {"left": "Колонна К-1", "right": "Давление верха"},
-                    {"left": "Насос Н-1", "right": "Расход сырья"}],
-            max_score=3.0,
+            options=pairs2, answer=pairs2, max_score=3.0,
         ),
     ]
 
@@ -366,26 +378,25 @@ def _lesson_work():
 
 
 def _questions_work():
+    opts1, keys1 = _keyed_opts([_opt("Расход сырья", True),
+                                _opt("Температура верха колонны", True),
+                                _opt("Давление в аппаратах", True),
+                                _opt("Запасы металлопроката на складе")])
+    opts2, keys2 = _keyed_opts([_opt("Скорректировать режим и зафиксировать в журнале", True),
+                                _opt("Ничего не делать до конца смены"),
+                                _opt("Немедленно остановить всю установку")])
     return [
         QuestionWrite(
             kind=QuestionKind.MULTI,
             title="Параметры рабочего режима",
             text="Какие параметры оператор контролирует в рабочем режиме?",
-            options=[_opt("Расход сырья", True),
-                     _opt("Температура верха колонны", True),
-                     _opt("Давление в аппаратах", True),
-                     _opt("Запасы металлопроката на складе")],
-            answer=["Расход сырья", "Температура верха колонны", "Давление в аппаратах"],
-            max_score=3.0, penalty=0.5,
+            options=opts1, answer=keys1, max_score=3.0, penalty=0.5,
         ),
         QuestionWrite(
             kind=QuestionKind.SINGLE,
             title="Отклонение параметра",
             text="Что должен сделать оператор при отклонении параметра от нормы?",
-            options=[_opt("Скорректировать режим и зафиксировать в журнале", True),
-                     _opt("Ничего не делать до конца смены"),
-                     _opt("Немедленно остановить всю установку")],
-            answer="Скорректировать режим и зафиксировать в журнале", max_score=2.0,
+            options=opts2, answer=keys2, max_score=2.0,
         ),
     ]
 
@@ -415,13 +426,16 @@ def _lesson_shutdown():
 
 
 def _questions_shutdown():
+    opts2, keys2 = _keyed_opts([_opt("Чтобы избежать термического удара и перегрева змеевиков", True),
+                                _opt("Чтобы сэкономить электроэнергию"),
+                                _opt("По требованию товарного парка")])
     return [
         QuestionWrite(
             kind=QuestionKind.SEQUENCE,
             title="Этапы останова",
             text="Расположите этапы останова установки в правильном порядке:",
-            options=[_opt("Отключение печей"), _opt("Снижение нагрузки"),
-                     _opt("Остановка насосов"), _opt("Дренирование аппаратов")],
+            options=[{"label": "Отключение печей"}, {"label": "Снижение нагрузки"},
+                     {"label": "Остановка насосов"}, {"label": "Дренирование аппаратов"}],
             answer=["Снижение нагрузки", "Отключение печей", "Остановка насосов",
                     "Дренирование аппаратов"],
             max_score=4.0,
@@ -430,10 +444,7 @@ def _questions_shutdown():
             kind=QuestionKind.SINGLE,
             title="Почему снижают нагрузку",
             text="Зачем перед отключением печей снижают нагрузку по сырью?",
-            options=[_opt("Чтобы избежать термического удара и перегрева змеевиков", True),
-                     _opt("Чтобы сэкономить электроэнергию"),
-                     _opt("По требованию товарного парка")],
-            answer="Чтобы избежать термического удара и перегрева змеевиков", max_score=2.0,
+            options=opts2, answer=keys2, max_score=2.0,
         ),
     ]
 
@@ -612,6 +623,10 @@ def run() -> None:
     db = LmsStore()
     store = LmsContentStore()
     seed(db)
+
+    migrated = store.migrate_question_formats()
+    if migrated:
+        logger.info("Content migrated: %d вопросов приведены к каноническому формату", migrated)
 
     course = db.list_courses()[0] if db.list_courses() else None
     if course is None:
