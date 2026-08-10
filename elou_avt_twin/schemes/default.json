@@ -153,20 +153,36 @@
       "target_port": "in"
     },
     {
-      "id": "col_12-sink_8-1786278211448",
-      "kind": "oil",
-      "source": "col_12",
-      "source_port": "bottoms",
-      "target": "sink_8",
-      "target_port": "in"
-    },
-    {
       "id": "source_16-col_12-1786278219260",
       "kind": "oil",
       "source": "source_16",
       "source_port": "out",
       "target": "col_12",
       "target_port": "steam"
+    },
+    {
+      "id": "col_12-pum_1-1786285461555",
+      "kind": "oil",
+      "source": "col_12",
+      "source_port": "bottoms",
+      "target": "pum_1",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_1-val_2-1786285475212",
+      "kind": "oil",
+      "source": "pum_1",
+      "source_port": "out",
+      "target": "val_2",
+      "target_port": "in"
+    },
+    {
+      "id": "val_2-sink_3-1786285477032",
+      "kind": "oil",
+      "source": "val_2",
+      "source_port": "out",
+      "target": "sink_3",
+      "target_port": "in"
     }
   ],
   "id": "default",
@@ -293,7 +309,7 @@
       },
       "type": "valve",
       "x": 370.0,
-      "y": 561.0
+      "y": 559.0
     },
     {
       "id": "elo_4",
@@ -324,16 +340,6 @@
       "y": 376.0
     },
     {
-      "id": "sink_8",
-      "name": "Продукт / отбор",
-      "params": {
-        "pressure_bar": 2.0
-      },
-      "type": "sink",
-      "x": 1113.0,
-      "y": 473.0
-    },
-    {
       "id": "sink_9",
       "name": "Продукт / отбор",
       "params": {},
@@ -361,7 +367,7 @@
       "id": "source_12",
       "name": "Источник сырья",
       "params": {
-        "flow_kg_s": 100,
+        "flow_kg_s": 21,
         "pressure_bar": 1.01325,
         "temperature_c": 25
       },
@@ -372,7 +378,9 @@
     {
       "id": "sink_13",
       "name": "Продукт / отбор",
-      "params": {},
+      "params": {
+        "pressure_bar": 2.0
+      },
       "type": "sink",
       "x": 1082.0,
       "y": 405.0
@@ -625,14 +633,14 @@
         "preset": "k1"
       },
       "type": "column",
-      "x": 732.0,
-      "y": 368.0
+      "x": 738.0,
+      "y": 346.0
     },
     {
       "id": "source_13",
       "name": "Источник сырья",
       "params": {
-        "flow_kg_s": 100,
+        "flow_kg_s": 19,
         "pressure_bar": 1.01325,
         "temperature_c": 25
       },
@@ -644,7 +652,7 @@
       "id": "source_14",
       "name": "Источник сырья",
       "params": {
-        "flow_kg_s": 100,
+        "flow_kg_s": 32,
         "pressure_bar": 1.01325,
         "temperature_c": 25
       },
@@ -656,7 +664,7 @@
       "id": "source_15",
       "name": "Источник сырья",
       "params": {
-        "flow_kg_s": 100,
+        "flow_kg_s": 16,
         "pressure_bar": 1.01325,
         "temperature_c": 25
       },
@@ -668,13 +676,43 @@
       "id": "source_16",
       "name": "Источник сырья",
       "params": {
-        "flow_kg_s": 100,
+        "flow_kg_s": 14,
         "pressure_bar": 1.01325,
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1114.0,
-      "y": 612.0
+      "x": 1111.0,
+      "y": 616.0
+    },
+    {
+      "id": "pum_1",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "nominal_flow": 100
+      },
+      "type": "pump",
+      "x": 1218.0,
+      "y": 458.0
+    },
+    {
+      "id": "val_2",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 1438.0,
+      "y": 482.0
+    },
+    {
+      "id": "sink_3",
+      "name": "Продукт / отбор",
+      "params": {},
+      "type": "sink",
+      "x": 1644.0,
+      "y": 484.0
     }
   ],
   "schema_version": "1.1"

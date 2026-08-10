@@ -92,6 +92,7 @@ class DistillationColumn(BaseEquipment):
             tuple(sorted((c, round(float(v), 4)) for c, v in feed.composition.items())),
             round(float(self.reflux_ratio), 3),
             round(float(self.boilup_ratio), 3),
+            round(float(self.pressure), 0),
         )
         if (interval > 1 and self._cached is not None
                 and self._last_sig == sig and self._solve_count < interval):

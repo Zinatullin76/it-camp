@@ -79,6 +79,8 @@ class SimulationEngine:
         self._hyd_state: Dict[str, Dict[str, float]] = {}
         self._vessel_state: Dict[str, Dict[str, Any]] = {}
         self._vessel_q: Dict[str, Dict[str, float]] = {}
+        self._vessel_q_in: Dict[str, float] = {}
+        self._vessel_q_out: Dict[str, float] = {}
         self._vessel_active: set = set()
 
         # Build equipment
@@ -453,13 +455,20 @@ class SimulationEngine:
                 # solver must not re-divide it downstream).  Feed the vessel
                 # inventory balance with the model's total outlet flow so the
                 # level stays steady instead of ramping with the inlet only.
-                q = self._vessel_q.get(nid)
-                if q is not None:
-                    s_out = out.get("outlet_stream")
-                    b_out = out.get("brine_stream")
-                    q["out"] = (s_out.mass_flow if s_out is not None else 0.0) + (
-                        b_out.mass_flow if b_out is not None else 0.0
-                    )
+                s_out = out.get("outlet_stream")
+                b_out = out.get("brine_stream")
+                self._vessel_q_out[nid] = (
+                    (s_out.mass_flow if s_out is not None else 0.0)
+                    + (b_out.mass_flow if b_out is not None else 0.0)
+                )
+            if ntype == "column":
+                # The MESH bottoms product is the inflow to the bottoms sump:
+                # the level integrates (bottoms_in - bottoms_drawn), so a bigger
+                # feed builds more sump inflow and a wider bottoms valve draws
+                # the level down.
+                b = out.get("bottoms")
+                if b is not None:
+                    self._vessel_q_in[nid] = b.mass_flow
             if ntype == "heat_exchanger":
                 # Each channel (hot / cold) is its own hydraulic line: apply
                 # the per-channel solved flow and outlet pressure to the
@@ -514,8 +523,115 @@ class SimulationEngine:
                 if os_ is not None and os_.mass_flow > cap:
                     out["outlet_stream"] = os_.copy_with(mass_flow=max(0.0, cap))
             outputs[nid] = out
+
+            # A sink is a strict pressure boundary: a stream delivered to it
+            # must carry at least the sink's own pressure, or the sink could
+            # not physically accept it (e.g. a bottoms valve that drops the
+            # pressure below the receiving tank).  Anchor any outgoing stream
+            # to the sink pressure so the boundary is never violated.
+            for edge in self._edges:
+                if edge.source != nid:
+                    continue
+                t_node = self._node_map.get(edge.target)
+                if t_node is None or t_node.type != "sink":
+                    continue
+                s = out.get(edge.source_port)
+                if s is None or not hasattr(s, "copy_with"):
+                    s = out.get("outlet_stream")
+                if s is None or not hasattr(s, "copy_with"):
+                    continue
+                sink_p = float(t_node.params.get("pressure_bar", 1.01325)) * 1e5
+                if s.pressure < sink_p:
+                    s = s.copy_with(pressure=sink_p)
+                    if edge.source_port in out and hasattr(out[edge.source_port], "copy_with"):
+                        out[edge.source_port] = s
+                    os_ = out.get("outlet_stream")
+                    if os_ is not None and hasattr(os_, "copy_with"):
+                        out["outlet_stream"] = s
+                    if "outlet_pressure" in out:
+                        out["outlet_pressure"] = s.pressure
+
+            # The bottoms of a column leave through its level control valve.
+            # The draw is set by the valve opening (an opened valve draws the
+            # sump down, a throttled one lets the inflow build it up) and by the
+            # liquid available in the sump - an empty sump cannot be drawn.
+            # This is what the level integrates against in _integrate_levels.
+            # The valve may sit directly on the bottoms line (sump head drives
+            # the draw) or behind a bottom pump (the pump + valve set the line
+            # capacity); both cases feed the sump inventory balance here.
+            if ntype in _CONTROL_VALVE_TYPES:
+                os_ = out.get("outlet_stream")
+                if os_ is None:
+                    continue
+                col, pumps = self._column_of_bottoms_valve(nid)
+                if col is None:
+                    continue
+                vs = self._vessel_state.get(col)
+                lvl = vs["level"] if vs else 0.0
+                draw = 0.0
+                out_p = None
+                for e2 in self._edges:
+                    if e2.source != nid:
+                        continue
+                    t2 = self._node_map.get(e2.target)
+                    if t2 is not None and t2.type == "sink":
+                        out_p = float(t2.params.get("pressure_bar", 1.01325)) * 1e5
+                        break
+                if lvl > 1e-9:
+                    if pumps:
+                        # Pumped bottoms: the pump moves whatever the line can
+                        # take, so the draw is the line capacity - the tightest
+                        # of the pump throughputs and the valve's own opening.
+                        draw = os_.mass_flow
+                        if hasattr(eq, "current_capacity"):
+                            draw = float(eq.current_capacity(os_.density))
+                        pump_cap = None
+                        for p in pumps:
+                            peq = self._equipment.get(p)
+                            if peq is not None and hasattr(peq, "current_capacity"):
+                                c = float(peq.current_capacity(os_.density))
+                                pump_cap = c if pump_cap is None else min(pump_cap, c)
+                        if pump_cap is not None:
+                            draw = min(max(draw, 0.0), pump_cap)
+                    elif hasattr(eq, "draw_capacity"):
+                        # Direct sump valve: real hydraulics, the pressure
+                        # upstream is the column pressure plus the static head
+                        # rho*g*h of the liquid above the draw point; the flow
+                        # is set by the true dp down to the receiving sink.  An
+                        # empty sump (level ~ 0) cannot be drawn.
+                        p_col = vs["p_base"] if vs else 1.01325e5
+                        dp_extra = p_col - (out_p if out_p is not None else p_col)
+                        draw = eq.draw_capacity(lvl, os_.density, dp_extra=dp_extra)
+                    else:
+                        draw = os_.mass_flow
+                    if vs is not None:
+                        max_draw = lvl * vs["area"] * os_.density / max(dt, 1e-9)
+                        draw = min(max(draw, 0.0), max_draw)
+                if out_p is not None:
+                    out["inlet_pressure"] = os_.pressure
+                    out["outlet_pressure"] = out_p
+                    out["dp"] = max(0.0, os_.pressure - out_p)
+                    os_ = os_.copy_with(pressure=out_p)
+                out["outlet_stream"] = os_.copy_with(mass_flow=draw)
+                out["flow_out"] = draw
+                self._vessel_q_out[col] = draw
+
             self._attach_level(state, nid, node, incoming, out, dt)
             self._register_node_outputs(streams, nid, ntype, out)
+
+        # A column whose bottom leaves through a pump / line (no level control
+        # valve) draws freely: the outflow equals the MESH bottoms, so the sump
+        # level holds instead of ramping up.  A bottoms valve already recorded
+        # the throttled draw for its column, so it is left untouched here.
+        for nid in self._vessel_state:
+            if nid in self._vessel_q_out:
+                continue
+            node = self._node_map.get(nid)
+            if node is None or node.type != "column":
+                continue
+            out = outputs.get(nid, {})
+            b = out.get("bottoms")
+            self._vessel_q_out[nid] = b.mass_flow if b is not None else 0.0
 
         # Back-pressure feedback: a throttling valve raises the pressure on its
         # inlet (dead-heading). Propagate that rise to the equipment feeding it
@@ -578,6 +694,8 @@ class SimulationEngine:
         self._hyd_state.clear()
         self._vessel_state.clear()
         self._vessel_q.clear()
+        self._vessel_q_in.clear()
+        self._vessel_q_out.clear()
         self._vessel_active.clear()
         self._extend_equipment_from_scheme(scheme)
         self._rebuild_topology(scheme)
@@ -852,7 +970,7 @@ class SimulationEngine:
         k_drain = max(head_nom, 1.0) / max(q_nom * q_nom, 1e-6)
         # Static head of the liquid column; p_src drives the downstream drain
         # line, p_out may add a flow-dependent back-pressure (ELOU) on top.
-        static_head = 0.0 if node is not None and node.type == "column" else 850.0 * 9.81 * level
+        static_head = 0.0 if node is not None and node.type in ("column", "elou") else 850.0 * 9.81 * level
         vs = {
             "level": level,
             "area": area,
@@ -865,27 +983,104 @@ class SimulationEngine:
         self._vessel_state[nid] = vs
         return vs
 
-    def _column_downstream_pressure(self, nid: str, params: Dict[str, Any]) -> float:
-        """Pressure a column holds, taken from the elements downstream of it.
+    def _column_of_bottoms_valve(self, valve_nid: str):
+        """Column whose bottoms line feeds a control valve, with the pumps on it.
 
-        The product lines (distillate / side draw / bottoms) run into sink
-        nodes, each with its own fixed pressure.  The column must sit at the
-        highest of those so every product can flow out, otherwise a product
-        would have to run uphill against a higher sink pressure.  Falls back to
-        the column preset when no downstream sink is connected.
+        Walks upstream from the valve (through pumps and pass-through
+        equipment) until it reaches a column whose 'bottoms' port starts the
+        path.  Returns (column_id, [pump_ids on the path]) or (None, []) when
+        the valve does not belong to a column bottoms line (e.g. a reflux or
+        product line).  The pumps matter because a pumped bottoms line draws at
+        the tightest of the pump throughput and the valve opening, while a
+        direct sump valve draws from the static head.
         """
-        sink_pressures: List[float] = []
-        for e in self._edges:
-            if e.source != nid:
-                continue
-            target_node = self._node_map.get(e.target)
-            if target_node is None or target_node.type != "sink":
-                continue
-            sink_pressures.append(
-                float(target_node.params.get("pressure_bar", 1.01325)) * 1e5
-            )
-        if sink_pressures:
-            return max(sink_pressures)
+        def walk(cur: str, pumps: list) -> tuple:
+            for edge in self._edges:
+                if edge.target != cur:
+                    continue
+                up = edge.source
+                up_node = self._node_map.get(up)
+                if up_node is None:
+                    continue
+                if up_node.type == "column":
+                    if edge.source_port == "bottoms":
+                        return up, pumps
+                    return None, pumps
+                if up_node.type == "pump":
+                    res, acc = walk(up, pumps + [up])
+                elif up_node.type in _CONTROL_VALVE_TYPES:
+                    continue
+                elif up_node.type == "sink":
+                    continue
+                else:
+                    res, acc = walk(up, pumps)
+                if res is not None:
+                    return res, acc
+            return None, pumps
+
+        return walk(valve_nid, [])
+
+    def _column_downstream_pressure(
+        self, nid: str, params: Dict[str, Any], _seen: Optional[set] = None
+    ) -> float:
+        """Pressure a column / ELOU holds, taken from the elements downstream.
+
+        The product lines (distillate / side draw / bottoms, and for an ELOU the
+        oil outlet into a downstream column) run into sink nodes, each with its
+        own fixed pressure.  The vessel must sit at the highest of those so every
+        product can flow out, otherwise a product would have to run uphill
+        against a higher sink pressure.  Falls back to the vessel preset when no
+        downstream sink is connected.
+        """
+        node = self._node_map.get(nid)
+        ntype = node.type if node is not None else ""
+        seen = set() if _seen is None else _seen
+
+        def _walk(cur: str, cur_seen: set) -> Optional[float]:
+            best: Optional[float] = None
+            for e in self._edges:
+                if e.source != cur or e.target in cur_seen:
+                    continue
+                t = self._node_map.get(e.target)
+                if t is None:
+                    continue
+                if t.type == "sink":
+                    p = float(t.params.get("pressure_bar", 1.01325)) * 1e5
+                elif t.type in ("column", "elou"):
+                    p = self._column_downstream_pressure(
+                        e.target, t.params, cur_seen | {e.target}
+                    )
+                elif t.type in ("separator", "tank"):
+                    p_nom = t.params.get("nominal_pressure")
+                    p = float(p_nom) if p_nom else float(t.params.get("pressure_bar", 1.01325)) * 1e5
+                else:
+                    p = _walk(e.target, cur_seen | {e.target})
+                if p is not None and (best is None or p > best):
+                    best = p
+            return best
+
+        if ntype == "elou":
+            # The ELOU sits between the upstream line and the downstream plant:
+            # its oil outlet may feed a column running under its own pressure, so
+            # walk every product path to the farthest pressure holder instead of
+            # anchoring only to the brine sink at the bottom port.
+            p = _walk(nid, seen | {nid})
+            if p is not None:
+                return p
+        else:
+            # A column anchors to its direct product sinks only.
+            sink_pressures: List[float] = []
+            for e in self._edges:
+                if e.source != nid:
+                    continue
+                target_node = self._node_map.get(e.target)
+                if target_node is None or target_node.type != "sink":
+                    continue
+                sink_pressures.append(
+                    float(target_node.params.get("pressure_bar", 1.01325)) * 1e5
+                )
+            if sink_pressures:
+                return max(sink_pressures)
         col_eq = self._equipment.get(nid)
         return float(getattr(col_eq, "pressure", None) or (params.get("pressure_bar", 1.01325) * 1e5))
 
@@ -895,29 +1090,30 @@ class SimulationEngine:
             q = self._vessel_q.get(nid)
             if q is None:
                 continue
-            qi = max(0.0, q.get("in", 0.0))
-            qo = max(0.0, q.get("out", 0.0))
+            node = self._node_map.get(nid)
+            if node is not None and node.type == "column":
+                # A column's level is the bottoms sump: it integrates the
+                # inflow to the sump (the MESH bottoms product) against the
+                # real bottoms draw through the level valve.
+                qi = max(0.0, self._vessel_q_in.get(nid, 0.0))
+            else:
+                qi = max(0.0, q.get("in", 0.0))
+            qo = max(0.0, self._vessel_q_out.get(nid, 0.0))
             lvl = vs["level"] + (qi - qo) / max(850.0 * vs["area"], 1e-6) * dt
             if lvl > vs["height"]:
                 lvl = vs["height"]
             if lvl < 0.0:
                 lvl = 0.0
-        vs["level"] = lvl
-        node = self._node_map.get(nid)
-        if node is not None and node.type == "column":
-            # Column pressure is anchored to the downstream product sinks,
-            # not to its bottoms level (see _vessel_boundary).
-            vs["p_src"] = vs["p_base"]
-            vs["p_out"] = vs["p_base"]
-        elif node is not None and node.type == "elou":
-            # ELOU (dehydrator): static head plus a flow-dependent
-            # back-pressure, so its pressure reacts to the throughput and to
-            # the pressure downstream of the vessel.
-            vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * lvl
-            vs["p_out"] = vs["p_src"] + vs["k_drain"] * qo * qo
-        else:
-            vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * lvl
-            vs["p_out"] = vs["p_src"]
+            vs["level"] = lvl
+            node = self._node_map.get(nid)
+            if node is not None and node.type in ("column", "elou"):
+                # Column / ELOU discharge pressure is anchored to the downstream
+                # product sinks, not to their liquid level (see _vessel_boundary).
+                vs["p_src"] = vs["p_base"]
+                vs["p_out"] = vs["p_base"]
+            else:
+                vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * vs["level"]
+                vs["p_out"] = vs["p_src"]
 
     def _build_line_trees(self) -> List[Dict[str, Any]]:
         """Split the scheme into branched hydraulic trees source -> ... -> sinks.
@@ -1338,13 +1534,12 @@ class SimulationEngine:
             if vs is None:
                 continue
             vs["p_base"] = self._column_downstream_pressure(nid, node.params)
-            if node.type == "column":
-                vs["p_src"] = vs["p_base"]
-                vs["p_out"] = vs["p_base"]
-            else:
-                vs["p_src"] = vs["p_base"] + 850.0 * 9.81 * vs["level"]
-                q_prev = self._vessel_q.get(nid, {}).get("out", 0.0)
-                vs["p_out"] = vs["p_src"] + vs["k_drain"] * q_prev * q_prev
+            # The ELOU sits in the feed line of the downstream plant (typically
+            # a column): its discharge pressure must equal the pressure of the
+            # receiving equipment so the oil can actually flow into it.  Neither
+            # the static head nor a drain back-pressure is added on top.
+            vs["p_src"] = vs["p_base"]
+            vs["p_out"] = vs["p_base"]
         self._vessel_q = {nid: {"in": 0.0, "out": 0.0} for nid in self._vessel_state}
         self._vessel_active = set()
         result: Dict[str, Dict[str, float]] = {}
@@ -1903,6 +2098,8 @@ class SimulationEngine:
         self._hyd_state.clear()
         self._vessel_state.clear()
         self._vessel_q.clear()
+        self._vessel_q_in.clear()
+        self._vessel_q_out.clear()
         self._vessel_active.clear()
         self._active_failures.clear()
         self._alarm_system.reset()
