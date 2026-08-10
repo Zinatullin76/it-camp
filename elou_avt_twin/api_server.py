@@ -306,16 +306,29 @@ def _build_node_telemetry(twin) -> Dict[str, Any]:
             p["temperature_c"] = round(s.temperature - 273.15, 2) if s else None
             p["pressure_bar"] = round(s.pressure / 1e5, 3) if s else None
         elif ntype == "sink":
-            for edge in scheme_store.edges:
-                if edge.target == nid:
-                    s_in = streams.get(f"{edge.source}:{edge.source_port}")
-                    if s_in is not None:
-                        break
+            # A sink is the boundary that accepts EVERY incoming stream, so its
+            # telemetry is the mass-conserving aggregate of all edges targeting
+            # it: flows sum, intensive properties are mass-weighted averaged
+            # (identical to _merge_streams in the engine).
+            in_streams = [
+                streams.get(f"{edge.source}:{edge.source_port}")
+                for edge in scheme_store.edges
+                if edge.target == nid
+            ]
+            in_streams = [s for s in in_streams if s is not None and s.mass_flow > 0]
+            if in_streams:
+                total = sum(s.mass_flow for s in in_streams)
+                p["flow_kg_s"] = round(total, 3)
+                p["temperature_c"] = round(
+                    sum(s.temperature * s.mass_flow for s in in_streams) / total - 273.15, 2
+                )
+                p["pressure_bar"] = round(
+                    sum(s.pressure * s.mass_flow for s in in_streams) / total / 1e5, 3
+                )
             else:
-                s_in = None
-            p["flow_kg_s"] = round(s_in.mass_flow, 3) if s_in else None
-            p["temperature_c"] = round(s_in.temperature - 273.15, 2) if s_in else None
-            p["pressure_bar"] = round(s_in.pressure / 1e5, 3) if s_in else None
+                p["flow_kg_s"] = None
+                p["temperature_c"] = None
+                p["pressure_bar"] = None
 
         telemetry[nid] = item
 
@@ -397,9 +410,54 @@ def _serialize_state():
             "equipment": _build_node_telemetry(twin),
             "active_failures": s.active_failures,
             "alarms": [a.model_dump() for a in s.alarms],
+            "alarm_history": [
+                a.model_dump() for a in twin._engine._alarm_system.get_alarm_history()
+            ],
             "errors": [e.model_dump() for e in s.errors[-20:]],
             "controllers": control_system.snapshot(),
         })
+
+
+# Read-path snapshot.  The heavy hydraulic step runs under `lock` and can take
+# ~1-2 s, so polling endpoints that used to take the same lock (state, alarms,
+# events, score, controllers, scheme) would block behind it for the whole step.
+# Instead the simulation loop rebuilds this snapshot under the lock after every
+# step, and read endpoints serve the cached copy without ever waiting on it.
+_snapshot: Optional[Dict[str, Any]] = None
+_snapshot_lock = threading.Lock()
+
+
+def _refresh_snapshot() -> None:
+    """Rebuild the read-path snapshot.  Caller must hold `lock` (RLock)."""
+    global _snapshot
+    data = {
+        "state": _serialize_state(),
+        "alarms": [a.model_dump() for a in twin.get_alarms()],
+        "events": [e.model_dump() for e in twin.get_events()],
+        "score": twin.get_score_data(),
+        "scheme": scheme_store.model_dump(mode="json"),
+    }
+    with _snapshot_lock:
+        _snapshot = data
+
+
+def _snapshot_state() -> Optional[Dict[str, Any]]:
+    """Latest serialized state without touching the simulation lock."""
+    with _snapshot_lock:
+        snap = _snapshot
+    return snap["state"] if snap else None
+
+
+def _snapshot_value(key: str) -> Any:
+    """Serve one snapshot entry, building it under the lock on first use."""
+    with _snapshot_lock:
+        snap = _snapshot
+    if snap is not None:
+        return snap.get(key)
+    with lock:
+        _refresh_snapshot()
+        with _snapshot_lock:
+            return _snapshot[key]
 
 
 def _sanitize(obj):
@@ -430,6 +488,24 @@ def _node_type_for(equipment_id: str) -> Optional[str]:
             "ELOU": "elou", "Tank": "tank", "HeatExchanger": "heat_exchanger",
             "DistillationColumn": "column", "Separator": "separator",
         }.get(type(eq).__name__)
+    return None
+
+
+def _current_regulated_value(equipment_id: str) -> Optional[float]:
+    """Best-effort current value of the regulated parameter of an equipment.
+
+    Used to fill `old_value` in operator actions so directional checks
+    ("increase/decrease the parameter") can compare before vs after.
+    """
+    if twin._engine is None:
+        return None
+    eq = twin._engine._equipment.get(equipment_id)
+    if eq is None:
+        return None
+    for attr in ("position", "fuel_flow", "reflux_ratio", "speed"):
+        v = getattr(eq, attr, None)
+        if isinstance(v, (int, float)):
+            return float(v)
     return None
 
 
@@ -479,10 +555,13 @@ def auth_deactivate(user_id: int):
 
 @app.get("/state", dependencies=[Depends(require_permission("view_scheme"))])
 def state():
-    return _serialize_state()
+    return _snapshot_value("state")
 
 @app.get("/simulation/speed", dependencies=[Depends(require_permission("view_scheme"))])
 def get_simulation_speed():
+    snap = _snapshot_state()
+    if snap is not None:
+        return {"speed": snap["speed"]}
     return {"speed": get_sim_speed()}
 
 @app.post("/simulation/speed", dependencies=[Depends(require_permission("send_commands"))])
@@ -491,8 +570,7 @@ def set_simulation_speed(req: SimulationSpeedRequest):
 
 @app.get("/alarms", dependencies=[Depends(require_permission("view_scheme"))])
 def alarms():
-    with lock:
-        return [a.model_dump() for a in twin.get_alarms()]
+    return _snapshot_value("alarms")
 
 @app.get("/alarms/setpoints", dependencies=[Depends(require_permission("view_scheme"))])
 def alarm_setpoints():
@@ -553,24 +631,32 @@ def reset_alarm_setpoints():
 
 @app.get("/events", dependencies=[Depends(require_permission("view_scheme"))])
 def events():
-    with lock:
-        return [e.model_dump() for e in twin.get_events()]
+    return _snapshot_value("events")
 
 @app.get("/score", dependencies=[Depends(require_permission("view_scheme"))])
 def score():
-    with lock:
-        return twin.get_score_data()
+    return _snapshot_value("score")
 
 @app.get("/controllers", dependencies=[Depends(require_permission("view_scheme"))])
 def controllers():
     """Faceplate snapshot of every PID loop in the unified catalogue."""
+    snap = _snapshot_state()
+    if snap is not None:
+        ctrls = snap["controllers"]
+        return {"count": len(ctrls), "controllers": ctrls}
     with lock:
-        snap = control_system.snapshot()
-        return {"count": len(snap), "controllers": snap}
+        ctrls = control_system.snapshot()
+        return {"count": len(ctrls), "controllers": ctrls}
 
 @app.get("/controllers/{tag}", dependencies=[Depends(require_permission("view_scheme"))])
 def controller_detail(tag: str):
     """Faceplate snapshot of one control loop."""
+    snap = _snapshot_state()
+    if snap is not None:
+        face = snap["controllers"].get(tag)
+        if face is None:
+            raise HTTPException(status_code=404, detail=f"Регулятор '{tag}' не найден")
+        return face
     with lock:
         if tag not in control_system.controllers:
             raise HTTPException(status_code=404, detail=f"Регулятор '{tag}' не найден")
@@ -603,6 +689,7 @@ def command(req: CommandRequest):
                 source="hmi",
             )
             session_recorder.record_action(op_action, node_type="controller")
+        _refresh_snapshot()
         return {"ok": True, "controller": control_system.faceplate(ctrl.tag)}
 
 @app.post("/training/session", dependencies=[Depends(require_permission("start_training"))])
@@ -697,12 +784,12 @@ def set_input(req: InputRequest):
                              ("pressure_bar", req.pressure_bar)):
                 if val is not None:
                     src.params[key] = val
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.post("/action", dependencies=[Depends(require_permission("send_commands"))])
 def action(req: ActionRequest):
     with lock:
-        old = None
         node = scheme_store.node(req.equipment_id)
         value = req.value
         if (req.action_type == "SET_VALUE" and value is not None and node is not None
@@ -713,7 +800,7 @@ def action(req: ActionRequest):
             operator_id=req.operator_id,
             equipment_id=req.equipment_id,
             action_type=req.action_type,
-            old_value=old,
+            old_value=_current_regulated_value(req.equipment_id),
             new_value=value,
             source="operator_panel",
         )
@@ -727,7 +814,8 @@ def action(req: ActionRequest):
         if twin._status.value != "RUNNING":
             twin.start()
         _safe_step()
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.get("/equipment/spec/{node_id}", dependencies=[Depends(require_permission("view_scheme"))])
 def equipment_spec(node_id: str):
@@ -773,7 +861,8 @@ def update_equipment_params(req: EquipmentParamsRequest):
                     twin._engine.set_feed_override({key: val})
         _save_current_scheme()
         _safe_step()
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.post("/scenario/start", dependencies=[Depends(require_permission("run_simulation"))])
 def start_scenario(req: ScenarioRequest):
@@ -781,12 +870,14 @@ def start_scenario(req: ScenarioRequest):
         try:
             twin.create_simulation()
             twin._engine.set_scheme(scheme_store)
+            _restore_alarm_setpoints()
             twin.load_scenario(req.scenario_id)
             twin._engine.set_feed_override(inputs)
             twin.start()
             for _ in range(30):
                 _safe_step()
-            return _serialize_state()
+            _refresh_snapshot()
+            return _snapshot_state()
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
@@ -795,7 +886,8 @@ def reset_scenario():
     with lock:
         twin.reset()
         twin._engine.set_feed_override(inputs)
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.post("/scenario/step", dependencies=[Depends(require_permission("run_simulation"))])
 def step():
@@ -804,7 +896,8 @@ def step():
             twin.start()
         twin._engine.set_feed_override(inputs)
         _safe_step()
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.post("/failure/{equipment_id}", dependencies=[Depends(require_permission("manage_twin"))])
 def failure(equipment_id: str):
@@ -814,7 +907,8 @@ def failure(equipment_id: str):
         if twin._status.value != "RUNNING":
             twin.start()
         _safe_step()
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 
 @app.get("/history", dependencies=[Depends(require_permission("view_scheme"))])
@@ -848,11 +942,44 @@ def history_node(node_id: str, limit: int = 600):
 @app.get("/scheme", dependencies=[Depends(require_permission("view_scheme"))])
 def get_scheme():
     """Return the current P&ID scheme graph (nodes + edges)."""
-    with lock:
-        return scheme_store.model_dump(mode="json")
+    return _snapshot_value("scheme")
+
+def _sync_runtime_params() -> None:
+    """Mirror current operator slider values back into the scheme node params.
+
+    Slider actions (SET_VALUE on valves / heaters / setpoints) are applied to
+    the live equipment instances only; writing them back into
+    ``scheme_store`` here makes ``_save_current_scheme`` persist them, so a
+    saved scheme reopens with the same valve openings, fuel flows and level
+    setpoints the operator left them at.
+    """
+    equip = twin._engine._equipment
+    for node in scheme_store.nodes:
+        eq = equip.get(node.id)
+        if eq is None:
+            continue
+        try:
+            if node.type in ("valve", "angle_valve"):
+                node.params["initial_position"] = float(eq.target_position)
+            elif node.type == "gate_valve":
+                node.params["initial_open"] = 1.0 if eq.is_open else 0.0
+            elif node.type == "heater":
+                node.params["initial_fuel_flow"] = float(eq.target_fuel_flow)
+            elif node.type in ("tank", "separator", "separator_s1k"):
+                node.params["setpoint_level"] = float(eq.setpoint)
+            elif node.type == "pump":
+                node.params["initial_running"] = 1.0 if eq.state.running else 0.0
+            elif node.type == "elou":
+                node.params["initial_running"] = 1.0 if eq.state.running else 0.0
+            elif node.type == "column":
+                node.params["initial_reflux_ratio"] = float(eq.reflux_ratio)
+        except Exception:
+            logger.exception("Failed to sync runtime params for %s", node.id)
+
 
 def _save_current_scheme() -> None:
     """Persist the current scheme to its own JSON file (not the default)."""
+    _sync_runtime_params()
     save_scheme(scheme_store, SCHEME_DIR / f"{scheme_store.id}.json")
     _remember_scheme(scheme_store.id)
 
@@ -860,9 +987,8 @@ def _save_current_scheme() -> None:
 @app.get("/schemes", dependencies=[Depends(require_permission("view_scheme"))])
 def list_schemes():
     """List available P&ID scheme files (without the .json extension)."""
-    with lock:
-        return {"current": scheme_store.id,
-                "schemes": [p.stem for p in sorted(SCHEME_DIR.glob("*.json"))]}
+    return {"current": scheme_store.id,
+            "schemes": [p.stem for p in sorted(SCHEME_DIR.glob("*.json"))]}
 
 
 class SchemeLoadRequest(BaseModel):
@@ -878,6 +1004,7 @@ def _reconfigure(new_scheme: ProcessScheme) -> None:
     twin.create_simulation()
     twin._engine.set_scheme(new_scheme)
     twin._engine.set_feed_override(inputs)
+    _restore_alarm_setpoints()
     twin.load_scenario("NORMAL_OPERATION")
     twin.start()
     for _ in range(5):
@@ -896,7 +1023,8 @@ def load_scheme_endpoint(req: SchemeLoadRequest):
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"Invalid scheme: {e}")
         _reconfigure(new_scheme)
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 class SchemeCreateRequest(BaseModel):
     name: str
@@ -917,26 +1045,38 @@ def create_scheme_endpoint(req: SchemeCreateRequest):
         new_scheme = ProcessScheme(id=name, name=f"Схема «{name}»", nodes=[], edges=[])
         save_scheme(new_scheme, path)
         _reconfigure(new_scheme)
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 class SchemeRequest(BaseModel):
+    id: str = ""
+    name: str = ""
     nodes: list = []
     edges: list = []
 
 @app.post("/scheme", dependencies=[Depends(require_permission("manage_scheme"))])
 def post_scheme(req: SchemeRequest):
-    """Replace the P&ID scheme, persist it and reconfigure the engine."""
+    """Replace the P&ID scheme, persist it and reconfigure the engine.
+
+    The scheme keeps its own id/name (from the loaded scheme), so a save does
+    not silently rename it to "default" and overwrite default.json."""
     with lock:
         global scheme_store
         try:
-            new_scheme = ProcessScheme(nodes=[SchemeNode(**n) for n in req.nodes],
-                                       edges=[SchemeEdge(**e) for e in req.edges])
+            new_scheme = ProcessScheme(
+                id=req.id or scheme_store.id,
+                name=req.name or req.id or scheme_store.name,
+                nodes=[SchemeNode(**n) for n in req.nodes],
+                edges=[SchemeEdge(**e) for e in req.edges])
         except Exception as e:
             raise HTTPException(status_code=422, detail=f"Invalid scheme: {e}")
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", new_scheme.id):
+            raise HTTPException(status_code=422, detail="Invalid scheme id")
         scheme_store = new_scheme
         _save_current_scheme()
         _reconfigure(new_scheme)
-        return _serialize_state()
+        _refresh_snapshot()
+        return _snapshot_state()
 
 @app.get("/scheme/templates", dependencies=[Depends(require_permission("view_scheme"))])
 def scheme_templates():
@@ -968,8 +1108,11 @@ async def websocket_simulation(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            with lock:
-                payload = _serialize_state()
+            payload = _snapshot_state()
+            if payload is None:
+                with lock:
+                    _refresh_snapshot()
+                    payload = _snapshot_state()
             await websocket.send_json(payload)
             await __import__("asyncio").sleep(1.0)
     except WebSocketDisconnect:
@@ -1033,6 +1176,9 @@ def simulation_loop():
             if twin._status.value == "RUNNING":
                 for _ in range(steps):
                     _safe_step()
+            # Rebuild the read-path snapshot so polling endpoints / the
+            # WebSocket serve the fresh state without blocking on this step.
+            _refresh_snapshot()
         elapsed = time.monotonic() - t0
         # Симуляция отстаёт от реального времени (шаг дольше 1 реальной
         # секунды): долг не копим, иначе следующий тик стартует пачку
@@ -1044,4 +1190,8 @@ threading.Thread(target=simulation_loop, daemon=True).start()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api_server:app", host="127.0.0.1", port=8000, reload=False)
+    # Pass the app object (not an import string): the module is already loaded
+    # as `__main__`, and re-importing "api_server" would create a second
+    # DigitalTwin with its own simulation loop, doubling CPU load and GIL
+    # contention (each loop runs a ~2 s hydraulic solve per step).
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

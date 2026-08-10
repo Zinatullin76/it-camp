@@ -101,6 +101,7 @@ export interface ApiState {
   equipment: Record<string, NodeTelemetry>;
   active_failures: string[];
   alarms: AlarmData[];
+  alarm_history?: AlarmData[];
   errors: unknown[];
   controllers?: Record<string, ControllerSnap>;
 }
@@ -472,6 +473,7 @@ export interface ExpectedAction {
   seq: number;
   object_id: string;
   action_type: string;
+  attribute?: string;
   value: unknown;
   description: string;
   deadline_t: number | null;

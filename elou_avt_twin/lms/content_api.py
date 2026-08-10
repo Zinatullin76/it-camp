@@ -96,6 +96,24 @@ def _call(fn):
         raise HTTPException(status_code=422, detail=str(e))
 
 
+def _ensure_session_layer() -> None:
+    """Ensure the shared training session store/recorder exists.
+
+    IMPORTANT: must NOT `import api_server` here. When the server runs as
+    `python api_server.py` the module is loaded as `__main__`, so importing
+    `api_server` would execute the module a second time and create a *second*
+    DigitalTwin, a second simulation loop and a second session recorder.
+    The practice runs against that orphan twin while /state, SCADA and the
+    WebSocket keep reading the __main__ twin -- so scenario events never show
+    up and sessions finish with sim_end=0.0.
+    """
+    try:
+        from __main__ import ensure_session_layer as _fn
+    except ImportError:
+        from api_server import ensure_session_layer as _fn
+    _fn()
+
+
 # ---------------------------------------------------------------------------
 # Конструктор: сводка модуля, публикация, оборудование
 # ---------------------------------------------------------------------------
@@ -281,17 +299,22 @@ def submit_test(test_id: int, req: TestSubmit,
 @router.post("/modules/{module_id}/practice/start",
              dependencies=[Depends(require_permission("start_training"))])
 def start_practice(module_id: int, current_user: Principal = Depends(get_current_user)):
-    from api_server import ensure_session_layer
-    ensure_session_layer()
+    _ensure_session_layer()
     return _call(lambda: get_service().start_practice(
         module_id, current_user.username))
+
+
+@router.post("/practice/{session_id}/ready",
+             dependencies=[Depends(require_permission("start_training"))])
+def ready_practice(session_id: str, current_user: Principal = Depends(get_current_user)):
+    _ensure_session_layer()
+    return _call(lambda: get_service().ready_practice(session_id, current_user.username))
 
 
 @router.post("/practice/{session_id}/finish",
              dependencies=[Depends(require_permission("start_training"))])
 def finish_practice(session_id: str, current_user: Principal = Depends(get_current_user)):
-    from api_server import ensure_session_layer
-    ensure_session_layer()
+    _ensure_session_layer()
     return _call(lambda: get_service().finish_practice(session_id, current_user.username))
 
 

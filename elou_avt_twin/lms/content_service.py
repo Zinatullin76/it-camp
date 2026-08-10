@@ -11,6 +11,7 @@ Covers the full loop:
 from __future__ import annotations
 
 import time as _time
+import uuid
 from typing import Any, Dict, List, Optional
 
 from auth.store import AuthStore
@@ -48,6 +49,7 @@ class ContentService:
         self.store = content_store
         self.lms = lms_store
         self.auth = auth_store
+        self._ready_sessions: set[str] = set()
 
     # ------------------------------------------------------------------
     # Helpers
@@ -382,8 +384,9 @@ class ContentService:
 
         if recorder is not None and recorder.active:
             recorder.abort(reason="superseded by new practice session")
+        self._ready_sessions.clear()
         session_store = runtime.get_session_store()
-        session_id = f"PR-{int(_time.time())}"
+        session_id = f"PR-{uuid.uuid4().hex}"
 
         # DB-сценарий -> физическое ядро; иначе библиотечный сценарий.
         if scenario is not None:
@@ -400,10 +403,8 @@ class ContentService:
                 twin._engine.set_scheme(scheme)
             twin.load_scenario(task.get("scenario_id") or "NORMAL_OPERATION")
 
+        runtime.restore_alarm_setpoints()
         twin._engine.set_feed_override(runtime.get_inputs())
-        twin.start()
-        for _ in range(15):
-            twin.step(1.0)
 
         if recorder is not None:
             recorder.begin(
@@ -427,12 +428,35 @@ class ContentService:
             "sim_time": twin._simulation_time,
         }
 
+    def ready_practice(self, session_id: str, username: str) -> Dict[str, Any]:
+        """Start simulation time only after the operator's SCADA is rendered."""
+        recorder = runtime.get_session_recorder()
+        if recorder is None or recorder.session_id != session_id:
+            raise KeyError(f"Сессия '{session_id}' не является активной")
+        if session_id not in self._ready_sessions:
+            twin = runtime.get_twin()
+            twin.start()
+            store = runtime.get_session_store()
+            if store is not None:
+                store.start_session(session_id, sim_start=twin._simulation_time)
+            self._ready_sessions.add(session_id)
+            self.lms.add_log(
+                f"SCADA оператора {username} готова, таймер практики запущен",
+                category="practice",
+            )
+        return {
+            "session_id": session_id,
+            "status": "RUNNING",
+            "sim_time": runtime.get_twin()._simulation_time,
+        }
+
     def finish_practice(self, session_id: str, username: str) -> Dict[str, Any]:
         session_store = runtime.get_session_store()
         session = session_store.get_session(session_id) if session_store else None
         if session is None:
             raise KeyError(f"Сессия '{session_id}' не найдена")
         actions = session_store.get_actions(session_id)
+        tracked_errors = session_store.get_errors(session_id)
         task = None
         scenario = None
         # find task by scenario binding
@@ -464,13 +488,19 @@ class ContentService:
                       "feedback_good": [], "feedback_bad": ["Задание не найдено для оценки"]}
             module_id = 0
         else:
-            # Цель сценария (target_state) участвует в оценке вместе с заданием:
-            # условия обоих источников должны быть выполнены.
+            # Сценарий и задание могут задавать независимые целевые состояния.
+            # Объединяем их, не изменяя данные, хранящиеся в LMS. Одновременно
+            # передаём ошибки ErrorTracker в оценщик, чтобы штрафы учитывались
+            # единообразно во всех режимах прохождения.
             eval_task = dict(task)
-            sc_target = (scenario or {}).get("target_state") or []
-            if sc_target:
-                eval_task["target_state"] = list(task.get("target_state") or []) + list(sc_target)
-            result = assess.practice_criteria(eval_task, actions, telemetry, dur)
+            task_targets = list(task.get("target_state") or [])
+            scenario_targets = list((scenario or {}).get("target_state") or [])
+            if scenario_targets:
+                eval_task["target_state"] = task_targets + scenario_targets
+
+            result = assess.practice_criteria(
+                eval_task, actions, telemetry, dur, tracked_errors
+            )
             module_id = int(task["module_id"])
             good, bad = assess.practice_feedback(result)
             result["feedback_good"] = good
@@ -494,10 +524,13 @@ class ContentService:
             })
 
         score = result.get("score", 0.0)
-        errors_count = len(result.get("violations", [])) + sum(
-            1 for a in actions if a.get("source") == "operator_panel" and not a.get("accepted", 1))
+        errors_count = int(result.get("error_count", 0))
         critical_count = sum(1 for v in result.get("violations", [])
-                             if v.get("severity") == "critical")
+                             if str(v.get("severity", "")).upper() == "CRITICAL")
+        critical_count += sum(
+            1 for error in tracked_errors
+            if str(error.get("severity", "")).upper() == "CRITICAL"
+        )
         passed = score >= 70.0
 
         if module_id and user_id:
@@ -524,6 +557,7 @@ class ContentService:
         recorder = runtime.get_session_recorder()
         if recorder is not None and recorder.active and recorder.session_id == session_id:
             recorder.end(sim_end=runtime.get_twin()._simulation_time, score=score)
+        self._ready_sessions.discard(session_id)
 
         return self._assessment_view(aid)
 

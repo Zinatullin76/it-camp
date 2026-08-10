@@ -34,12 +34,26 @@ DEFAULT_CRITERIA = [
     {"key": "safety", "title": "Безопасность", "weight": 1.5},
 ]
 
+ERROR_PENALTY_POINTS = {
+    "LOW": 5.0,
+    "INFO": 5.0,
+    "MEDIUM": 10.0,
+    "WARNING": 10.0,
+    "HIGH": 15.0,
+    "CRITICAL": 30.0,
+}
+REJECTED_ACTION_PENALTY = 10.0
+
 
 def _num(v: Any, default: float = 0.0) -> float:
     try:
         return float(v)
     except (TypeError, ValueError):
         return default
+
+
+def _error_penalty(severity: Any) -> float:
+    return ERROR_PENALTY_POINTS.get(str(severity or "MEDIUM").upper(), 10.0)
 
 
 def _as_set(v: Any) -> set:
@@ -320,9 +334,22 @@ def sequence_score(expected: List[Dict[str, Any]], actions: List[Dict[str, Any]]
     exp = sorted(expected, key=lambda x: int(x.get("seq", 0)))
 
     def matches(e: Dict[str, Any], a: Dict[str, Any]) -> bool:
+        et = str(e.get("action_type", "")).upper()
+        at = str(a.get("action_type", "")).upper()
         if e.get("object_id") and a.get("equipment_id") != e.get("object_id"):
             return False
-        if e.get("action_type") and str(a.get("action_type", "")).upper() != str(e.get("action_type", "")).upper():
+        if et in ("INCREASE_PARAM", "DECREASE_PARAM"):
+            if at not in ("SET_VALUE", "SET_PARAM"):
+                return False
+            if a.get("old_value") is None or a.get("new_value") is None:
+                return False
+            try:
+                old = float(a["old_value"])
+                new = float(a["new_value"])
+            except (TypeError, ValueError):
+                return False
+            return new > old if et == "INCREASE_PARAM" else new < old
+        if et and at != et:
             return False
         ev = e.get("value")
         if ev is not None and a.get("new_value") is not None:
@@ -350,7 +377,8 @@ def sequence_score(expected: List[Dict[str, Any]], actions: List[Dict[str, Any]]
 
 
 def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
-                      telemetry: Dict[str, Any], duration_s: float) -> Dict[str, Dict[str, Any]]:
+                      telemetry: Dict[str, Any], duration_s: float,
+                      tracked_errors: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     criteria_conf = task.get("criteria") or DEFAULT_CRITERIA
 
     seq = sequence_score(task.get("expected_actions", []), actions)
@@ -365,14 +393,45 @@ def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
         time_s = max(0.0, 1.0 - overshoot)
 
     violations = violations_for(actions, task.get("restrictions", []), telemetry)
-    critical_violations = [v for v in violations if v.get("severity") == "critical"]
+    critical_violations = [
+        v for v in violations if str(v.get("severity", "")).upper() == "CRITICAL"
+    ]
     rejected = [a for a in actions if a.get("source") == "operator_panel" and not a.get("accepted", 1)]
-    errors_n = len(violations) + len(rejected)
-    errors = max(0.0, 1.0 - min(1.0, errors_n * 0.15))
+    tracked_errors = tracked_errors or []
+    penalty_breakdown: List[Dict[str, Any]] = []
+    for error in tracked_errors:
+        penalty_breakdown.append({
+            "source": "error_tracker",
+            "code": error.get("rule_error_type", ""),
+            "severity": str(error.get("severity", "MEDIUM")).upper(),
+            "points": _error_penalty(error.get("severity")),
+            "message": error.get("cause", ""),
+        })
+    for violation in violations:
+        penalty_breakdown.append({
+            "source": "scenario_rule",
+            "code": "RULE_VIOLATION",
+            "severity": str(violation.get("severity", "WARNING")).upper(),
+            "points": _error_penalty(violation.get("severity")),
+            "message": violation.get("rule_message", ""),
+        })
+    for action in rejected:
+        penalty_breakdown.append({
+            "source": "rejected_action",
+            "code": "REJECTED_ACTION",
+            "severity": "MEDIUM",
+            "points": REJECTED_ACTION_PENALTY,
+            "message": action.get("reject_reason", "Команда отклонена системой"),
+        })
+    error_penalty = min(100.0, sum(item["points"] for item in penalty_breakdown))
+    errors = max(0.0, 1.0 - error_penalty / 100.0)
 
     safety = 1.0
     for cv in critical_violations:
         safety -= 0.5
+    for error in tracked_errors:
+        if str(error.get("severity", "")).upper() == "CRITICAL":
+            safety -= 0.5
     safety = max(0.0, safety)
     for a in actions:
         if a.get("source") == "scenario" and str(a.get("action_type", "")).upper() in ("EMERGENCY_STOP",):
@@ -394,15 +453,38 @@ def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
         if not key:
             continue
         val = by_key.get(key, 0.0)
-        out[key] = {"title": c.get("title", key), "score": round(val * 100.0, 1), "weight": weight}
+        criterion = {"title": c.get("title", key), "score": round(val * 100.0, 1), "weight": weight}
+        if key == "errors":
+            criterion.update({
+                "error_count": len(penalty_breakdown),
+                "penalty": round(error_penalty, 1),
+                "breakdown": penalty_breakdown,
+            })
+        out[key] = criterion
         total_weight += weight
         weighted += val * weight
     score = (weighted / total_weight * 100.0) if total_weight else 0.0
 
-    return {"criteria": out, "score": round(score, 1), "violations": violations}
+    expected_count = len(task.get("expected_actions", []))
+    completed_expected = round(seq * expected_count)
+    # Expected actions are mandatory. Good timing and a stable initial state
+    # must not make an untouched scenario pass.
+    if expected_count:
+        score = min(score, seq * 100.0)
+
+    return {
+        "criteria": out,
+        "score": round(score, 1),
+        "violations": violations,
+        "tracked_errors": tracked_errors,
+        "error_count": len(penalty_breakdown),
+        "error_penalty": round(error_penalty, 1),
+        "expected_count": expected_count,
+        "completed_expected": completed_expected,
+    }
 
 
-def practice_feedback(result: Dict[str, Dict[str, Any]]) -> tuple[List[str], List[str]]:
+def practice_feedback(result: Dict[str, Any]) -> tuple[List[str], List[str]]:
     good, bad = [], []
     criteria = result.get("criteria", {})
     for key, val in criteria.items():
@@ -414,6 +496,19 @@ def practice_feedback(result: Dict[str, Dict[str, Any]]) -> tuple[List[str], Lis
     for v in result.get("violations", []):
         msg = v.get("rule_message") or f"Запрещённое действие {v.get('action_type')} на {v.get('object_id')}"
         bad.append(msg)
+    for error in result.get("tracked_errors", []):
+        if error.get("cause"):
+            bad.append(str(error["cause"]))
+    penalty = _num(result.get("error_penalty"))
+    if penalty > 0:
+        bad.append(
+            f"Учтено ошибок: {int(result.get('error_count', 0))}; "
+            f"штраф по критерию «Ошибочные действия»: −{penalty:.0f} баллов."
+        )
+    expected_count = int(result.get("expected_count", 0))
+    completed_expected = int(result.get("completed_expected", 0))
+    if completed_expected < expected_count:
+        bad.append(f"Обязательные действия: выполнено {completed_expected} из {expected_count}.")
     if not bad:
-        bad.append("Действия выполнены без нарушений требований безопасности.")
+        good.append("Действия выполнены без нарушений требований безопасности.")
     return good, bad

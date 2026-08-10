@@ -362,6 +362,10 @@ class LmsService:
         actions = self.sessions.get_actions(session_id)
         errors = self.sessions.get_errors(session_id)
         alarms = self.sessions.get_alarms(session_id)
+        sim_start = float(session.get("sim_start", 0.0) or 0.0)
+
+        def relative_time(value: Any) -> float:
+            return max(0.0, float(value or 0.0) - sim_start)
 
         steps: List[DebriefStep] = []
         for i, a in enumerate(actions, start=1):
@@ -373,7 +377,7 @@ class LmsService:
             if not a.get("accepted", 1):
                 detail += " · отклонено"
             steps.append(DebriefStep(
-                seq=i, kind="action", timestamp=float(a.get("sim_time", 0.0)),
+                seq=i, kind="action", timestamp=relative_time(a.get("sim_time")),
                 equipment_id=a.get("equipment_id", ""),
                 action_type=a.get("action_type", ""),
                 description=desc, status="rejected" if not a.get("accepted", 1) else "ok",
@@ -387,8 +391,16 @@ class LmsService:
                 severity=e.get("severity", ""),
                 expected_action=e.get("expected_action", ""),
                 cause=e.get("cause", ""), consequence=e.get("consequence", ""),
-                timestamp=float(e.get("sim_time", 0.0)),
+                timestamp=relative_time(e.get("sim_time")),
             ))
+
+        alarm_views: List[Dict[str, Any]] = []
+        for alarm in alarms:
+            item = dict(alarm)
+            for key in ("raised_at", "acked_at", "cleared_at"):
+                if item.get(key) is not None:
+                    item[key] = relative_time(item[key])
+            alarm_views.append(item)
 
         dur = 0.0
         if session.get("sim_start") is not None and session.get("sim_end") is not None:
@@ -422,10 +434,10 @@ class LmsService:
             performance_score=score,
             qualification=session.get("qualification", "") or self._qualification(score),
             duration_s=round(dur, 1),
-            sim_start=float(session.get("sim_start", 0.0)),
-            sim_end=float(session.get("sim_end", 0.0)),
+            sim_start=0.0,
+            sim_end=relative_time(session.get("sim_end")),
             steps=steps,
-            alarms=[dict(a) for a in alarms],
+            alarms=alarm_views,
             errors=error_views,
             recommendations=recommendations,
             competency_delta=competency_delta,

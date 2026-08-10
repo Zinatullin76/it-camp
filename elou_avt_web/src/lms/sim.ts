@@ -7,6 +7,7 @@ export interface Sim {
   connected: boolean;
   history: HistoryResponse | null;
   refresh: () => Promise<void>;
+  reset: () => void;
 }
 
 export function useSimulation(): Sim {
@@ -36,5 +37,11 @@ export function useSimulation(): Sim {
     }
   }, [applyTelemetry]);
 
-  return { live, connected, history, refresh };
+  const reset = useCallback(() => {
+    setLive(null);
+    setConnected(false);
+    setHistory(null);
+  }, []);
+
+  return { live, connected, history, refresh, reset };
 }

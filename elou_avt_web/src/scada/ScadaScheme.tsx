@@ -102,9 +102,10 @@ function toRfEdges(scheme: Scheme, edgeCfg: Record<string, EdgeCfg>): Edge[] {
 interface Props {
   live: ApiState | null;
   user?: string;
+  onReady?: () => void;
 }
 
-function ScadaInner({ live, user }: Props) {
+function ScadaInner({ live, user, onReady }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<EquipmentNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -228,6 +229,7 @@ function ScadaInner({ live, user }: Props) {
         setEdges(toRfEdges(scheme, {}));
         if (liveRef.current) applyTelemetry(liveRef.current);
         setTimeout(() => fitView({ padding: 0.15, duration: 350 }), 80);
+        requestAnimationFrame(() => requestAnimationFrame(() => onReady?.()));
       })
       .catch(() => notify('Не удалось загрузить SCADA-схему'));
     api.getHistory().then(setHistory).catch(() => undefined);
@@ -263,12 +265,21 @@ function ScadaInner({ live, user }: Props) {
   const onAction = useCallback(
     async (equipmentId: string, actionType: string, value?: number | null) => {
       try {
+        setErr('');
         applyTelemetry(await api.action(equipmentId, actionType, value));
+        const labels: Record<string, string> = {
+          TURN_ON: 'Оборудование запущено',
+          TURN_OFF: 'Оборудование остановлено',
+          EMERGENCY_STOP: 'Выполнен аварийный останов',
+          SET_VALUE: 'Значение применено',
+          SET_SPEED: 'Скорость изменена',
+        };
+        notify(labels[actionType] ?? 'Команда выполнена');
       } catch (e) {
         setErr(e instanceof Error ? e.message : String(e));
       }
     },
-    [applyTelemetry],
+    [applyTelemetry, notify],
   );
 
   const onUpdateSchemeParam = useCallback(
@@ -290,8 +301,8 @@ function ScadaInner({ live, user }: Props) {
     [setNodes],
   );
 
-  const selectedTelemetry = selectedId ? live?.equipment?.[selectedId] ?? null : null;
   const selectedNode = selectedId ? (nodes.find((n) => n.id === selectedId) ?? null) : null;
+  const selectedTelemetry = selectedNode?.data.telemetry ?? null;
 
   return (
     <div className="scada-scheme">

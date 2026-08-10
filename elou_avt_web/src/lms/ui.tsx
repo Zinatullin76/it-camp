@@ -15,8 +15,12 @@ export function fmtDateTime(ts?: number | null): string {
 }
 
 export function fmtClock(ts?: number | null): string {
-  if (!ts) return '—';
-  return new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  if (ts == null || !Number.isFinite(ts)) return '—';
+  const total = Math.max(0, Math.floor(ts));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, '0')).join(':');
 }
 
 /** Simulation time (seconds from scenario start) as `t = MM:SS` / `t = H:MM:SS`. */

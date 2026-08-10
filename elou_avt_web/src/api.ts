@@ -134,11 +134,11 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
 
-  saveScheme: (nodes: SchemeNodeData[], edges: SchemeEdgeData[]) =>
+  saveScheme: (nodes: SchemeNodeData[], edges: SchemeEdgeData[], id?: string, name?: string) =>
     json<ApiState>('/scheme', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodes, edges }),
+      body: JSON.stringify({ id, name, nodes, edges }),
     }),
 
   createScheme: (name: string) =>
@@ -412,6 +412,8 @@ export const api = {
     }),
   lmsPracticeStart: (moduleId: number) =>
     json<PracticeStartResult>(`/lms/modules/${moduleId}/practice/start`, { method: 'POST' }),
+  lmsPracticeReady: (sessionId: string) =>
+    json<{ session_id: string; status: string; sim_time: number }>(`/lms/practice/${sessionId}/ready`, { method: 'POST' }),
   lmsPracticeFinish: (sessionId: string) =>
     json<AssessmentView>(`/lms/practice/${sessionId}/finish`, { method: 'POST' }),
 

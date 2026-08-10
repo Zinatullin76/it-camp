@@ -218,9 +218,9 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       case 'pump':
         return (
           <div className="ctrl-group">
-            <button className="btn btn-start" onClick={() => onAction(nodeId, 'TURN_ON')}>▶ Запустить</button>
-            <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Остановить</button>
-            <button className="btn btn-danger" onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Эвакуационный стоп</button>
+            <button className="btn btn-start" disabled={telemetry.running === true} onClick={() => onAction(nodeId, 'TURN_ON')}>▶ Запустить</button>
+            <button className="btn btn-stop" disabled={telemetry.running !== true} onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Остановить</button>
+            <button className="btn btn-danger" disabled={telemetry.running !== true} onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Эвакуационный стоп</button>
             {canManageTwin && (
               <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Смоделировать отказ</button>
             )}
@@ -262,8 +262,8 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       case 'gate_valve':
         return (
           <div className="ctrl-group">
-            <button className="btn btn-start" onClick={() => onAction(nodeId, 'TURN_ON')}>⭯ Открыть</button>
-            <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>⏹ Закрыть</button>
+            <button className="btn btn-start" disabled={telemetry.params?.open === true} onClick={() => onAction(nodeId, 'TURN_ON')}>⭯ Открыть</button>
+            <button className="btn btn-stop" disabled={telemetry.params?.open !== true} onClick={() => onAction(nodeId, 'TURN_OFF')}>⏹ Закрыть</button>
             {canManageTwin && (
               <button className="btn btn-warn" onClick={() => onFailure(nodeId)}>⚠ Отказ (заклинила)</button>
             )}
@@ -284,7 +284,7 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
               />
             </label>
             <button className="btn btn-start" onClick={() => void onAction(nodeId, 'SET_VALUE', fuel)}>Применить расход</button>
-            <button className="btn btn-danger" onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Сброс топлива</button>
+            <button className="btn btn-danger" disabled={telemetry.running !== true} onClick={() => onAction(nodeId, 'EMERGENCY_STOP')}>⛔ Сброс топлива</button>
           </div>
         );
       case 'column':
@@ -336,8 +336,8 @@ export default function Inspector({ nodeId, nodeName, nodeType, schemeParams, te
       case 'elou':
         return (
           <div className="ctrl-group">
-            <button className="btn btn-start" onClick={() => onAction(nodeId, 'TURN_ON')}>▶ Включить</button>
-            <button className="btn btn-stop" onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Выключить</button>
+            <button className="btn btn-start" disabled={telemetry.running === true} onClick={() => onAction(nodeId, 'TURN_ON')}>▶ Включить</button>
+            <button className="btn btn-stop" disabled={telemetry.running !== true} onClick={() => onAction(nodeId, 'TURN_OFF')}>■ Выключить</button>
           </div>
         );
       case 'separator':
