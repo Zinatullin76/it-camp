@@ -101,10 +101,11 @@ function toRfEdges(scheme: Scheme, edgeCfg: Record<string, EdgeCfg>): Edge[] {
 interface Props {
   live: ApiState | null;
   user?: string;
+  sessionId?: string;
   onReady?: () => void;
 }
 
-function ScadaInner({ live, user, onReady }: Props) {
+function ScadaInner({ live, user, sessionId, onReady }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<EquipmentNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -129,10 +130,16 @@ function ScadaInner({ live, user, onReady }: Props) {
 
   const logScada = useCallback(
     (eventType: ScadaLogEventType, objectId: string, objectName: string, durationS?: number) => {
-      api.logScadaEvent({ event_type: eventType, object_id: objectId, object_name: objectName, duration_s: durationS })
+      api.logScadaEvent({
+        event_type: eventType,
+        object_id: objectId,
+        object_name: objectName,
+        duration_s: durationS,
+        session_id: sessionId,
+      })
         .catch(() => undefined);
     },
-    [],
+    [sessionId],
   );
 
   const closeInspector = useCallback(() => {

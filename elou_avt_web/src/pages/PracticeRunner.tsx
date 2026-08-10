@@ -203,6 +203,7 @@ export default function PracticeRunner() {
             key={sessionId}
             live={sim.live}
             user={user?.username}
+            sessionId={sessionId}
             onReady={() => void markReady()}
           />
         </div>

@@ -392,7 +392,7 @@ export const api = {
     json<AssessmentView>(`/lms/practice/${sessionId}/finish`, { method: 'POST' }),
 
   // ---- SCADA: журнал кликов и времени в окне ----
-  logScadaEvent: (ev: { event_type: ScadaLogEventType; object_id?: string; object_name?: string; duration_s?: number | null }) =>
+  logScadaEvent: (ev: { event_type: ScadaLogEventType; object_id?: string; object_name?: string; duration_s?: number | null; session_id?: string | null }) =>
     json<{ ok: boolean }>('/lms/scada-log', {
       method: 'POST',
       keepalive: true,
@@ -401,6 +401,7 @@ export const api = {
         object_id: ev.object_id ?? '',
         object_name: ev.object_name ?? '',
         duration_s: ev.duration_s ?? null,
+        session_id: ev.session_id ?? null,
       }),
     }),
 };

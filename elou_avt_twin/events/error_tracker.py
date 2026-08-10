@@ -92,10 +92,6 @@ class ErrorTracker:
                 )
             return None
 
-        violation = self._check_regulatory_violation(action, state)
-        if violation:
-            self._error_events.append(violation)
-            return violation
         return None
 
     @staticmethod
@@ -174,29 +170,6 @@ class ErrorTracker:
                 self._error_events.append(event)
                 new_events.append(event)
         return new_events
-
-    def _check_regulatory_violation(
-        self,
-        action: OperatorAction,
-        state: SimulationState,
-    ) -> Optional[ErrorEvent]:
-        col_pressure = state.pressure.get("column", 0.0)
-        if (
-            self._action_type(action) == "SET_VALUE"
-            and action.new_value is not None
-            and action.new_value > 0.8
-            and col_pressure > 200000.0
-        ):
-            return ErrorEvent(
-                error_type="REGULATORY_VIOLATION",
-                severity=Severity.HIGH,
-                timestamp=action.timestamp,
-                operator_action=f"Открытие {action.equipment_id} до {action.new_value:.0%}",
-                expected_action="Снизить давление перед открытием клапана",
-                cause="Попытка открыть клапан при недопустимо высоком давлении.",
-                consequence="Риск скачка давления и повреждения оборудования.",
-            )
-        return None
 
     def get_events(self) -> List[ErrorEvent]:
         return list(self._error_events)
