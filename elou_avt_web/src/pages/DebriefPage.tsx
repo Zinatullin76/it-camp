@@ -14,16 +14,6 @@ import {
   useAsync,
 } from '../lms/ui';
 
-const ERROR_LABELS: Record<string, string> = {
-  WRONG_SEQUENCE: 'Нарушение последовательности действий',
-  DELAYED_ACTION: 'Действие выполнено с задержкой',
-  WRONG_EQUIPMENT: 'Выбрано неправильное оборудование',
-  WRONG_ACTION_TYPE: 'Выбран неправильный тип действия',
-  WRONG_PARAMETER_VALUE: 'Задано неправильное значение параметра',
-  MISSED_ACTION: 'Пропущено обязательное действие',
-  REGULATORY_VIOLATION: 'Нарушение технологического регламента',
-};
-
 const SEVERITY_LABELS: Record<string, string> = {
   LOW: 'низкий',
   MEDIUM: 'средний',
@@ -135,11 +125,10 @@ export default function DebriefPage() {
                     </li>
                   ) : (
                   <li key={i} className="err-item">
-                    <div className="err-title">{ERROR_LABELS[e.rule_error_type] ?? e.rule_error_type}</div>
+                    <div className="err-title">{e.cause || 'Зафиксировано отклонение'}</div>
                     <div className="err-meta">
                       {e.severity && `Уровень: ${SEVERITY_LABELS[e.severity] ?? e.severity} · `}Время: {fmtClock(e.timestamp)}
                     </div>
-                    {e.cause && <div className="err-meta">Причина: {e.cause}</div>}
                     {e.consequence && <div className="err-meta">Последствие: {e.consequence}</div>}
                     {e.expected_action && <div className="err-meta">Ожидалось: {e.expected_action}</div>}
                   </li>

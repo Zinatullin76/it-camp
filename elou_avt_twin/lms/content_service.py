@@ -488,11 +488,16 @@ class ContentService:
         twin._engine.set_feed_override(runtime.get_inputs())
 
         if recorder is not None:
+            reference_actions = (
+                scenario.get("expected_actions", [])
+                if scenario is not None
+                else task.get("expected_actions", [])
+            )
             recorder.begin(
                 scenario_id=scenario_id,
                 operator_id=username,
                 scheme_version=scheme.id if scheme else "",
-                reference_actions=task.get("expected_actions", []),
+                reference_actions=reference_actions,
                 sim_start=twin._simulation_time,
                 session_id=session_id,
             )

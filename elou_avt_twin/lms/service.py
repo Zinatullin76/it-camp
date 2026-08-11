@@ -384,8 +384,16 @@ class LmsService:
                 detail=detail,
             ))
 
+        # События ErrorTracker остаются в БД для построения признаков и
+        # классификации причин. В пользовательский отчёт попадает только
+        # итоговая обратная связь автооценки.
+        visible_errors = [
+            e for e in errors
+            if e.get("rule_error_type") == "PRACTICE_FEEDBACK"
+        ]
+
         error_views: List[DebriefError] = []
-        for e in errors:
+        for e in visible_errors:
             error_views.append(DebriefError(
                 rule_error_type=e.get("rule_error_type", e.get("error_type", "")),
                 severity=e.get("severity", ""),
@@ -407,12 +415,6 @@ class LmsService:
             dur = max(0.0, float(session["sim_end"]) - float(session["sim_start"]))
 
         recommendations: List[str] = []
-        rule_errors = [e for e in error_views if e.rule_error_type != "PRACTICE_FEEDBACK"]
-        if rule_errors:
-            for e in rule_errors[:3]:
-                if e.cause:
-                    recommendations.append(f"Ошибка «{e.rule_error_type}»: {e.cause}. "
-                                           f"Ожидалось: {e.expected_action or '—'}.")
         score = float(session.get("performance_score") or 0.0)
         if score < 70:
             recommendations.append("Рекомендуется повторить практику и изучить теоретический материал "
@@ -615,7 +617,9 @@ class LmsService:
         error_counter: Dict[str, int] = {}
         for s in sessions:
             for e in self.sessions.get_errors(s["id"]):
-                key = e.get("rule_error_type", e.get("error_type", "UNKNOWN"))
+                if e.get("rule_error_type") != "PRACTICE_FEEDBACK":
+                    continue
+                key = str(e.get("cause") or "Замечание по итогам практики")
                 error_counter[key] = error_counter.get(key, 0) + 1
         frequent_errors = [{"rule_error_type": k, "count": v}
                            for k, v in sorted(error_counter.items(), key=lambda x: -x[1])][:12]
@@ -669,7 +673,10 @@ class LmsService:
         out: List[MonitorOperatorView] = []
         for s in running:
             actions = self.sessions.get_actions(s["id"])
-            errors = self.sessions.get_errors(s["id"])
+            feedback = [
+                e for e in self.sessions.get_errors(s["id"])
+                if e.get("rule_error_type") == "PRACTICE_FEEDBACK"
+            ]
             alarms = self.sessions.get_alarms(s["id"])
             last_action = actions[-1] if actions else None
             out.append(MonitorOperatorView(
@@ -680,7 +687,7 @@ class LmsService:
                 status=s.get("status", ""), sim_time=float(s.get("sim_start", 0.0)),
                 performance_score=s.get("performance_score"),
                 alarms=[dict(a) for a in alarms[-20:]],
-                actions_count=len(actions), errors_count=len(errors),
+                actions_count=len(actions), errors_count=len(feedback),
                 last_action=last_action, is_system=s.get("operator_id") == "system",
             ))
         return out

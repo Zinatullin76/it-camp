@@ -58,11 +58,9 @@ def to_engine_event(e: Dict[str, Any]) -> ScenarioEvent:
 def to_engine_scenario(defn: Dict[str, Any], reference_actions: Optional[List[Dict[str, Any]]] = None) -> Scenario:
     events = [to_engine_event(e) for e in defn.get("events", [])]
     duration_s = max(1, int(defn.get("duration_min", 10))) * 60.0
-    # Действия без явно заданного срока (deadline_t) не регистрируются в
-    # ErrorTracker (digital_twin._register_reference_actions пропускает их):
-    # контроль по сроку применяется только когда инструктор задал время.
-    # Раньше здесь стоял фолбэк «seq * 5 с», из-за которого невыполненное
-    # действие почти всегда помечалось как просроченное.
+    # Действия без явно заданного срока регистрируются для проверки порядка,
+    # оборудования, типа и направления воздействия. Проверки задержки и
+    # пропуска по времени применяются только при наличии deadline_t.
     ref = reference_actions if reference_actions is not None else [
         {
             "t": a.get("deadline_t"),

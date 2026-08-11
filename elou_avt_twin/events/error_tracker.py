@@ -11,7 +11,7 @@ class ExpectedAction:
     equipment_id: str
     action_type: str
     value: Optional[float]
-    deadline: float
+    deadline: Optional[float]
     description: str
     consequence: str
     attribute: str = ""
@@ -97,7 +97,7 @@ class ErrorTracker:
                 )
 
             current.completed = True
-            if action.timestamp > current.deadline:
+            if current.deadline is not None and action.timestamp > current.deadline:
                 delay = action.timestamp - current.deadline
                 return self._append_error(
                     "DELAYED_ACTION",
@@ -214,7 +214,7 @@ class ErrorTracker:
         for expected in self._expected_queue:
             if expected.completed or expected.triggered:
                 continue
-            if current_time > expected.deadline:
+            if expected.deadline is not None and current_time > expected.deadline:
                 expected.triggered = True
                 event = ErrorEvent(
                     error_type="MISSED_ACTION",
