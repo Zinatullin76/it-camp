@@ -425,6 +425,14 @@ class LmsService:
 
         competency_delta = self._debrief_competency_delta(session_id, username, score)
 
+        # Замечания автооценки: почему не набраны максимальные баллы (не
+        # достигнута цель, нарушены ожидаемые действия и т.п.).
+        remarks: List[str] = []
+        if self.content is not None:
+            assessment = self.content.get_assessment_by_session(session_id)
+            if assessment:
+                remarks = list(assessment.get("feedback_bad") or [])
+
         return DebriefView(
             session_id=session_id,
             task_title=self._task_title(session.get("scenario_id", "")),
@@ -439,6 +447,7 @@ class LmsService:
             steps=steps,
             alarms=alarm_views,
             errors=error_views,
+            remarks=remarks,
             recommendations=recommendations,
             competency_delta=competency_delta,
         )

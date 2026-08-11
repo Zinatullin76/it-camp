@@ -271,6 +271,7 @@ class DebriefView(BaseModel):
     steps: List[DebriefStep] = Field(default_factory=list)
     alarms: List[Dict[str, Any]] = Field(default_factory=list)
     errors: List[DebriefError] = Field(default_factory=list)
+    remarks: List[str] = Field(default_factory=list)
     recommendations: List[str] = Field(default_factory=list)
     competency_delta: List[Dict[str, Any]] = Field(default_factory=list)
 

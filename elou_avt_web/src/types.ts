@@ -302,6 +302,7 @@ export interface LmsDebrief {
   steps: DebriefStep[];
   alarms: Record<string, unknown>[];
   errors: DebriefError[];
+  remarks: string[];
   recommendations: string[];
   competency_delta: CompetencyDelta[];
 }

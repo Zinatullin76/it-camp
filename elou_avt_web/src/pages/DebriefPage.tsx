@@ -103,20 +103,29 @@ export default function DebriefPage() {
                       <div className="step-detail">{s.detail}</div>
                     </div>
                     <span className="step-time">{fmtClock(s.timestamp)}</span>
-                    <span className="step-status">
-                      <Chip tone={s.status === 'ok' ? 'ok' : 'bad'}>
-                        {s.status === 'ok' ? 'принято' : 'отклонено'}
-                      </Chip>
-                    </span>
+                    {s.status === 'rejected' && (
+                      <span className="step-status">
+                        <Chip tone="bad">отклонено</Chip>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
           </Card>
 
-          <Card title="Ошибки и замечания" subtitle={`${d.errors.length}`}>
+          <Card title="Ошибки и замечания" subtitle={`${d.remarks.length + d.errors.length}`}>
+            {d.remarks.length > 0 && (
+              <ul className="err-list">
+                {d.remarks.map((r, i) => (
+                  <li key={i} className="err-item remark-item">
+                    <div className="err-title remark-title">{r}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
             {d.errors.length === 0 ? (
-              <Empty text="Ошибок не зафиксировано — отличная работа" />
+              d.remarks.length > 0 ? null : <Empty text="Ошибок не зафиксировано — отличная работа" />
             ) : (
               <ul className="err-list">
                 {d.errors.map((e, i) => (

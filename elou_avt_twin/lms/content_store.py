@@ -754,6 +754,14 @@ class LmsContentStore:
             ).fetchone()
         return self._decode_assessment(dict(row)) if row else None
 
+    def get_assessment_by_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM lms_assessments WHERE session_id = ? ORDER BY id DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+        return self._decode_assessment(dict(row)) if row else None
+
     def list_assessments(self, user_id: Optional[int] = None,
                          module_id: Optional[int] = None, limit: int = 200) -> List[Dict[str, Any]]:
         sql = "SELECT * FROM lms_assessments"
