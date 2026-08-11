@@ -1,0 +1,69 @@
+{
+  "model_type": "OneVsRestClassifier(LogisticRegression)",
+  "feature_names": [
+    "session_duration_sim_s",
+    "session_duration_wall_s",
+    "time_to_first_action_s",
+    "action_max_idle_s",
+    "action_count",
+    "action_unique_equipment_count",
+    "action_correct_ratio",
+    "action_extra_count",
+    "action_repeated_count",
+    "expected_action_count",
+    "expected_completed_count",
+    "expected_completion_ratio",
+    "error_count",
+    "error_unique_type_count",
+    "error_first_at_s",
+    "error_last_at_s",
+    "alarm_count",
+    "alarm_active_at_end_count",
+    "alarm_mean_relevant_action_delay_s",
+    "alarm_max_relevant_action_delay_s",
+    "action_mean_interval_s",
+    "action_max_interval_s",
+    "error_mean_interval_s",
+    "error_max_interval_s",
+    "equipment_state_observed_action_ratio",
+    "equipment_state_changed_action_ratio",
+    "error_wrong_sequence_count",
+    "error_delayed_action_count",
+    "error_wrong_equipment_count",
+    "error_wrong_action_type_count",
+    "error_wrong_parameter_value_count",
+    "error_missed_action_count",
+    "alarm_severity_high_count",
+    "alarm_severity_critical_count"
+  ],
+  "target_columns": [
+    "target_1",
+    "target_2",
+    "target_3",
+    "target_4",
+    "target_5"
+  ],
+  "class_names": {
+    "target_1": "Потеря ориентации в установке",
+    "target_2": "Долгое время реакции",
+    "target_3": "Непонимание физических процессов",
+    "target_4": "Незнание алгоритма или регламента",
+    "target_5": "Случайная ошибка"
+  },
+  "thresholds": {
+    "target_1": 0.19,
+    "target_2": 0.05,
+    "target_3": 0.27,
+    "target_4": 0.12000000000000001,
+    "target_5": 0.7300000000000002
+  },
+  "hyperparameters": {
+    "validation_size": 0.2,
+    "random_state": 42,
+    "C": 0.1,
+    "penalty": "l2",
+    "solver": "liblinear",
+    "max_iter": 2000,
+    "class_weight": null
+  }
+}

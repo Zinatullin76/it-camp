@@ -1,0 +1,136 @@
+{
+  "validation": {
+    "split": "validation",
+    "rows": 400,
+    "micro_f1": 0.9896373056994818,
+    "macro_f1": 0.9883495145631068,
+    "samples_f1": 0.9898095238095237,
+    "exact_match_ratio": 0.97,
+    "hamming_loss": 0.006,
+    "micro_pr_auc": 0.9990907106420441,
+    "macro_pr_auc": 0.9959104027548381,
+    "classification_report": {
+      "Потеря ориентации в установке": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 123.0
+      },
+      "Долгое время реакции": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 122.0
+      },
+      "Непонимание физических процессов": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 106.0
+      },
+      "Незнание алгоритма или регламента": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 125.0
+      },
+      "Случайная ошибка": {
+        "precision": 0.97,
+        "recall": 0.9150943396226415,
+        "f1-score": 0.941747572815534,
+        "support": 106.0
+      },
+      "micro avg": {
+        "precision": 0.9947916666666666,
+        "recall": 0.9845360824742269,
+        "f1-score": 0.9896373056994818,
+        "support": 582.0
+      },
+      "macro avg": {
+        "precision": 0.994,
+        "recall": 0.9830188679245284,
+        "f1-score": 0.9883495145631068,
+        "support": 582.0
+      },
+      "weighted avg": {
+        "precision": 0.9945360824742266,
+        "recall": 0.9845360824742269,
+        "f1-score": 0.9893904514062656,
+        "support": 582.0
+      },
+      "samples avg": {
+        "precision": 0.9947916666666667,
+        "recall": 0.9883333333333334,
+        "f1-score": 0.9898095238095237,
+        "support": 582.0
+      }
+    }
+  },
+  "external_test": {
+    "split": "external_test",
+    "rows": 2000,
+    "micro_f1": 0.9793489674483724,
+    "macro_f1": 0.9785107261260773,
+    "samples_f1": 0.9803785714285713,
+    "exact_match_ratio": 0.9415,
+    "hamming_loss": 0.0118,
+    "micro_pr_auc": 0.9990124633863561,
+    "macro_pr_auc": 0.9961030003118865,
+    "classification_report": {
+      "Потеря ориентации в установке": {
+        "precision": 0.9925650557620818,
+        "recall": 1.0,
+        "f1-score": 0.996268656716418,
+        "support": 534.0
+      },
+      "Долгое время реакции": {
+        "precision": 0.9984251968503937,
+        "recall": 1.0,
+        "f1-score": 0.9992119779353822,
+        "support": 634.0
+      },
+      "Непонимание физических процессов": {
+        "precision": 0.9981549815498155,
+        "recall": 1.0,
+        "f1-score": 0.9990766389658357,
+        "support": 541.0
+      },
+      "Незнание алгоритма или регламента": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 596.0
+      },
+      "Случайная ошибка": {
+        "precision": 0.9801192842942346,
+        "recall": 0.8285714285714286,
+        "f1-score": 0.8979963570127505,
+        "support": 595.0
+      },
+      "micro avg": {
+        "precision": 0.994314143567875,
+        "recall": 0.9648275862068966,
+        "f1-score": 0.9793489674483724,
+        "support": 2900.0
+      },
+      "macro avg": {
+        "precision": 0.9938529036913051,
+        "recall": 0.9657142857142856,
+        "f1-score": 0.9785107261260773,
+        "support": 2900.0
+      },
+      "weighted avg": {
+        "precision": 0.9938634943978004,
+        "recall": 0.9648275862068966,
+        "f1-score": 0.9780400520002426,
+        "support": 2900.0
+      },
+      "samples avg": {
+        "precision": 0.993375,
+        "recall": 0.97475,
+        "f1-score": 0.9803785714285713,
+        "support": 2900.0
+      }
+    }
+  }
+}

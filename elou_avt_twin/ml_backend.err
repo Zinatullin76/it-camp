@@ -1,0 +1,391 @@
+2026-08-11 20:43:59,680 [INFO] elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-11 20:43:59,680 INFO elou_avt.digital_twin: DigitalTwin initialized. Config: dt=1.00, seed=42
+2026-08-11 20:43:59,724 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:43:59,724 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:43:59,727 [INFO] elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-11 20:43:59,727 INFO elou_avt.digital_twin: Scenario loaded: NORMAL_OPERATION — Нормальная работа (Rigorous)
+2026-08-11 20:43:59,728 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:43:59,728 INFO elou_avt.digital_twin: Simulation started.
+2026-08-11 20:43:59,749 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:43:59,749 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:43:59,776 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:43:59,776 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:43:59,779 [INFO] elou_avt.api: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:43:59,779 INFO elou_avt.api: Restored 7 saved alarm setpoint(s).
+INFO:     Started server process [21464]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-08-11 20:44:39,428 [INFO] elou_avt.lms: LmsStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:39,428 INFO elou_avt.lms: LmsStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:39,667 [INFO] elou_avt.auth: AuthStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:39,667 INFO elou_avt.auth: AuthStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:40,212 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:40,212 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:40,839 [INFO] elou_avt.lms_content: LmsContentStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:40,839 INFO elou_avt.lms_content: LmsContentStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:42,609 [INFO] elou_avt.lms_content: LmsContentStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:42,609 INFO elou_avt.lms_content: LmsContentStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:42,909 [INFO] elou_avt.lms: LmsStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:42,909 INFO elou_avt.lms: LmsStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:43,100 [INFO] elou_avt.auth: AuthStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:43,100 INFO elou_avt.auth: AuthStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+INFO:     127.0.0.1:50291 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ2MjcyOSwiZXhwIjoxNzg2NDkxNTI5fQ.15197d2ee078f1e20e4135c8e1e73eb70bd7969c1bdcba7a80aa01eb890f273f" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58322 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ2MjcyOSwiZXhwIjoxNzg2NDkxNTI5fQ.15197d2ee078f1e20e4135c8e1e73eb70bd7969c1bdcba7a80aa01eb890f273f" [accepted]
+INFO:     connection open
+2026-08-11 20:44:46,126 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:46,126 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:46,159 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:44:46,159 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:44:46,169 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:44:46,169 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:44:46,169 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:44:46,169 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:44:46,172 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:46,172 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:44:46,172 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:44:46,178 [INFO] elou_avt.session_store: Session started: PR-3e6e84477b384edba213d0ed8be3d10c scenario=LMS-1 operator=operator
+2026-08-11 20:44:46,178 INFO elou_avt.session_store: Session started: PR-3e6e84477b384edba213d0ed8be3d10c scenario=LMS-1 operator=operator
+2026-08-11 20:44:46,605 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:44:46,605 INFO elou_avt.digital_twin: Simulation started.
+INFO:     127.0.0.1:62288 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ2MjcyOSwiZXhwIjoxNzg2NDkxNTI5fQ.15197d2ee078f1e20e4135c8e1e73eb70bd7969c1bdcba7a80aa01eb890f273f" [accepted]
+INFO:     connection open
+2026-08-11 20:44:48,476 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:44:48,476 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:44:55,136 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:44:55,136 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:44:55,137 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:44:55,137 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:45:01,933 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_35 = None
+2026-08-11 20:45:01,933 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_35 = None
+2026-08-11 20:45:01,934 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_35 = None
+2026-08-11 20:45:01,934 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_35 = None
+2026-08-11 20:45:07,215 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:45:07,215 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:45:07,218 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:45:07,218 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:45:11,220 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_1 = None
+2026-08-11 20:45:11,220 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_1 = None
+2026-08-11 20:45:11,221 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_1 = None
+2026-08-11 20:45:11,221 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_1 = None
+2026-08-11 20:45:16,247 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on gat_3 = None
+2026-08-11 20:45:16,247 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on gat_3 = None
+2026-08-11 20:45:16,249 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on gat_3 = None
+2026-08-11 20:45:16,249 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on gat_3 = None
+2026-08-11 20:45:25,016 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:45:25,016 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:45:25,016 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:45:25,016 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:45:32,957 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:45:32,957 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:45:32,960 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:45:32,960 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:45:39,276 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on gat_60 = None
+2026-08-11 20:45:39,276 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on gat_60 = None
+2026-08-11 20:45:39,277 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on gat_60 = None
+2026-08-11 20:45:39,277 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on gat_60 = None
+2026-08-11 20:45:43,303 [WARNING] elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:45:43,303 WARNING elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:45:43,333 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+2026-08-11 20:45:43,333 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator SimpleImputer from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator LogisticRegression from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator LabelBinarizer from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator OneVsRestClassifier from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\sklearn\base.py:525: InconsistentVersionWarning: Trying to unpickle estimator Pipeline from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+2026-08-11 20:46:12,730 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:46:12,730 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:60233 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ2MjcyOSwiZXhwIjoxNzg2NDkxNTI5fQ.15197d2ee078f1e20e4135c8e1e73eb70bd7969c1bdcba7a80aa01eb890f273f" [accepted]
+INFO:     connection open
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\applications.py", line 1163, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\applications.py", line 90, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 2734, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 1780, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 2789, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 1800, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 1279, in handle
+    await app(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 158, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 144, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 706, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\fastapi\routing.py", line 354, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\starlette\concurrency.py", line 34, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\anyio\to_thread.py", line 65, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2641, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 1033, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\lms\api.py", line 346, in monitoring
+    return get_service().monitoring()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\lms\service.py", line 734, in monitoring
+    errors = self.sessions.get_errors(s["id"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\persistence\session_store.py", line 549, in get_errors
+    rows = self._conn.execute(
+           ^^^^^^^^^^^^^^^^^^^
+sqlite3.InterfaceError: bad parameter or other API misuse
+INFO:     127.0.0.1:56787 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63754 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:47:44,057 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:47:44,057 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:47:44,143 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:47:44,143 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:47:44,199 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:47:44,199 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:47:44,476 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:47:44,476 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+INFO:     127.0.0.1:58042 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:47:44,650 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:47:44,660 [INFO] elou_avt.session_store: Session started: PR-265d3ad5a1b84543910636efcefc6cf5 scenario=LMS-1 operator=operator
+2026-08-11 20:47:44,660 INFO elou_avt.session_store: Session started: PR-265d3ad5a1b84543910636efcefc6cf5 scenario=LMS-1 operator=operator
+2026-08-11 20:47:45,094 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:47:45,094 INFO elou_avt.digital_twin: Simulation started.
+2026-08-11 20:47:46,872 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:47:46,872 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:47:53,672 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:47:53,672 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:47:53,672 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:47:53,672 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:48:00,673 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:48:00,673 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:48:00,675 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:48:00,675 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:48:09,063 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 0.45
+2026-08-11 20:48:09,063 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 0.45
+2026-08-11 20:48:09,064 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 0.45
+2026-08-11 20:48:09,064 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 0.45
+2026-08-11 20:48:17,905 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:48:17,905 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:48:17,906 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:48:17,906 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 1.0
+2026-08-11 20:48:21,338 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:48:21,338 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:60719 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:48:40,402 [WARNING] elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:48:40,402 WARNING elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:48:40,720 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+2026-08-11 20:48:40,720 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+INFO:     127.0.0.1:49905 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49900 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:56992 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:50:15,446 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:50:15,446 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:50:15,453 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:50:15,453 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:50:15,456 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:50:15,456 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:50:15,491 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:50:15,491 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:50:15,496 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:50:15,498 [INFO] elou_avt.session_store: Session started: PR-41935c48c08346f5a7ac84cf4d21d79b scenario=LMS-1 operator=operator
+2026-08-11 20:50:15,498 INFO elou_avt.session_store: Session started: PR-41935c48c08346f5a7ac84cf4d21d79b scenario=LMS-1 operator=operator
+2026-08-11 20:50:15,980 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:50:15,980 INFO elou_avt.digital_twin: Simulation started.
+2026-08-11 20:50:17,727 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:50:17,727 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:50:24,947 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:50:24,947 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:50:24,948 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:50:24,948 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:51:21,019 [WARNING] elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:51:21,019 WARNING elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:51:21,020 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+2026-08-11 20:51:21,020 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+2026-08-11 20:51:41,624 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:51:41,624 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:56029 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55710 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58486 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:51:57,016 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:51:57,016 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:51:57,055 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:51:57,055 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:51:57,055 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:51:57,055 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:51:57,078 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:51:57,078 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:51:57,079 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:51:57,081 [INFO] elou_avt.session_store: Session started: PR-1075d105427f41bfb387966d5f471672 scenario=LMS-1 operator=operator
+2026-08-11 20:51:57,081 INFO elou_avt.session_store: Session started: PR-1075d105427f41bfb387966d5f471672 scenario=LMS-1 operator=operator
+2026-08-11 20:51:57,428 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:51:57,428 INFO elou_avt.digital_twin: Simulation started.
+INFO:     127.0.0.1:54360 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:51:59,670 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:51:59,670 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:52:06,182 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:52:06,182 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:52:06,183 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:52:06,183 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:52:13,186 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:52:13,186 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:52:13,186 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:52:13,186 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:52:23,094 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:52:23,094 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:51647 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:61643 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58512 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:52:44,194 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:52:44,194 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:52:44,232 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:52:44,232 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:52:44,233 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:52:44,233 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:52:44,253 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:52:44,253 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:52:44,254 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:52:44,255 [INFO] elou_avt.session_store: Session started: PR-77bac55a4c0f432db8f0f32c0faf5614 scenario=LMS-1 operator=operator
+2026-08-11 20:52:44,255 INFO elou_avt.session_store: Session started: PR-77bac55a4c0f432db8f0f32c0faf5614 scenario=LMS-1 operator=operator
+2026-08-11 20:52:44,522 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:52:44,522 INFO elou_avt.digital_twin: Simulation started.
+INFO:     127.0.0.1:53256 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:52:46,835 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:52:46,835 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:52:54,639 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:52:54,639 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:52:54,640 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:52:54,640 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:53:00,242 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:00,242 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:00,244 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:00,244 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:04,576 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:53:04,576 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:53:04,579 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:53:04,579 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:53:08,729 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 0.35
+2026-08-11 20:53:08,729 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 0.35
+2026-08-11 20:53:08,731 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 0.35
+2026-08-11 20:53:08,731 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 0.35
+2026-08-11 20:53:12,789 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:12,789 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:12,790 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:12,790 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:18,332 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:53:18,332 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:52659 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64000 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:53:39,661 [INFO] elou_avt.digital_twin: Simulation created.
+2026-08-11 20:53:39,661 INFO elou_avt.digital_twin: Simulation created.
+2026-08-11 20:53:39,696 [INFO] elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:53:39,696 INFO elou_avt.engine: Scheme updated: 196 nodes, 241 edges.
+2026-08-11 20:53:39,700 [INFO] elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:53:39,700 INFO elou_avt.digital_twin: Scenario object loaded: LMS-1 — На волоске от срыва режима
+2026-08-11 20:53:39,726 [INFO] elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:53:39,726 INFO elou_avt.session_store: SessionStore opened: C:\Users\striz\Desktop\Работа\it-camp\elou_avt_twin\sessions.db
+2026-08-11 20:53:39,728 INFO lms.runtime: Restored 7 saved alarm setpoint(s).
+2026-08-11 20:53:39,729 [INFO] elou_avt.session_store: Session started: PR-be84ec941a814138891f3c4d1a94e5df scenario=LMS-1 operator=operator
+2026-08-11 20:53:39,729 INFO elou_avt.session_store: Session started: PR-be84ec941a814138891f3c4d1a94e5df scenario=LMS-1 operator=operator
+2026-08-11 20:53:39,995 [INFO] elou_avt.digital_twin: Simulation started.
+2026-08-11 20:53:39,995 INFO elou_avt.digital_twin: Simulation started.
+INFO:     127.0.0.1:53828 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:53:42,196 [INFO] elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:53:42,196 INFO elou_avt.engine: Scenario event dispatched: SET_PARAM on val_45
+2026-08-11 20:53:48,984 [WARNING] elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:53:48,984 WARNING elou_avt.engine: Failure injected: val_45 -> MECHANICAL_FAILURE
+2026-08-11 20:53:48,985 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:53:48,985 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on val_45
+2026-08-11 20:53:53,226 [INFO] elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:53,226 INFO elou_avt.digital_twin: Action queued: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:53,226 [INFO] elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:53,226 INFO elou_avt.engine: Operator action: ActionType.TURN_OFF on pum_34 = None
+2026-08-11 20:53:59,772 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:59,772 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:59,775 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:53:59,775 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_44 = 1.0
+2026-08-11 20:54:04,144 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:54:04,144 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:54:04,146 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:54:04,146 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_46 = 1.0
+2026-08-11 20:54:11,153 [INFO] elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 0.55
+2026-08-11 20:54:11,153 INFO elou_avt.digital_twin: Action queued: ActionType.SET_VALUE on val_5 = 0.55
+2026-08-11 20:54:11,155 [INFO] elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 0.55
+2026-08-11 20:54:11,155 INFO elou_avt.engine: Operator action: ActionType.SET_VALUE on val_5 = 0.55
+2026-08-11 20:54:19,615 [WARNING] elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+2026-08-11 20:54:19,615 WARNING elou_avt.ml.session_cause: Sklearn artifact is version-incompatible; using portable linear inference
+INFO:     127.0.0.1:52324 - "WebSocket /ws/simulation?token=eyJzdWIiOiJvcGVyYXRvciIsImlhdCI6MTc4NjQ3MDQ1NiwiZXhwIjoxNzg2NDk5MjU2fQ.e4f01df18369a2a1770768491af0fb6333c1bc499b13d901aed7c96f6f84aa1d" [accepted]
+INFO:     connection open
+2026-08-11 20:54:38,244 [WARNING] elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:54:38,244 WARNING elou_avt.engine: Failure injected: pum_35 -> MECHANICAL_FAILURE
+2026-08-11 20:54:38,272 [INFO] elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
+2026-08-11 20:54:38,272 INFO elou_avt.engine: Scenario event dispatched: INJECT_FAILURE on pum_35
