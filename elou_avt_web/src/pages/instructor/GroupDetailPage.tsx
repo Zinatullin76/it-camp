@@ -25,7 +25,7 @@ export default function GroupDetailPage() {
   const navigate = useNavigate();
   const id = Number(groupId);
   const { data, error, loading, reload } = useAsync<LmsGroupView>(() => api.lmsGroup(id), [id]);
-  const users = useAsync<AuthUser[]>(() => api.listUsers(), []);
+  const users = useAsync<AuthUser[]>(() => api.lmsGroupCandidates(), []);
   const [editing, setEditing] = useState(false);
   const [sel, setSel] = useState<number[]>([]);
 

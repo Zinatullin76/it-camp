@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { useTheme } from '../lms/theme';
 
 const DEMO: { username: string; label: string }[] = [
   { username: 'operator', label: 'Консольный оператор' },
-  { username: 'field_operator', label: 'Полевой оператор' },
   { username: 'instructor', label: 'Инструктор' },
   { username: 'admin', label: 'Администратор' },
 ];
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const { toggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: { pathname?: string } } };
   const [username, setUsername] = useState('');
@@ -42,13 +39,9 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <div className="row-between">
-          <span />
-          <button type="button" className="theme-toggle" onClick={toggle}>◐ Тема</button>
-        </div>
-        <div className="login-logo">Э</div>
-        <div className="login-title">ЭЛОУ-АВТ Тренажер</div>
-        <div className="login-sub">Компьютерный тренажерный комплекс · вход в систему</div>
+        <div className="login-logo">О</div>
+        <div className="login-title">ОРБИТА</div>
+        <div className="login-sub">Образовательный портал · вход в систему</div>
         {error && <div className="login-error">{error}</div>}
         <div className="form-field">
           <label className="form-label" htmlFor="username">Логин</label>

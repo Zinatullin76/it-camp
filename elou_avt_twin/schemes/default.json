@@ -234,19 +234,11 @@
     },
     {
       "id": "hea_49-sep_48-1786308001836",
-      "kind": "gas_haz",
+      "kind": "other",
       "source": "hea_49",
       "source_port": "hot_out",
       "target": "sep_48",
       "target_port": "in"
-    },
-    {
-      "id": "col_32-hea_49-1786308010032",
-      "kind": "gas_haz",
-      "source": "col_32",
-      "source_port": "distillate",
-      "target": "hea_49",
-      "target_port": "hot_in"
     },
     {
       "id": "sep_48-pum_50-1786308178394",
@@ -255,14 +247,6 @@
       "source_port": "out",
       "target": "pum_50",
       "target_port": "in"
-    },
-    {
-      "id": "val_52-col_32-1786308333589",
-      "kind": "other",
-      "source": "val_52",
-      "source_port": "out",
-      "target": "col_32",
-      "target_port": "reflux"
     },
     {
       "id": "hea_53-col_32-1786308468989",
@@ -393,14 +377,6 @@
       "target_port": "k31_steam"
     },
     {
-      "id": "source_65-hea_54-1786309967729",
-      "kind": "gas",
-      "source": "source_65",
-      "source_port": "out",
-      "target": "hea_54",
-      "target_port": "pp2_in"
-    },
-    {
       "id": "hea_54-val_67-1786310578489",
       "kind": "gas",
       "source": "hea_54",
@@ -474,7 +450,7 @@
     },
     {
       "id": "col_64-pum_80-1786342594381",
-      "kind": "oil",
+      "kind": "other",
       "source": "col_64",
       "source_port": "circ1_out",
       "target": "pum_80",
@@ -617,14 +593,6 @@
       "target_port": "in"
     },
     {
-      "id": "pum_100-val_98-1786350866721",
-      "kind": "other",
-      "source": "pum_100",
-      "source_port": "out",
-      "target": "val_98",
-      "target_port": "in"
-    },
-    {
       "id": "sep_94-pum_100-1786350875102",
       "kind": "other",
       "source": "sep_94",
@@ -638,30 +606,6 @@
       "source": "val_99",
       "source_port": "out",
       "target": "sep_101",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_102-val_104-1786351437171",
-      "kind": "other",
-      "source": "pum_102",
-      "source_port": "out",
-      "target": "val_104",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_103-val_104-1786351456341",
-      "kind": "other",
-      "source": "pum_103",
-      "source_port": "out",
-      "target": "val_104",
-      "target_port": "in"
-    },
-    {
-      "id": "val_104-sink_105-1786351470662",
-      "kind": "other",
-      "source": "val_104",
-      "source_port": "out",
-      "target": "sink_105",
       "target_port": "in"
     },
     {
@@ -689,52 +633,12 @@
       "target_port": "in"
     },
     {
-      "id": "pum_111-val_115-1786352289307",
-      "kind": "oil",
-      "source": "pum_111",
-      "source_port": "out",
-      "target": "val_115",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_112-val_115-1786352291159",
-      "kind": "oil",
-      "source": "pum_112",
-      "source_port": "out",
-      "target": "val_115",
-      "target_port": "in"
-    },
-    {
       "id": "hea_116-hea_117-1786353793282",
       "kind": "oil",
       "source": "hea_116",
       "source_port": "hot_out",
       "target": "hea_117",
       "target_port": "hot_in"
-    },
-    {
-      "id": "hea_116-hea_118-1786354157201",
-      "kind": "oil",
-      "source": "hea_116",
-      "source_port": "cold_out",
-      "target": "hea_118",
-      "target_port": "hot_in"
-    },
-    {
-      "id": "source_119-hea_118-1786354177744",
-      "kind": "liq",
-      "source": "source_119",
-      "source_port": "out",
-      "target": "hea_118",
-      "target_port": "cold_in"
-    },
-    {
-      "id": "hea_118-sink_120-1786354570345",
-      "kind": "liq",
-      "source": "hea_118",
-      "source_port": "cold_out",
-      "target": "sink_120",
-      "target_port": "in"
     },
     {
       "id": "hea_118-sink_121-1786354596371",
@@ -809,14 +713,6 @@
       "target_port": "in"
     },
     {
-      "id": "val_130-hea_116-1786361280082",
-      "kind": "oil",
-      "source": "val_130",
-      "source_port": "out",
-      "target": "hea_116",
-      "target_port": "hot_in"
-    },
-    {
       "id": "pum_131-col_51-1786361538986",
       "kind": "oil",
       "source": "pum_131",
@@ -830,14 +726,6 @@
       "source": "hea_53",
       "source_port": "out",
       "target": "pum_131",
-      "target_port": "in"
-    },
-    {
-      "id": "col_141-pum_143-1786362981600",
-      "kind": "oil",
-      "source": "col_141",
-      "source_port": "bottoms",
-      "target": "pum_143",
       "target_port": "in"
     },
     {
@@ -881,22 +769,6 @@
       "target_port": "in"
     },
     {
-      "id": "pum_148-val_149-1786363206838",
-      "kind": "other",
-      "source": "pum_148",
-      "source_port": "out",
-      "target": "val_149",
-      "target_port": "in"
-    },
-    {
-      "id": "col_140-pum_150-1786363503773",
-      "kind": "oil",
-      "source": "col_140",
-      "source_port": "product",
-      "target": "pum_150",
-      "target_port": "in"
-    },
-    {
       "id": "pum_143-hea_142-1786363591218",
       "kind": "oil",
       "source": "pum_143",
@@ -905,27 +777,11 @@
       "target_port": "in2"
     },
     {
-      "id": "hea_142-col_140-1786363656437",
-      "kind": "oil",
-      "source": "hea_142",
-      "source_port": "out",
-      "target": "col_140",
-      "target_port": "feed3"
-    },
-    {
       "id": "hea_142-col_141-1786364149223",
       "kind": "oil",
       "source": "hea_142",
       "source_port": "out2",
       "target": "col_141",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_150-hea_142-1786364189324",
-      "kind": "oil",
-      "source": "pum_150",
-      "source_port": "out",
-      "target": "hea_142",
       "target_port": "in"
     },
     {
@@ -954,7 +810,7 @@
     },
     {
       "id": "pum_153-val_154-1786366429095",
-      "kind": "oil",
+      "kind": "other",
       "source": "pum_153",
       "source_port": "out",
       "target": "val_154",
@@ -1007,14 +863,6 @@
       "source_port": "hot_out",
       "target": "col_140",
       "target_port": "feed1"
-    },
-    {
-      "id": "col_141-hea_159-1786366862989",
-      "kind": "oil",
-      "source": "col_141",
-      "source_port": "product",
-      "target": "hea_159",
-      "target_port": "cold_in"
     },
     {
       "id": "pum_160-hea_159-1786366927338",
@@ -1257,38 +1105,6 @@
       "target_port": "in"
     },
     {
-      "id": "val_149-col_141-1786371013339",
-      "kind": "other",
-      "source": "val_149",
-      "source_port": "out",
-      "target": "col_141",
-      "target_port": "reflux"
-    },
-    {
-      "id": "pum_1-val_44-1786388545848",
-      "kind": "oil",
-      "source": "pum_1",
-      "source_port": "out",
-      "target": "val_44",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_34-val_45-1786388547633",
-      "kind": "oil",
-      "source": "pum_34",
-      "source_port": "out",
-      "target": "val_45",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_35-val_46-1786388549416",
-      "kind": "oil",
-      "source": "pum_35",
-      "source_port": "out",
-      "target": "val_46",
-      "target_port": "in"
-    },
-    {
       "id": "gat_3-pum_1-1786388577211",
       "kind": "oil",
       "source": "gat_3",
@@ -1318,14 +1134,6 @@
       "source": "sep_31",
       "source_port": "out",
       "target": "gat_3",
-      "target_port": "in"
-    },
-    {
-      "id": "pum_55-spl_7-1786388750857",
-      "kind": "oil",
-      "source": "pum_55",
-      "source_port": "out",
-      "target": "spl_7",
       "target_port": "in"
     },
     {
@@ -1457,22 +1265,6 @@
       "target_port": "in"
     },
     {
-      "id": "spl_13-val_52-1786389082283",
-      "kind": "oil",
-      "source": "spl_13",
-      "source_port": "out1",
-      "target": "val_52",
-      "target_port": "in"
-    },
-    {
-      "id": "spl_13-val_130-1786389086087",
-      "kind": "oil",
-      "source": "spl_13",
-      "source_port": "out1",
-      "target": "val_130",
-      "target_port": "in"
-    },
-    {
       "id": "spl_13-val_122-1786389094197",
       "kind": "oil",
       "source": "spl_13",
@@ -1514,7 +1306,7 @@
     },
     {
       "id": "col_63-spl_15-1786389239929",
-      "kind": "oil",
+      "kind": "other",
       "source": "col_63",
       "source_port": "k31_out",
       "target": "spl_15",
@@ -1522,7 +1314,7 @@
     },
     {
       "id": "spl_15-pum_102-1786389241442",
-      "kind": "oil",
+      "kind": "other",
       "source": "spl_15",
       "source_port": "out0",
       "target": "pum_102",
@@ -1530,7 +1322,7 @@
     },
     {
       "id": "spl_15-pum_103-1786389243645",
-      "kind": "oil",
+      "kind": "other",
       "source": "spl_15",
       "source_port": "out1",
       "target": "pum_103",
@@ -1562,7 +1354,7 @@
     },
     {
       "id": "col_63-spl_17-1786389292109",
-      "kind": "oil",
+      "kind": "other",
       "source": "col_63",
       "source_port": "k33_out",
       "target": "spl_17",
@@ -1570,7 +1362,7 @@
     },
     {
       "id": "spl_17-pum_111-1786389293356",
-      "kind": "oil",
+      "kind": "other",
       "source": "spl_17",
       "source_port": "out0",
       "target": "pum_111",
@@ -1578,7 +1370,7 @@
     },
     {
       "id": "spl_17-pum_112-1786389294918",
-      "kind": "oil",
+      "kind": "other",
       "source": "spl_17",
       "source_port": "out1",
       "target": "pum_112",
@@ -1671,30 +1463,6 @@
       "source_port": "out",
       "target": "val_75",
       "target_port": "in"
-    },
-    {
-      "id": "hea_43-mix_6-1786390964600",
-      "kind": "oil",
-      "source": "hea_43",
-      "source_port": "hot_out",
-      "target": "mix_6",
-      "target_port": "in1"
-    },
-    {
-      "id": "hea_40-mix_6-1786390967087",
-      "kind": "oil",
-      "source": "hea_40",
-      "source_port": "hot_out",
-      "target": "mix_6",
-      "target_port": "in1"
-    },
-    {
-      "id": "hea_36-mix_6-1786390969331",
-      "kind": "oil",
-      "source": "hea_36",
-      "source_port": "hot_out",
-      "target": "mix_6",
-      "target_port": "in0"
     },
     {
       "id": "mix_6-col_32-1786390974871",
@@ -1801,22 +1569,6 @@
       "target_port": "feed4"
     },
     {
-      "id": "spl_10-spl_9-1786391878761",
-      "kind": "oil",
-      "source": "spl_10",
-      "source_port": "out1",
-      "target": "spl_9",
-      "target_port": "in"
-    },
-    {
-      "id": "source_12-hea_116-1786391999791",
-      "kind": "oil",
-      "source": "source_12",
-      "source_port": "out",
-      "target": "hea_116",
-      "target_port": "cold_in"
-    },
-    {
       "id": "col_51-spl_18-1786392246168",
       "kind": "oil",
       "source": "col_51",
@@ -1865,14 +1617,6 @@
       "target_port": "in"
     },
     {
-      "id": "col_32-val_5-1786395364475",
-      "kind": "oil",
-      "source": "col_32",
-      "source_port": "bottoms",
-      "target": "val_5",
-      "target_port": "in"
-    },
-    {
       "id": "val_5-pum_57-1786395371311",
       "kind": "oil",
       "source": "val_5",
@@ -1889,12 +1633,300 @@
       "target_port": "in"
     },
     {
-      "id": "val_5-pum_55-1786395377914",
+      "id": "hea_36-mix_6-1786441490030",
+      "kind": "oil",
+      "source": "hea_36",
+      "source_port": "hot_out",
+      "target": "mix_6",
+      "target_port": "in0"
+    },
+    {
+      "id": "hea_40-mix_6-1786441495001",
+      "kind": "oil",
+      "source": "hea_40",
+      "source_port": "hot_out",
+      "target": "mix_6",
+      "target_port": "in0"
+    },
+    {
+      "id": "hea_43-mix_6-1786441497134",
+      "kind": "oil",
+      "source": "hea_43",
+      "source_port": "hot_out",
+      "target": "mix_6",
+      "target_port": "in1"
+    },
+    {
+      "id": "val_156-col_32-1786442447323",
+      "kind": "oil",
+      "source": "val_156",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "feed1"
+    },
+    {
+      "id": "pum_35-val_46-1786442864881",
+      "kind": "oil",
+      "source": "pum_35",
+      "source_port": "out",
+      "target": "val_46",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_34-val_45-1786442874556",
+      "kind": "oil",
+      "source": "pum_34",
+      "source_port": "out",
+      "target": "val_45",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_1-val_44-1786442887778",
+      "kind": "oil",
+      "source": "pum_1",
+      "source_port": "out",
+      "target": "val_44",
+      "target_port": "in"
+    },
+    {
+      "id": "source_189-val_156-1786442930177",
+      "kind": "oil",
+      "source": "source_189",
+      "source_port": "out",
+      "target": "val_156",
+      "target_port": "in"
+    },
+    {
+      "id": "source_190-col_32-1786442982458",
+      "kind": "gas_haz",
+      "source": "source_190",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "in"
+    },
+    {
+      "id": "col_32-hea_49-1786443165062",
+      "kind": "gas_haz",
+      "source": "col_32",
+      "source_port": "distillate",
+      "target": "hea_49",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "spl_13-val_52-1786443283596",
+      "kind": "oil",
+      "source": "spl_13",
+      "source_port": "out1",
+      "target": "val_52",
+      "target_port": "in"
+    },
+    {
+      "id": "val_52-col_32-1786443300195",
+      "kind": "other",
+      "source": "val_52",
+      "source_port": "out",
+      "target": "col_32",
+      "target_port": "reflux"
+    },
+    {
+      "id": "spl_13-val_130-1786443369438",
+      "kind": "oil",
+      "source": "spl_13",
+      "source_port": "out1",
+      "target": "val_130",
+      "target_port": "in"
+    },
+    {
+      "id": "val_5-pum_55-1786444726536",
       "kind": "oil",
       "source": "val_5",
       "source_port": "out",
       "target": "pum_55",
       "target_port": "in"
+    },
+    {
+      "id": "pum_55-spl_7-1786444740489",
+      "kind": "oil",
+      "source": "pum_55",
+      "source_port": "out",
+      "target": "spl_7",
+      "target_port": "in"
+    },
+    {
+      "id": "source_65-hea_54-1786444895744",
+      "kind": "gas",
+      "source": "source_65",
+      "source_port": "out",
+      "target": "hea_54",
+      "target_port": "pp2_in"
+    },
+    {
+      "id": "col_32-val_5-1786444961870",
+      "kind": "oil",
+      "source": "col_32",
+      "source_port": "bottoms",
+      "target": "val_5",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_100-val_98-1786452723842",
+      "kind": "other",
+      "source": "pum_100",
+      "source_port": "out",
+      "target": "val_98",
+      "target_port": "in"
+    },
+    {
+      "id": "spl_10-spl_9-1786453049467",
+      "kind": "oil",
+      "source": "spl_10",
+      "source_port": "out1",
+      "target": "spl_9",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_102-val_104-1786453298391",
+      "kind": "other",
+      "source": "pum_102",
+      "source_port": "out",
+      "target": "val_104",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_103-val_104-1786453300149",
+      "kind": "other",
+      "source": "pum_103",
+      "source_port": "out",
+      "target": "val_104",
+      "target_port": "in"
+    },
+    {
+      "id": "val_104-sink_105-1786453304846",
+      "kind": "oil",
+      "source": "val_104",
+      "source_port": "out",
+      "target": "sink_105",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_112-val_115-1786453488681",
+      "kind": "other",
+      "source": "pum_112",
+      "source_port": "out",
+      "target": "val_115",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_111-val_115-1786453490326",
+      "kind": "other",
+      "source": "pum_111",
+      "source_port": "out",
+      "target": "val_115",
+      "target_port": "in"
+    },
+    {
+      "id": "val_130-hea_116-1786454162923",
+      "kind": "oil",
+      "source": "val_130",
+      "source_port": "out",
+      "target": "hea_116",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "source_119-hea_118-1786454210614",
+      "kind": "liq",
+      "source": "source_119",
+      "source_port": "out",
+      "target": "hea_118",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "hea_116-hea_118-1786454266143",
+      "kind": "oil",
+      "source": "hea_116",
+      "source_port": "cold_out",
+      "target": "hea_118",
+      "target_port": "hot_in"
+    },
+    {
+      "id": "hea_118-sink_120-1786454289068",
+      "kind": "liq",
+      "source": "hea_118",
+      "source_port": "cold_out",
+      "target": "sink_120",
+      "target_port": "in"
+    },
+    {
+      "id": "col_140-pum_150-1786454667450",
+      "kind": "oil",
+      "source": "col_140",
+      "source_port": "product",
+      "target": "pum_150",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_150-hea_142-1786454691576",
+      "kind": "oil",
+      "source": "pum_150",
+      "source_port": "out",
+      "target": "hea_142",
+      "target_port": "in"
+    },
+    {
+      "id": "hea_142-col_140-1786454715593",
+      "kind": "oil",
+      "source": "hea_142",
+      "source_port": "out",
+      "target": "col_140",
+      "target_port": "feed3"
+    },
+    {
+      "id": "pum_148-val_149-1786454760793",
+      "kind": "other",
+      "source": "pum_148",
+      "source_port": "out",
+      "target": "val_149",
+      "target_port": "in"
+    },
+    {
+      "id": "val_149-col_141-1786454775632",
+      "kind": "other",
+      "source": "val_149",
+      "source_port": "out",
+      "target": "col_141",
+      "target_port": "reflux"
+    },
+    {
+      "id": "col_141-pum_143-1786454839797",
+      "kind": "oil",
+      "source": "col_141",
+      "source_port": "bottoms",
+      "target": "pum_143",
+      "target_port": "in"
+    },
+    {
+      "id": "col_51-hea_116-1786455020501",
+      "kind": "oil",
+      "source": "col_51",
+      "source_port": "bottoms",
+      "target": "hea_116",
+      "target_port": "cold_in"
+    },
+    {
+      "id": "col_141-pum_161-1786455166229",
+      "kind": "oil",
+      "source": "col_141",
+      "source_port": "product",
+      "target": "pum_161",
+      "target_port": "in"
+    },
+    {
+      "id": "pum_161-hea_159-1786455173635",
+      "kind": "oil",
+      "source": "pum_161",
+      "source_port": "out",
+      "target": "hea_159",
+      "target_port": "cold_in"
     }
   ],
   "id": "default",
@@ -1922,8 +1954,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -50.0,
-      "y": -925.0
+      "x": 360.0,
+      "y": -771.0
     },
     {
       "id": "pum_7",
@@ -1984,8 +2016,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -30.0,
-      "y": -815.0
+      "x": 97.0,
+      "y": -769.0
     },
     {
       "id": "hea_12",
@@ -2007,8 +2039,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -50.0,
-      "y": -925.0
+      "x": 360.0,
+      "y": -771.0
     },
     {
       "id": "elo_14",
@@ -2197,8 +2229,8 @@
         "setpoint_level": 2.0
       },
       "type": "separator",
-      "x": 1543.0,
-      "y": -557.0
+      "x": 1523.0,
+      "y": -438.0
     },
     {
       "id": "col_32",
@@ -2421,8 +2453,8 @@
         "preset": "k1"
       },
       "type": "column",
-      "x": 413.0,
-      "y": -89.0
+      "x": 326.0,
+      "y": -53.0
     },
     {
       "id": "hea_33",
@@ -2432,8 +2464,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -420.0,
-      "y": 0.0
+      "x": -416.0,
+      "y": 2.0
     },
     {
       "id": "pum_34",
@@ -2445,8 +2477,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": -780.0,
-      "y": 144.0
+      "x": -743.0,
+      "y": 159.0
     },
     {
       "id": "pum_35",
@@ -2458,8 +2490,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": -769.0,
-      "y": 294.0
+      "x": -742.0,
+      "y": 312.0
     },
     {
       "id": "hea_36",
@@ -2469,8 +2501,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -17.0,
-      "y": 1.0
+      "x": -15.0,
+      "y": 4.0
     },
     {
       "id": "hea_37",
@@ -2480,8 +2512,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -423.0,
-      "y": 145.0
+      "x": -415.0,
+      "y": 156.0
     },
     {
       "id": "hea_38",
@@ -2491,8 +2523,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -228.0,
-      "y": 145.0
+      "x": -227.0,
+      "y": 156.0
     },
     {
       "id": "hea_40",
@@ -2502,8 +2534,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 12.0,
-      "y": 146.0
+      "x": 13.0,
+      "y": 156.0
     },
     {
       "id": "hea_41",
@@ -2513,8 +2545,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -417.0,
-      "y": 300.0
+      "x": -404.0,
+      "y": 311.0
     },
     {
       "id": "hea_43",
@@ -2524,8 +2556,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": -16.0,
-      "y": 300.0
+      "x": -20.0,
+      "y": 312.0
     },
     {
       "id": "val_44",
@@ -2538,8 +2570,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": -522.0,
-      "y": 17.0
+      "x": -520.0,
+      "y": 19.0
     },
     {
       "id": "val_45",
@@ -2552,8 +2584,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": -523.0,
-      "y": 161.0
+      "x": -521.0,
+      "y": 173.0
     },
     {
       "id": "val_46",
@@ -2567,7 +2599,7 @@
       },
       "type": "valve",
       "x": -523.0,
-      "y": 316.0
+      "y": 327.0
     },
     {
       "id": "sep_48",
@@ -2577,8 +2609,8 @@
         "setpoint_level": 2.0
       },
       "type": "separator",
-      "x": 654.0,
-      "y": -128.0
+      "x": 763.0,
+      "y": -124.0
     },
     {
       "id": "hea_49",
@@ -2588,8 +2620,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 482.0,
-      "y": -113.0
+      "x": 605.0,
+      "y": -108.0
     },
     {
       "id": "pum_50",
@@ -2601,8 +2633,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 858.0,
-      "y": -108.0
+      "x": 936.0,
+      "y": -103.0
     },
     {
       "id": "col_51",
@@ -2765,8 +2797,8 @@
         "preset": "k4"
       },
       "type": "column",
-      "x": 2015.0,
-      "y": -284.0
+      "x": 2011.0,
+      "y": -282.0
     },
     {
       "id": "val_52",
@@ -2778,8 +2810,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1091.0,
-      "y": -18.0
+      "x": 1181.0,
+      "y": -34.0
     },
     {
       "id": "hea_53",
@@ -3020,8 +3052,8 @@
         "response_tau": 60
       },
       "type": "heater",
-      "x": 160.0,
-      "y": 491.0
+      "x": -210.0,
+      "y": 381.0
     },
     {
       "id": "hea_54",
@@ -3278,8 +3310,8 @@
         "response_tau": 60
       },
       "type": "heater",
-      "x": 161.0,
-      "y": 715.0
+      "x": -212.0,
+      "y": 635.0
     },
     {
       "id": "pum_55",
@@ -3291,8 +3323,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 460.0,
-      "y": 675.0
+      "x": 540.0,
+      "y": 453.0
     },
     {
       "id": "source_56",
@@ -3303,8 +3335,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -6.0,
-      "y": 495.0
+      "x": -310.0,
+      "y": 401.0
     },
     {
       "id": "pum_57",
@@ -3316,8 +3348,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 693.0,
-      "y": 599.0
+      "x": 540.0,
+      "y": 605.0
     },
     {
       "id": "pum_58",
@@ -3329,8 +3361,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 697.0,
-      "y": 657.0
+      "x": 541.0,
+      "y": 685.0
     },
     {
       "id": "pum_59",
@@ -3342,8 +3374,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 663.0,
-      "y": 60.0
+      "x": 590.0,
+      "y": 31.0
     },
     {
       "id": "gat_60",
@@ -3352,8 +3384,8 @@
         "initial_open": 1.0
       },
       "type": "gate_valve",
-      "x": 781.0,
-      "y": 67.0
+      "x": 696.0,
+      "y": 38.0
     },
     {
       "id": "hea_61",
@@ -3363,8 +3395,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 855.0,
-      "y": 108.0
+      "x": 837.0,
+      "y": 39.0
     },
     {
       "id": "source_62",
@@ -3375,8 +3407,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -45.0,
-      "y": 725.0
+      "x": -330.0,
+      "y": 626.0
     },
     {
       "id": "col_63",
@@ -3627,8 +3659,8 @@
         "preset": "k3"
       },
       "type": "column",
-      "x": 1455.0,
-      "y": 556.0
+      "x": 1245.0,
+      "y": 472.0
     },
     {
       "id": "col_64",
@@ -3968,8 +4000,8 @@
         "preset": "k2"
       },
       "type": "column",
-      "x": 1267.0,
-      "y": 482.0
+      "x": 1057.0,
+      "y": 398.0
     },
     {
       "id": "source_65",
@@ -3980,8 +4012,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -29.0,
-      "y": 764.0
+      "x": -331.0,
+      "y": 684.0
     },
     {
       "id": "hea_66",
@@ -4221,8 +4253,8 @@
         "response_tau": 60
       },
       "type": "heater",
-      "x": 923.0,
-      "y": 944.0
+      "x": 730.0,
+      "y": 905.0
     },
     {
       "id": "val_67",
@@ -4234,8 +4266,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 878.0,
-      "y": 764.0
+      "x": 541.0,
+      "y": 792.0
     },
     {
       "id": "pum_68",
@@ -4247,8 +4279,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1617.0,
-      "y": 1131.0
+      "x": 1407.0,
+      "y": 1047.0
     },
     {
       "id": "pum_69",
@@ -4260,8 +4292,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1618.0,
-      "y": 1294.0
+      "x": 1408.0,
+      "y": 1210.0
     },
     {
       "id": "pum_70",
@@ -4273,8 +4305,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1617.0,
-      "y": 1214.0
+      "x": 1407.0,
+      "y": 1130.0
     },
     {
       "id": "pum_71",
@@ -4286,8 +4318,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1618.0,
-      "y": 1053.0
+      "x": 1408.0,
+      "y": 969.0
     },
     {
       "id": "val_73",
@@ -4299,16 +4331,16 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1902.0,
-      "y": 1164.0
+      "x": 1648.0,
+      "y": 1004.0
     },
     {
       "id": "sink_74",
       "name": "1й - поток мазута",
       "params": {},
       "type": "sink",
-      "x": 2036.0,
-      "y": 1163.0
+      "x": 1743.0,
+      "y": 1015.0
     },
     {
       "id": "val_75",
@@ -4320,16 +4352,16 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1899.0,
-      "y": 1239.0
+      "x": 1649.0,
+      "y": 1166.0
     },
     {
       "id": "sink_76",
       "name": "2й - поток мазута",
       "params": {},
       "type": "sink",
-      "x": 2038.0,
-      "y": 1237.0
+      "x": 1745.0,
+      "y": 1177.0
     },
     {
       "id": "source_78",
@@ -4340,16 +4372,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 718.0,
-      "y": 180.0
+      "x": 721.0,
+      "y": 92.0
     },
     {
       "id": "sink_79",
       "name": "Сырая нефть ЭЛОУ-2",
       "params": {},
       "type": "sink",
-      "x": 1035.0,
-      "y": 180.0
+      "x": 1021.0,
+      "y": 93.0
     },
     {
       "id": "pum_80",
@@ -4361,16 +4393,16 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 896.0,
-      "y": 490.0
+      "x": 836.0,
+      "y": 457.0
     },
     {
       "id": "sink_81",
       "name": "1 ц.о. на подогрев",
       "params": {},
       "type": "sink",
-      "x": 1155.0,
-      "y": 496.0
+      "x": 1004.0,
+      "y": 461.0
     },
     {
       "id": "source_82",
@@ -4381,8 +4413,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1118.0,
-      "y": 577.0
+      "x": 958.0,
+      "y": 497.0
     },
     {
       "id": "val_84",
@@ -4394,8 +4426,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1064.0,
-      "y": 508.0
+      "x": 924.0,
+      "y": 456.0
     },
     {
       "id": "pum_85",
@@ -4407,16 +4439,16 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 984.0,
-      "y": 626.0
+      "x": 827.0,
+      "y": 606.0
     },
     {
       "id": "sink_86",
       "name": "2 ц.о.",
       "params": {},
       "type": "sink",
-      "x": 1137.0,
-      "y": 680.0
+      "x": 989.0,
+      "y": 612.0
     },
     {
       "id": "source_88",
@@ -4427,8 +4459,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1118.0,
-      "y": 748.0
+      "x": 967.0,
+      "y": 657.0
     },
     {
       "id": "val_89",
@@ -4440,8 +4472,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1141.0,
-      "y": 625.0
+      "x": 928.0,
+      "y": 605.0
     },
     {
       "id": "pum_90",
@@ -4453,8 +4485,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 831.0,
-      "y": 919.0
+      "x": 645.0,
+      "y": 786.0
     },
     {
       "id": "val_91",
@@ -4466,16 +4498,16 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1028.0,
-      "y": 917.0
+      "x": 761.0,
+      "y": 785.0
     },
     {
       "id": "sink_92",
       "name": "В Т26, Т-25/2, Т-24, Т-20",
       "params": {},
       "type": "sink",
-      "x": 1141.0,
-      "y": 932.0
+      "x": 846.0,
+      "y": 792.0
     },
     {
       "id": "source_93",
@@ -4486,8 +4518,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1120.0,
-      "y": 849.0
+      "x": 992.0,
+      "y": 771.0
     },
     {
       "id": "sep_94",
@@ -4497,8 +4529,8 @@
         "setpoint_level": 2.0
       },
       "type": "separator",
-      "x": 1436.0,
-      "y": 367.0
+      "x": 1370.0,
+      "y": 255.0
     },
     {
       "id": "hea_95",
@@ -4508,8 +4540,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 1217.0,
-      "y": 269.0
+      "x": 1144.0,
+      "y": 256.0
     },
     {
       "id": "source_96",
@@ -4520,16 +4552,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1054.0,
-      "y": 252.0
+      "x": 1000.0,
+      "y": 203.0
     },
     {
       "id": "sink_97",
       "name": "Вода",
       "params": {},
       "type": "sink",
-      "x": 1421.0,
-      "y": 224.0
+      "x": 1327.0,
+      "y": 201.0
     },
     {
       "id": "val_98",
@@ -4541,8 +4573,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1518.0,
-      "y": 510.0
+      "x": 1651.0,
+      "y": 328.0
     },
     {
       "id": "val_99",
@@ -4554,8 +4586,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1518.0,
-      "y": 474.0
+      "x": 1650.0,
+      "y": 261.0
     },
     {
       "id": "pum_100",
@@ -4567,8 +4599,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1398.0,
-      "y": 482.0
+      "x": 1545.0,
+      "y": 277.0
     },
     {
       "id": "sep_101",
@@ -4578,8 +4610,8 @@
         "setpoint_level": 2.0
       },
       "type": "separator",
-      "x": 1695.0,
-      "y": 362.0
+      "x": 1792.0,
+      "y": 187.0
     },
     {
       "id": "pum_102",
@@ -4591,8 +4623,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1616.0,
-      "y": 617.0
+      "x": 1513.0,
+      "y": 530.0
     },
     {
       "id": "pum_103",
@@ -4604,8 +4636,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1615.0,
-      "y": 680.0
+      "x": 1511.0,
+      "y": 612.0
     },
     {
       "id": "val_104",
@@ -4617,16 +4649,16 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1792.0,
-      "y": 650.0
+      "x": 1643.0,
+      "y": 566.0
     },
     {
       "id": "sink_105",
       "name": "Фр. 140-240",
       "params": {},
       "type": "sink",
-      "x": 1872.0,
-      "y": 642.0
+      "x": 1726.0,
+      "y": 579.0
     },
     {
       "id": "pum_106",
@@ -4638,8 +4670,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1616.0,
-      "y": 769.0
+      "x": 1511.0,
+      "y": 679.0
     },
     {
       "id": "pum_107",
@@ -4651,24 +4683,24 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1623.0,
-      "y": 832.0
+      "x": 1510.0,
+      "y": 767.0
     },
     {
       "id": "sink_108",
       "name": "1-й поток Фр. 240-300",
       "params": {},
       "type": "sink",
-      "x": 1838.0,
-      "y": 757.0
+      "x": 1637.0,
+      "y": 686.0
     },
     {
       "id": "sink_109",
       "name": "2й поток фр. 240-300",
       "params": {},
       "type": "sink",
-      "x": 1844.0,
-      "y": 821.0
+      "x": 1636.0,
+      "y": 774.0
     },
     {
       "id": "pum_111",
@@ -4680,8 +4712,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1618.0,
-      "y": 919.0
+      "x": 1511.0,
+      "y": 827.0
     },
     {
       "id": "pum_112",
@@ -4693,16 +4725,16 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 1618.0,
-      "y": 973.0
+      "x": 1516.0,
+      "y": 918.0
     },
     {
       "id": "sink_113",
       "name": "Фр 300-350",
       "params": {},
       "type": "sink",
-      "x": 1861.0,
-      "y": 935.0
+      "x": 1749.0,
+      "y": 874.0
     },
     {
       "id": "val_115",
@@ -4714,8 +4746,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1777.0,
-      "y": 941.0
+      "x": 1648.0,
+      "y": 860.0
     },
     {
       "id": "hea_116",
@@ -4725,8 +4757,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 1599.0,
-      "y": -78.0
+      "x": 1329.0,
+      "y": -7.0
     },
     {
       "id": "hea_117",
@@ -4736,8 +4768,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 1802.0,
-      "y": -79.0
+      "x": 1803.0,
+      "y": -81.0
     },
     {
       "id": "hea_118",
@@ -4747,8 +4779,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 1798.0,
-      "y": 168.0
+      "x": 1502.0,
+      "y": -93.0
     },
     {
       "id": "source_119",
@@ -4759,24 +4791,24 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1627.0,
-      "y": 147.0
+      "x": 1380.0,
+      "y": -86.0
     },
     {
       "id": "sink_120",
       "name": "Вода",
       "params": {},
       "type": "sink",
-      "x": 2056.0,
-      "y": 137.0
+      "x": 1685.0,
+      "y": -149.0
     },
     {
       "id": "sink_121",
       "name": "В некондицию",
       "params": {},
       "type": "sink",
-      "x": 2057.0,
-      "y": 202.0
+      "x": 1685.0,
+      "y": -66.0
     },
     {
       "id": "val_122",
@@ -4789,7 +4821,7 @@
       },
       "type": "valve",
       "x": 1902.0,
-      "y": -114.0
+      "y": -118.0
     },
     {
       "id": "val_123",
@@ -4801,8 +4833,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1902.0,
-      "y": -168.0
+      "x": 1904.0,
+      "y": -171.0
     },
     {
       "id": "sep_124",
@@ -4835,16 +4867,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1711.0,
-      "y": -342.0
+      "x": 1720.0,
+      "y": -331.0
     },
     {
       "id": "sink_127",
       "name": "Вода",
       "params": {},
       "type": "sink",
-      "x": 2017.0,
-      "y": -384.0
+      "x": 2015.0,
+      "y": -331.0
     },
     {
       "id": "pum_128",
@@ -4864,8 +4896,8 @@
       "name": "2 ц.о. в К-2",
       "params": {},
       "type": "sink",
-      "x": 1840.0,
-      "y": 15.0
+      "x": 1969.0,
+      "y": -79.0
     },
     {
       "id": "val_130",
@@ -4877,8 +4909,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 1494.0,
-      "y": -60.0
+      "x": 1234.0,
+      "y": -76.0
     },
     {
       "id": "pum_131",
@@ -5048,8 +5080,8 @@
         "preset": "k9"
       },
       "type": "column",
-      "x": 2458.0,
-      "y": -287.0
+      "x": 2398.0,
+      "y": -284.0
     },
     {
       "id": "col_141",
@@ -5245,8 +5277,8 @@
         "preset": "k10"
       },
       "type": "column",
-      "x": 2887.0,
-      "y": -241.0
+      "x": 2837.0,
+      "y": -165.0
     },
     {
       "id": "hea_142",
@@ -5383,8 +5415,8 @@
         "response_tau": 60
       },
       "type": "heater",
-      "x": 2608.0,
-      "y": 187.0
+      "x": 2567.0,
+      "y": 57.0
     },
     {
       "id": "pum_143",
@@ -5396,8 +5428,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 2791.0,
-      "y": 147.0
+      "x": 2425.0,
+      "y": 172.0
     },
     {
       "id": "hea_144",
@@ -5419,8 +5451,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 2271.0,
-      "y": -507.0
+      "x": 2294.0,
+      "y": -501.0
     },
     {
       "id": "sink_146",
@@ -5464,8 +5496,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 3026.0,
-      "y": -465.0
+      "x": 2926.0,
+      "y": -463.0
     },
     {
       "id": "pum_150",
@@ -5477,8 +5509,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 2475.0,
-      "y": 50.0
+      "x": 2466.0,
+      "y": 23.0
     },
     {
       "id": "hea_151",
@@ -5488,8 +5520,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 2493.0,
-      "y": -355.0
+      "x": 2518.0,
+      "y": -331.0
     },
     {
       "id": "sep_152",
@@ -5500,7 +5532,7 @@
       },
       "type": "separator",
       "x": 2648.0,
-      "y": -355.0
+      "y": -353.0
     },
     {
       "id": "pum_153",
@@ -5512,8 +5544,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 2825.0,
-      "y": -328.0
+      "x": 2838.0,
+      "y": -273.0
     },
     {
       "id": "val_154",
@@ -5525,8 +5557,8 @@
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 3004.0,
-      "y": -303.0
+      "x": 3002.0,
+      "y": -267.0
     },
     {
       "id": "val_155",
@@ -5549,8 +5581,8 @@
         "u": 300
       },
       "type": "heat_exchanger",
-      "x": 2299.0,
-      "y": -97.0
+      "x": 2301.0,
+      "y": -133.0
     },
     {
       "id": "source_157",
@@ -5561,8 +5593,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 2164.0,
-      "y": -150.0
+      "x": 2194.0,
+      "y": -130.0
     },
     {
       "id": "hea_159",
@@ -5585,8 +5617,8 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": 2144.0,
-      "y": -488.0
+      "x": 2140.0,
+      "y": -394.0
     },
     {
       "id": "source_161",
@@ -5597,8 +5629,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 1939.0,
-      "y": -494.0
+      "x": 1992.0,
+      "y": -427.0
     },
     {
       "id": "sink_162",
@@ -5613,16 +5645,16 @@
       "name": "Фр. 140-240",
       "params": {},
       "type": "sink",
-      "x": 171.0,
-      "y": -818.0
+      "x": 220.0,
+      "y": -768.0
     },
     {
       "id": "sink_164",
       "name": "ц.о. К-2",
       "params": {},
       "type": "sink",
-      "x": 552.0,
-      "y": -926.0
+      "x": 477.0,
+      "y": -773.0
     },
     {
       "id": "source_165",
@@ -5633,16 +5665,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 87.0,
-      "y": -639.0
+      "x": 102.0,
+      "y": -617.0
     },
     {
       "id": "sink_166",
       "name": "1й-поток мазута К-2",
       "params": {},
       "type": "sink",
-      "x": 302.0,
-      "y": -656.0
+      "x": 220.0,
+      "y": -611.0
     },
     {
       "id": "source_167",
@@ -5653,16 +5685,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 297.0,
-      "y": -612.0
+      "x": 361.0,
+      "y": -606.0
     },
     {
       "id": "sink_168",
       "name": "1 ц.о. колонны К-2",
       "params": {},
       "type": "sink",
-      "x": 490.0,
-      "y": -611.0
+      "x": 468.0,
+      "y": -604.0
     },
     {
       "id": "source_169",
@@ -5673,16 +5705,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 78.0,
-      "y": -462.0
+      "x": 109.0,
+      "y": -441.0
     },
     {
       "id": "sink_170",
       "name": "2ой-поток мазута К-2",
       "params": {},
       "type": "sink",
-      "x": 212.0,
-      "y": -463.0
+      "x": 224.0,
+      "y": -442.0
     },
     {
       "id": "source_171",
@@ -5693,16 +5725,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 319.0,
-      "y": -463.0
+      "x": 354.0,
+      "y": -438.0
     },
     {
       "id": "sink_172",
       "name": "фр.  300-350",
       "params": {},
       "type": "sink",
-      "x": 456.0,
-      "y": -461.0
+      "x": 459.0,
+      "y": -438.0
     },
     {
       "id": "source_173",
@@ -5713,16 +5745,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -577.0,
-      "y": -38.0
+      "x": -449.0,
+      "y": -56.0
     },
     {
       "id": "sink_174",
       "name": "фр. 240-300",
       "params": {},
       "type": "sink",
-      "x": -242.0,
-      "y": -39.0
+      "x": -307.0,
+      "y": -53.0
     },
     {
       "id": "source_175",
@@ -5733,16 +5765,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -156.0,
-      "y": -41.0
+      "x": -44.0,
+      "y": -47.0
     },
     {
       "id": "sink_176",
       "name": "1й поток мазута",
       "params": {},
       "type": "sink",
-      "x": 166.0,
-      "y": -35.0
+      "x": 90.0,
+      "y": -44.0
     },
     {
       "id": "source_177",
@@ -5753,16 +5785,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -453.0,
-      "y": 87.0
+      "x": -447.0,
+      "y": 99.0
     },
     {
       "id": "sink_178",
       "name": "ц.о. К-2",
       "params": {},
       "type": "sink",
-      "x": -322.0,
-      "y": 87.0
+      "x": -324.0,
+      "y": 100.0
     },
     {
       "id": "source_179",
@@ -5773,16 +5805,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -249.0,
-      "y": 87.0
+      "x": -252.0,
+      "y": 100.0
     },
     {
       "id": "sink_180",
       "name": "ц.о. 3 К-2",
       "params": {},
       "type": "sink",
-      "x": -118.0,
-      "y": 86.0
+      "x": -124.0,
+      "y": 99.0
     },
     {
       "id": "source_182",
@@ -5793,16 +5825,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -39.0,
-      "y": 86.0
+      "x": -38.0,
+      "y": 102.0
     },
     {
       "id": "sink_183",
       "name": "1 поток мазута",
       "params": {},
       "type": "sink",
-      "x": 94.0,
-      "y": 114.0
+      "x": 91.0,
+      "y": 102.0
     },
     {
       "id": "source_184",
@@ -5833,16 +5865,16 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -160.0,
-      "y": 259.0
+      "x": -53.0,
+      "y": 257.0
     },
     {
       "id": "sink_187",
       "name": "ц.о. 3 К-2",
       "params": {},
       "type": "sink",
-      "x": 35.0,
-      "y": 252.0
+      "x": 102.0,
+      "y": 258.0
     },
     {
       "id": "source_188",
@@ -5853,20 +5885,20 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": 339.0,
-      "y": -161.0
+      "x": 475.0,
+      "y": -165.0
     },
     {
       "id": "sink_189",
       "name": "Вода",
       "params": {},
       "type": "sink",
-      "x": 622.0,
-      "y": -163.0
+      "x": 623.0,
+      "y": -177.0
     },
     {
       "id": "pum_1",
-      "name": "Насос",
+      "name": "Н-20",
       "params": {
         "efficiency_nominal": 0.75,
         "initial_running": 1.0,
@@ -5874,7 +5906,7 @@
         "nominal_volumetric_flow_m3_s": 100
       },
       "type": "pump",
-      "x": -781.0,
+      "x": -746.0,
       "y": 4.0
     },
     {
@@ -5884,8 +5916,8 @@
         "initial_open": 1.0
       },
       "type": "gate_valve",
-      "x": -887.0,
-      "y": 123.0
+      "x": -886.0,
+      "y": 168.0
     },
     {
       "id": "spl_7",
@@ -5894,8 +5926,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 14.0,
-      "y": 605.0
+      "x": -339.0,
+      "y": 491.0
     },
     {
       "id": "mix_8",
@@ -5904,8 +5936,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 867.0,
-      "y": 646.0
+      "x": 700.0,
+      "y": 657.0
     },
     {
       "id": "spl_9",
@@ -5914,8 +5946,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 643.0,
-      "y": 999.0
+      "x": 579.0,
+      "y": 1008.0
     },
     {
       "id": "spl_10",
@@ -5924,8 +5956,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 932.0,
-      "y": 757.0
+      "x": 820.0,
+      "y": 654.0
     },
     {
       "id": "spl_12",
@@ -5934,8 +5966,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 35.0,
-      "y": 832.0
+      "x": -345.0,
+      "y": 740.0
     },
     {
       "id": "spl_13",
@@ -5944,8 +5976,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 970.0,
-      "y": -108.0
+      "x": 1034.0,
+      "y": -106.0
     },
     {
       "id": "mix_14",
@@ -5954,8 +5986,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 1799.0,
-      "y": -168.0
+      "x": 1801.0,
+      "y": -172.0
     },
     {
       "id": "spl_15",
@@ -5964,8 +5996,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1549.0,
-      "y": 667.0
+      "x": 1375.0,
+      "y": 571.0
     },
     {
       "id": "spl_16",
@@ -5974,8 +6006,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1548.0,
-      "y": 823.0
+      "x": 1379.0,
+      "y": 715.0
     },
     {
       "id": "spl_17",
@@ -5984,8 +6016,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1557.0,
-      "y": 950.0
+      "x": 1381.0,
+      "y": 875.0
     },
     {
       "id": "mix_1",
@@ -5994,8 +6026,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 402.0,
-      "y": 612.0
+      "x": 199.0,
+      "y": 501.0
     },
     {
       "id": "mix_3",
@@ -6004,8 +6036,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 1785.0,
-      "y": 1167.0
+      "x": 1513.0,
+      "y": 1008.0
     },
     {
       "id": "mix_4",
@@ -6014,8 +6046,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 1790.0,
-      "y": 1260.0
+      "x": 1514.0,
+      "y": 1169.0
     },
     {
       "id": "mix_6",
@@ -6024,8 +6056,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 337.0,
-      "y": 138.0
+      "x": 316.0,
+      "y": 137.0
     },
     {
       "id": "mix_7",
@@ -6034,8 +6066,8 @@
         "num_inputs": 2
       },
       "type": "mixer",
-      "x": 1180.0,
-      "y": 1004.0
+      "x": 960.0,
+      "y": 950.0
     },
     {
       "id": "spl_8",
@@ -6044,8 +6076,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 2723.0,
-      "y": -104.0
+      "x": 2622.0,
+      "y": -38.0
     },
     {
       "id": "spl_9",
@@ -6054,8 +6086,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 643.0,
-      "y": 999.0
+      "x": 579.0,
+      "y": 1008.0
     },
     {
       "id": "spl_10",
@@ -6064,20 +6096,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 932.0,
-      "y": 757.0
-    },
-    {
-      "id": "source_12",
-      "name": "Источник сырья",
-      "params": {
-        "flow_kg_s": 100,
-        "pressure_bar": 1.01325,
-        "temperature_c": 25
-      },
-      "type": "source",
-      "x": 1545.0,
-      "y": -5.0
+      "x": 820.0,
+      "y": 654.0
     },
     {
       "id": "spl_13",
@@ -6086,8 +6106,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 970.0,
-      "y": -108.0
+      "x": 1034.0,
+      "y": -106.0
     },
     {
       "id": "spl_15",
@@ -6096,8 +6116,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1549.0,
-      "y": 667.0
+      "x": 1375.0,
+      "y": 571.0
     },
     {
       "id": "spl_16",
@@ -6106,8 +6126,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1548.0,
-      "y": 823.0
+      "x": 1379.0,
+      "y": 715.0
     },
     {
       "id": "spl_17",
@@ -6116,8 +6136,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 1557.0,
-      "y": 950.0
+      "x": 1381.0,
+      "y": 875.0
     },
     {
       "id": "spl_18",
@@ -6126,8 +6146,8 @@
         "num_outputs": 2
       },
       "type": "splitter",
-      "x": 2137.0,
-      "y": 35.0
+      "x": 2104.0,
+      "y": 121.0
     },
     {
       "id": "source_1",
@@ -6138,8 +6158,8 @@
         "temperature_c": 25
       },
       "type": "source",
-      "x": -552.0,
-      "y": -568.0
+      "x": -380.0,
+      "y": -546.0
     },
     {
       "id": "val_5",
@@ -6148,12 +6168,60 @@
         "cv": 0.2,
         "design_delta_p": 2,
         "flow_coefficient_si": 0.1,
-        "initial_position": 0.75,
+        "initial_position": 0.95,
         "response_rate": 0.2
       },
       "type": "valve",
-      "x": 616.0,
-      "y": 290.0
+      "x": 404.0,
+      "y": 313.0
+    },
+    {
+      "id": "val_156",
+      "name": "Регулирующий клапан",
+      "params": {
+        "cv": 0.01,
+        "initial_position": 0.0,
+        "response_rate": 0.2
+      },
+      "type": "valve",
+      "x": 228.0,
+      "y": -118.0
+    },
+    {
+      "id": "source_189",
+      "name": "Нефть с группы насосов Н-20",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 104.0,
+      "y": -117.0
+    },
+    {
+      "id": "source_190",
+      "name": "Газ из Е-15",
+      "params": {
+        "flow_kg_s": 100,
+        "pressure_bar": 1.01325,
+        "temperature_c": 25
+      },
+      "type": "source",
+      "x": 105.0,
+      "y": -165.0
+    },
+    {
+      "id": "pum_161",
+      "name": "Насос",
+      "params": {
+        "efficiency_nominal": 0.75,
+        "initial_running": 1.0,
+        "nominal_flow": 100
+      },
+      "type": "pump",
+      "x": 2939.0,
+      "y": 237.0
     }
   ],
   "schema_version": "1.1"

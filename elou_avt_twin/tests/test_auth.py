@@ -97,6 +97,14 @@ def test_admin_has_full_access(svc):
     assert set(principal.permissions) == set(PERMISSIONS)
 
 
+def test_instructor_has_all_permissions_except_account_management(svc):
+    principal = svc.principal_for("instructor")
+    forbidden = {"manage_users", "manage_roles"}
+    assert set(principal.permissions) == set(PERMISSIONS) - forbidden
+    assert not principal.has_permission("manage_users")
+    assert not principal.has_permission("manage_roles")
+
+
 def test_operator_permission_scope(svc):
     principal = svc.principal_for("operator")
     assert principal.has_permission("send_commands")

@@ -37,12 +37,18 @@ function qualTone(q: string): 'q-ok' | 'q-warn' | 'q-bad' {
   return 'q-warn';
 }
 
-export default function DebriefPage() {
+export default function DebriefPage({ mode = 'operator' }: { mode?: 'operator' | 'instructor' }) {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const isInstructor = mode === 'instructor';
   const { data, error, loading } = useAsync<LmsDebrief>(
-    () => (sessionId ? api.lmsDebrief(sessionId) : Promise.reject(new Error('Нет сессии'))),
-    [sessionId],
+    () =>
+      sessionId
+        ? isInstructor
+          ? api.lmsReport(sessionId)
+          : api.lmsDebrief(sessionId)
+        : Promise.reject(new Error('Нет сессии')),
+    [sessionId, isInstructor],
   );
 
   if (loading) return <Loader text="Формируем разбор выполнения…" />;
@@ -53,13 +59,17 @@ export default function DebriefPage() {
 
   return (
     <Page
-      title="Анализ выполнения задания"
+      title={isInstructor ? 'Отчёт о выполненной практике' : 'Анализ выполнения задания'}
       subtitle={d.task_title || d.scenario_name || d.scenario_id}
       actions={
-        <>
-          <button className="btn" onClick={() => navigate('/practice')}>К практике</button>
-          <button className="btn btn-ghost" onClick={() => navigate('/history')}>К истории</button>
-        </>
+        isInstructor ? (
+          <button className="btn" onClick={() => navigate('/instructor/reports')}>К отчётам</button>
+        ) : (
+          <>
+            <button className="btn" onClick={() => navigate('/practice')}>К практике</button>
+            <button className="btn btn-ghost" onClick={() => navigate('/history')}>К истории</button>
+          </>
+        )
       }
     >
       <Card title="Итоги">
@@ -81,7 +91,9 @@ export default function DebriefPage() {
               </div>
               <div>
                 <div className="muted" style={{ fontSize: 11 }}>Оператор</div>
-                <div className="bold">{d.operator_id}</div>
+                <div className="bold">
+                  {d.operator_full_name ? `${d.operator_full_name} (${d.operator_id})` : d.operator_id}
+                </div>
               </div>
             </div>
           </div>
