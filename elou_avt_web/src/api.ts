@@ -28,6 +28,7 @@ import type {
   LmsMonitorOperator,
   LmsPracticeTask,
   LmsProfile,
+  LmsReportRow,
   LmsScenario,
   ModuleKind,
   QuestionKind,
@@ -255,12 +256,14 @@ export const api = {
   lmsPracticeCatalog: () => json<LmsPracticeTask[]>('/lms/practice-library'),
   lmsPracticeCatalogTask: (id: number) => json<LmsPracticeTask>(`/lms/practice-library/${id}`),
   lmsScenarios: () => json<LmsScenario[]>('/lms/scenarios'),
+  lmsMyScenarios: () => json<LmsScenario[]>('/lms/scenarios/mine'),
   lmsModuleTheory: (moduleId: number) =>
     json<{ ok: boolean }>(`/lms/modules/${moduleId}/theory`, { method: 'POST' }),
 
   // ---- LMS: инструктор ----
   lmsGroups: () => json<LmsGroup[]>('/lms/groups'),
   lmsGroup: (id: number) => json<LmsGroupView>(`/lms/groups/${id}`),
+  lmsGroupCandidates: () => json<AuthUser[]>('/lms/groups/candidates'),
   lmsCreateGroup: (name: string, description: string, courseId: number | null) =>
     json<LmsGroup>('/lms/groups', {
       method: 'POST',
@@ -273,6 +276,8 @@ export const api = {
     }),
   lmsAnalytics: () => json<LmsAnalytics>('/lms/analytics'),
   lmsMonitoring: () => json<LmsMonitorOperator[]>('/lms/monitoring'),
+  lmsReports: (limit = 200) => json<LmsReportRow[]>(`/lms/reports?limit=${limit}`),
+  lmsReport: (sessionId: string) => json<LmsDebrief>(`/lms/reports/${sessionId}`),
 
   // ---- LMS: администратор ----
   lmsSettings: () => json<Record<string, string>>('/lms/settings'),
@@ -324,6 +329,8 @@ export const api = {
     id: number,
     patch: { title?: string; description?: string; scenario_id?: string; category?: TaskCategory; difficulty?: Difficulty; duration_min?: number; required_competencies?: string[]; is_random?: boolean; enabled?: boolean },
   ) => json<LmsPracticeTask>(`/lms/practice-tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  lmsDeletePracticeTask: (id: number) =>
+    json<{ ok: boolean }>(`/lms/practice-tasks/${id}`, { method: 'DELETE' }),
 
   // ---- LMS: конструктор (авторство контента) ----
   lmsAuthoringModule: (id: number) => json<ModuleAuthoringView>(`/lms/authoring/modules/${id}`),

@@ -413,6 +413,13 @@ class LmsStore:
         d["required_competencies"] = _unjson(d.get("required_competencies"), [])
         return d
 
+    def delete_task(self, task_id: int) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "DELETE FROM lms_practice_tasks WHERE id = ?", (task_id,)
+            )
+            self._conn.commit()
+
     def list_tasks(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
         sql = "SELECT * FROM lms_practice_tasks"
         params: tuple = ()

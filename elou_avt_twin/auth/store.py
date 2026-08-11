@@ -111,22 +111,17 @@ LEGACY_ROLE_CODES: List[str] = ["methodologist", "process_engineer", "ai_analyst
 
 ROLE_DESCRIPTIONS: Dict[str, str] = {
     "administrator": "Полный доступ: пользователи, роли, система, логи, справочники",
-    "instructor": "Запуск тренировок, выбор сценариев, группы, наблюдение, экзамены, статистика",
+    "instructor": "Все права, кроме управления учётными записями (пользователи и роли)",
     "operator": "Консольный оператор: управление процессом с HMI (SCADA), тренажер, свои результаты, рекомендации ИИ",
     "field_operator": "Полевой оператор: 3D-экран полевого оператора (компоновка установки и оборудования)",
 }
 
 ROLE_PERMISSIONS: Dict[str, List[str]] = {
     "administrator": ALL_PERMISSION_CODES,
+    # Инструктору доступны все права, кроме управления учётными записями
+    # (пользователи и роли/права) — это прерогатива администратора.
     "instructor": [
-        "view_scheme", "send_commands", "run_simulation", "start_training",
-        "view_training_sessions", "view_operator_actions", "view_statistics",
-        "create_exam", "view_ai_analysis", "get_ai_recommendations",
-        "view_own_results",
-        "view_dashboard", "view_courses", "view_competencies",
-        "view_history", "view_profile", "manage_groups", "view_group_progress",
-        "view_analytics", "monitor_operators", "manage_courses",
-        "manage_practice_tasks", "manage_scheme",
+        p for p in ALL_PERMISSION_CODES if p not in ("manage_users", "manage_roles")
     ],
     # start_training включено: оператор сам открывает тренировку в демо-HMI
     # («▶ Запустить сценарий»), хотя в промышленной модели запуск за инструктором.

@@ -856,11 +856,6 @@ function HmiInner() {
             ))}
           </select>
         )}
-        <button className="btn btn-start" onClick={runScenario}>▶ Запустить</button>
-        <button className="btn btn-stop" onClick={finishScenario}>⏹ Завершить</button>
-        <button className="btn btn-ghost" onClick={() => api.resetScenario().then(applyTelemetry)}>⏮ Сброс</button>
-        <button className="btn btn-ghost" onClick={() => api.step().then(applyTelemetry)}>⏭ Шаг</button>
-
         {canEditScheme && (
           <>
             <span className="hmi-sep" />
@@ -992,7 +987,7 @@ function HmiInner() {
             />
             {!edit && (
               <Panel position="top-center">
-                <div className="hmi-banner">ЭЛОУ-АВТ · МНЕМОСХЕМА УСТАНОВКИ</div>
+                <div className="hmi-banner">ОРБИТА · МНЕМОСХЕМА УСТАНОВКИ</div>
               </Panel>
             )}
             <Panel position="bottom-center">

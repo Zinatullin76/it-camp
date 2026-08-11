@@ -205,6 +205,10 @@ export interface LmsHistoryRow {
   duration_s: number | null;
 }
 
+export interface LmsReportRow extends LmsHistoryRow {
+  full_name: string;
+}
+
 export interface LmsRecommendation {
   kind: 'practice' | 'module' | 'info';
   text: string;
@@ -294,6 +298,7 @@ export interface LmsDebrief {
   scenario_id: string;
   scenario_name: string;
   operator_id: string;
+  operator_full_name: string;
   performance_score: number;
   qualification: string;
   duration_s: number;

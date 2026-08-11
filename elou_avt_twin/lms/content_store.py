@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS lms_scenarios (
     equipment_ids    TEXT NOT NULL DEFAULT '[]',
     duration_min     INTEGER NOT NULL DEFAULT 10,
     is_exam          INTEGER NOT NULL DEFAULT 0,
+    author_id        INTEGER NOT NULL DEFAULT 0,
     created_at       REAL NOT NULL
 );
 
@@ -295,6 +296,7 @@ class LmsContentStore:
             self._conn.executescript(_SCHEMA)
             self._migrate_module_published()
             self._migrate_scenario_target_state()
+            self._migrate_scenarios_author()
             self._conn.commit()
         logger.info("LmsContentStore opened: %s", self._path)
 
@@ -325,6 +327,16 @@ class LmsContentStore:
                     "ALTER TABLE lms_scenarios ADD COLUMN target_state TEXT NOT NULL DEFAULT '[]'")
             except sqlite3.OperationalError:
                 logger.debug("migration target_state: column already exists")
+
+    def _migrate_scenarios_author(self) -> None:
+        cols = {r["name"] for r in self._conn.execute(
+            "PRAGMA table_info(lms_scenarios)").fetchall()}
+        if "author_id" not in cols:
+            try:
+                self._conn.execute(
+                    "ALTER TABLE lms_scenarios ADD COLUMN author_id INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:
+                logger.debug("migration author_id: column already exists")
 
     # ------------------------------------------------------------------
     # Module helpers
@@ -638,7 +650,8 @@ class LmsContentStore:
     # Scenarios
     # ------------------------------------------------------------------
 
-    def upsert_scenario(self, module_id: int, w: ScenarioWrite) -> int:
+    def upsert_scenario(self, module_id: int, w: ScenarioWrite,
+                        author_id: Optional[int] = None) -> int:
         with self._lock, self._conn:
             row = self._conn.execute(
                 "SELECT id FROM lms_scenarios WHERE module_id = ?", (module_id,)
@@ -666,9 +679,10 @@ class LmsContentStore:
             cur = self._conn.execute(
                 "INSERT INTO lms_scenarios (module_id, title, description, goal, initial_state, "
                 "events, expected_actions, success_criteria, critical_errors, target_state, "
-                "final_state, competency_codes, equipment_ids, duration_min, is_exam, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (module_id,) + values + (time.time(),),
+                "final_state, competency_codes, equipment_ids, duration_min, is_exam, "
+                "author_id, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (module_id,) + values + (author_id or 0, time.time()),
             )
             self._conn.commit()
             return int(cur.lastrowid)
@@ -709,6 +723,21 @@ class LmsContentStore:
                 "LEFT JOIN lms_course_modules m ON m.id = s.module_id "
                 "LEFT JOIN lms_courses c ON c.id = m.course_id "
                 "ORDER BY s.id"
+            ).fetchall()
+        return [self._decode_scenario(dict(r)) for r in rows]
+
+    def list_scenarios_by_author(self, author_id: int) -> List[Dict[str, Any]]:
+        """Сценарии, созданные конкретным пользователем."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT s.*, m.title AS module_title, m.course_id, "
+                "c.title AS course_title "
+                "FROM lms_scenarios s "
+                "LEFT JOIN lms_course_modules m ON m.id = s.module_id "
+                "LEFT JOIN lms_courses c ON c.id = m.course_id "
+                "WHERE s.author_id = ? "
+                "ORDER BY s.id",
+                (author_id,),
             ).fetchall()
         return [self._decode_scenario(dict(r)) for r in rows]
 

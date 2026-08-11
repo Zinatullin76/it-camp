@@ -59,6 +59,7 @@ from .models import (
     MonitorOperatorView,
     PracticeTask,
     ProfileView,
+    ReportRow,
     SettingsUpdate,
     StudyGroup,
     TaskCreate,
@@ -196,6 +197,19 @@ def scenarios(current_user: Principal = Depends(get_current_user)):
     ]
 
 
+@router.get("/scenarios/mine", dependencies=[Depends(require_permission("manage_practice_tasks"))])
+def my_scenarios(current_user: Principal = Depends(get_current_user)):
+    """Сценарии, созданные текущим пользователем (для привязки заданий)."""
+    service = get_service()
+    author_id = _user_id(service, current_user.username)
+    return [
+        {"id": f"LMS-{s['id']}",
+         "name": s.get("title") or f"LMS-{s['id']}",
+         "description": s.get("description", "")}
+        for s in service.content.list_scenarios_by_author(author_id)
+    ]
+
+
 @router.get("/notifications", dependencies=[Depends(require_permission("view_dashboard"))])
 def notifications(current_user: Principal = Depends(get_current_user)):
     return get_service().notifications(current_user.username)
@@ -257,6 +271,14 @@ def module_complete(module_id: int, req: ModuleCompleteRequest,
             dependencies=[Depends(require_permission("view_group_progress"))])
 def list_groups(current_user: Principal = Depends(get_current_user)):
     return get_service().list_groups()
+
+
+@router.get("/groups/candidates",
+            dependencies=[Depends(require_permission("view_group_progress"))])
+def group_candidates(current_user: Principal = Depends(get_current_user)):
+    """Операторы для добавления в группы (без manage_users)."""
+    service = get_service()
+    return [u for u in service.auth.list_users() if "operator" in u.roles]
 
 
 @router.get("/groups/{group_id}", response_model=GroupView,
@@ -322,6 +344,26 @@ def analytics(current_user: Principal = Depends(get_current_user)):
             dependencies=[Depends(require_permission("monitor_operators"))])
 def monitoring(current_user: Principal = Depends(get_current_user)):
     return get_service().monitoring()
+
+
+@router.get("/reports", response_model=List[ReportRow],
+            dependencies=[Depends(require_permission("view_training_sessions"))])
+def reports(limit: int = Query(200, ge=1, le=1000),
+            current_user: Principal = Depends(get_current_user)):
+    """Отчёты о пройденных практиках всех операторов (для инструктора)."""
+    return get_service().reports(limit=limit)
+
+
+@router.get("/reports/{session_id}", response_model=DebriefView,
+            dependencies=[Depends(require_permission("view_training_sessions"))])
+def report_detail(session_id: str,
+                  current_user: Principal = Depends(get_current_user)):
+    """Разбор выполнения любой практики оператора (для инструктора)."""
+    view = get_service().debrief(session_id, current_user.username,
+                                 allow_any=True, mutate=False)
+    if view is None:
+        raise HTTPException(status_code=404, detail=f"Сессия '{session_id}' не найдена")
+    return view
 
 
 # ---------------------------------------------------------------------------
@@ -417,3 +459,13 @@ def update_task(task_id: int, req: TaskUpdate,
         raise HTTPException(status_code=404, detail=f"Задание '{task_id}' не найдено")
     service.store.update_task(task_id, req)
     return service.store.get_task(task_id)
+
+
+@router.delete("/practice-tasks/{task_id}", dependencies=[Depends(require_permission("manage_practice_tasks"))])
+def delete_task(task_id: int, current_user: Principal = Depends(get_current_user)):
+    service = get_service()
+    if service.store.get_task(task_id) is None:
+        raise HTTPException(status_code=404, detail=f"Задание '{task_id}' не найдено")
+    service.store.delete_task(task_id)
+    service.store.add_log(f"Удалено задание #{task_id}", username=current_user.username, category="task")
+    return {"ok": True}

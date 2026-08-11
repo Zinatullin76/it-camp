@@ -96,6 +96,11 @@ def _call(fn):
         raise HTTPException(status_code=422, detail=str(e))
 
 
+def _author_id(username: str) -> int:
+    u = get_service().auth.get_user_by_name(username)
+    return int(u["id"]) if u else 0
+
+
 def _ensure_session_layer() -> None:
     """Ensure the shared training session store/recorder exists.
 
@@ -245,7 +250,8 @@ def delete_task(task_id: int, current_user: Principal = Depends(get_current_user
             dependencies=[Depends(require_permission("manage_courses"))])
 def save_scenario(module_id: int, req: ScenarioWrite,
                   current_user: Principal = Depends(get_current_user)):
-    return _call(lambda: get_service().save_scenario(module_id, req))
+    return _call(lambda: get_service().save_scenario(
+        module_id, req, author_id=_author_id(current_user.username)))
 
 
 @router.delete("/scenarios/{scenario_id}",

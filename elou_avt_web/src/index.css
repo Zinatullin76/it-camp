@@ -492,12 +492,12 @@ body {
   align-items: center;
   justify-content: center;
   max-width: 1200px;
-  background: rgba(17, 26, 36, 0.9);
-  border: 1px solid var(--border);
+  background: #fff;
+  border: 1px solid #d0d7de;
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 11px;
-  color: var(--muted);
+  color: #475569;
 }
 
 .legend-line {

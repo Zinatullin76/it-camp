@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import List
 
-from .models import Competency, Course, CourseStatus, ModuleCreate, ModuleKind, PracticeTask, TaskCategory, Difficulty
+from .models import Competency, Course, CourseStatus, ModuleCreate, ModuleKind
 from .store import LmsStore
 
 COMPETENCIES: List[Competency] = [
@@ -116,37 +116,12 @@ def build_course_modules() -> List[ModuleCreate]:
     ]
 
 
-def build_practice_tasks() -> List[PracticeTask]:
-    return [
-        PracticeTask(title="Запуск установки", description="Безопасный запуск установки и выход на режим.",
-                     scenario_id="STARTUP", category=TaskCategory.PRACTICE, difficulty=Difficulty.EASY,
-                     duration_min=10, required_competencies=["startup_shutdown", "pumps"]),
-        PracticeTask(title="Останов установки", description="Плановый останов установки.",
-                     scenario_id="SHUTDOWN", category=TaskCategory.PRACTICE, difficulty=Difficulty.EASY,
-                     duration_min=10, required_competencies=["startup_shutdown"]),
-        PracticeTask(title="Переключение насосов", description="Переход на резервный насос при отказе основного.",
-                     scenario_id="PUMP_FAILURE_001", category=TaskCategory.PRACTICE, difficulty=Difficulty.MIDDLE,
-                     duration_min=10, required_competencies=["pumps", "emergency"]),
-        PracticeTask(title="Работа печи", description="Ведение теплового режима печи, устранение отклонения температуры.",
-                     scenario_id="TEMPERATURE_DEVIATION_001", category=TaskCategory.PRACTICE,
-                     difficulty=Difficulty.MIDDLE, duration_min=12, required_competencies=["furnaces", "emergency"]),
-        PracticeTask(title="Регулирование колонны", description="Удержание давления и температуры колонны в диапазоне.",
-                     scenario_id="PRESSURE_DEVIATION_001", category=TaskCategory.PRACTICE,
-                     difficulty=Difficulty.MIDDLE, duration_min=12, required_competencies=["column", "emergency"]),
-        PracticeTask(title="Ликвидация аварии", description="Действия при комбинированной аварийной ситуации.",
-                     scenario_id="COMBINED_EMERGENCY_001", category=TaskCategory.PRACTICE, difficulty=Difficulty.HARD,
-                     duration_min=15, required_competencies=["emergency", "pumps", "column"]),
-        PracticeTask(title="Нормальная работа", description="Ведение установки в штатном режиме.",
-                     scenario_id="NORMAL_OPERATION", category=TaskCategory.PRACTICE, difficulty=Difficulty.EASY,
-                     duration_min=8, required_competencies=["column", "heat_exchange"]),
-        PracticeTask(title="Экзамен: комбинированная авария", description="Итоговый экзаменационный сценарий.",
-                     scenario_id="COMBINED_EMERGENCY_001", category=TaskCategory.EXAM, difficulty=Difficulty.HARD,
-                     duration_min=15, required_competencies=["emergency", "pumps", "column"]),
-    ]
-
-
 def seed(db: LmsStore) -> None:
-    """Idempotently populate the LMS reference data."""
+    """Idempotently populate the LMS reference data.
+
+    Practice task library intentionally NOT seeded: задания создают
+    инструктор и администратор вручную (каталог стартует пустым).
+    """
     db.seed_competencies(COMPETENCIES)
     db.seed_settings(DEFAULT_SETTINGS)
 
@@ -158,8 +133,3 @@ def seed(db: LmsStore) -> None:
         modules = build_course_modules()
         for m in modules:
             db.add_module(cid, m)
-
-    tasks = db.list_tasks()
-    if not tasks:
-        for t in build_practice_tasks():
-            db.create_task(t)

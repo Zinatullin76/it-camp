@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import { AuthProvider, RequireAuth, RequirePermission, ROLE_LABELS, useAuth } from './auth';
-import { ThemeProvider, useTheme } from './lms/theme';
+import { ThemeProvider } from './lms/theme';
 
 // ---- Кабинет оператора ----
 import OperatorHomePage from './pages/operator/HomePage';
@@ -23,6 +23,7 @@ import InstructorCoursesPage from './pages/instructor/CoursesPage';
 import InstructorTasksPage from './pages/instructor/TasksPage';
 import MonitoringPage from './pages/instructor/MonitoringPage';
 import AnalyticsPage from './pages/instructor/AnalyticsPage';
+import ReportsPage from './pages/instructor/ReportsPage';
 import ModuleConstructorPage from './pages/instructor/ModuleConstructorPage';
 
 // ---- Кабинет администратора ----
@@ -34,7 +35,6 @@ import AdminTasksPage from './pages/admin/TasksPage';
 import AdminScenariosPage from './pages/admin/ScenariosPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
-import FieldOperatorScreen from './pages/admin/FieldOperatorScreen';
 
 // ---- Общие ----
 import PracticeRunner from './pages/PracticeRunner';
@@ -61,7 +61,6 @@ const OPERATOR_NAV: NavItem[] = [
 
 const FIELD_OPERATOR_NAV: NavItem[] = [
   { to: '/', label: 'Главная', ico: '⌂' },
-  { to: '/field', label: 'Экран полевого оператора', ico: '◱' },
   { to: '/courses', label: 'Мои курсы', ico: '▤' },
   { to: '/practice', label: 'Практика', ico: '▶' },
   { to: '/exams', label: 'Экзамены', ico: '✎' },
@@ -75,6 +74,7 @@ const INSTRUCTOR_NAV: NavItem[] = [
   { to: '/instructor/groups', label: 'Группы', ico: '▦' },
   { to: '/instructor/courses', label: 'Курсы · конструктор', ico: '▤' },
   { to: '/instructor/tasks', label: 'Практические задания', ico: '▣' },
+  { to: '/instructor/reports', label: 'Отчёты по практике', ico: '☰' },
   { to: '/instructor/monitoring', label: 'Мониторинг', ico: '◉' },
   { to: '/instructor/analytics', label: 'Аналитика', ico: '◔' },
 ];
@@ -86,7 +86,6 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/courses', label: 'Курсы', ico: '▤' },
   { to: '/admin/tasks', label: 'Задания', ico: '▣' },
   { to: '/admin/scenarios', label: 'Сценарии', ico: '▸' },
-  { to: '/admin/operator-screen', label: 'Экран полевого оператора', ico: '◱' },
   { to: '/admin/settings', label: 'Настройки', ico: '☰' },
   { to: '/admin/logs', label: 'Журнал системы', ico: '☷' },
 ];
@@ -112,15 +111,6 @@ const CABINET_TITLE: Record<Cabinet, string> = {
   operator: 'Кабинет консольного оператора',
   field: 'Кабинет полевого оператора',
 };
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme();
-  return (
-    <button className="theme-toggle" onClick={toggle} title="Переключить тему">
-      {theme === 'dark' ? '☀ Светлая' : '◐ Тёмная'}
-    </button>
-  );
-}
 
 function SidebarNav() {
   const { user } = useAuth();
@@ -164,8 +154,8 @@ function Shell() {
         <div className="side-brand">
           <div className="logo">Э</div>
           <div>
-            <div className="side-brand-title">ЭЛОУ-АВТ</div>
-            <div className="side-brand-sub">Тренажерный комплекс</div>
+            <div className="side-brand-title">ОРБИТА</div>
+            <div className="side-brand-sub">Образовательный портал</div>
           </div>
         </div>
         <nav className="side-nav">
@@ -185,7 +175,6 @@ function Shell() {
         <header className="topbar">
           <div className="topbar-title">{CABINET_TITLE[cabinetOf(user?.permissions ?? [])]}</div>
           <div className="topbar-right">
-            <ThemeToggle />
             <button className="btn" onClick={logout}>Выйти</button>
           </div>
         </header>
@@ -238,6 +227,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
               <Route path="/instructor/tasks" element={<RequirePermission permissions={['view_group_progress', 'manage_practice_tasks']}><InstructorTasksPage /></RequirePermission>} />
               <Route path="/instructor/monitoring" element={<RequirePermission permissions={['monitor_operators']}><MonitoringPage /></RequirePermission>} />
               <Route path="/instructor/analytics" element={<RequirePermission permissions={['view_analytics']}><AnalyticsPage /></RequirePermission>} />
+              <Route path="/instructor/reports" element={<RequirePermission permissions={['view_training_sessions']}><ReportsPage /></RequirePermission>} />
+              <Route path="/instructor/reports/:sessionId" element={<RequirePermission permissions={['view_training_sessions']}><DebriefPage mode="instructor" /></RequirePermission>} />
               <Route path="/instructor/modules/:moduleId" element={<RequirePermission permissions={['manage_courses']}><ModuleConstructorPage /></RequirePermission>} />
               <Route path="/instructor/courses" element={<RequirePermission permissions={['manage_courses', 'view_courses']}><InstructorCoursesPage /></RequirePermission>} />
 
@@ -247,11 +238,10 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
               <Route path="/admin/courses" element={<RequirePermission permissions={['manage_courses']}><AdminCoursesPage /></RequirePermission>} />
               <Route path="/admin/tasks" element={<RequirePermission permissions={['manage_practice_tasks']}><AdminTasksPage /></RequirePermission>} />
               <Route path="/admin/scenarios" element={<RequirePermission permissions={['manage_courses']}><AdminScenariosPage /></RequirePermission>} />
-              <Route path="/admin/operator-screen" element={<RequirePermission permissions={['manage_users']}><FieldOperatorScreen /></RequirePermission>} />
               <Route path="/admin/settings" element={<RequirePermission permissions={['manage_settings']}><SettingsPage /></RequirePermission>} />
               <Route path="/admin/logs" element={<RequirePermission permissions={['view_logs']}><LogsPage /></RequirePermission>} />
 
-              <Route path="/field" element={<RequirePermission permissions={['view_field_operator_screen']}><FieldOperatorScreen /></RequirePermission>} />
+              <Route path="/field" element={<HomeRedirect />} />
 
               <Route path="/hmi" element={<RequirePermission permissions={['view_scheme']}><HmiPage /></RequirePermission>} />
               <Route path="*" element={<HomeRedirect />} />

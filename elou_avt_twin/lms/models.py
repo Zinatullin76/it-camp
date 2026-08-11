@@ -217,6 +217,25 @@ class HistoryRow(BaseModel):
     duration_s: Optional[float] = None
 
 
+class ReportRow(BaseModel):
+    """Строка отчёта инструктора о пройденной оператором практике."""
+
+    session_id: str
+    scenario_id: str
+    scenario_name: str = ""
+    task_title: str = ""
+    operator_id: str = ""
+    full_name: str = ""
+    status: str = ""
+    performance_score: Optional[float] = None
+    qualification: str = ""
+    sim_start: float = 0.0
+    sim_end: Optional[float] = None
+    wall_start: float = 0.0
+    wall_end: Optional[float] = None
+    duration_s: Optional[float] = None
+
+
 class Recommendation(BaseModel):
     kind: str
     text: str
@@ -263,6 +282,7 @@ class DebriefView(BaseModel):
     scenario_id: str
     scenario_name: str
     operator_id: str
+    operator_full_name: str = ""
     performance_score: float = 0.0
     qualification: str = ""
     duration_s: float = 0.0

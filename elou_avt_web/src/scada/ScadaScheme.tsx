@@ -341,7 +341,7 @@ function ScadaInner({ live, user, onReady }: Props) {
             />
             <Panel position="top-center">
               <div className="hmi-banner">
-                ЭЛОУ-АВТ · МНЕМОСХЕМА УСТАНОВКИ{user ? ` · ${user}` : ''}
+                ОРБИТА · МНЕМОСХЕМА УСТАНОВКИ{user ? ` · ${user}` : ''}
               </div>
               <div className="hmi-chips" style={{ marginTop: 6, justifyContent: 'center' }}>
                 <span className="chip chip-info">t = {(live?.simulation_time ?? 0).toFixed(0)} с</span>

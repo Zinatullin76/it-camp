@@ -43,6 +43,7 @@ from .models import (
     MonitorOperatorView,
     ProfileView,
     Recommendation,
+    ReportRow,
     StudyGroup,
     GroupMembersRequest,
 )
@@ -354,10 +355,13 @@ class LmsService:
     # Debrief (разбор выполнения задания)
     # ------------------------------------------------------------------
 
-    def debrief(self, session_id: str, username: str) -> Optional[DebriefView]:
+    def debrief(self, session_id: str, username: str,
+                allow_any: bool = False, mutate: bool = True) -> Optional[DebriefView]:
         username = self._subject(username)
         session = self.sessions.get_session(session_id)
-        if session is None or session.get("operator_id") != username:
+        if session is None:
+            return None
+        if not allow_any and session.get("operator_id") != username:
             return None
         actions = self.sessions.get_actions(session_id)
         errors = self.sessions.get_errors(session_id)
@@ -424,7 +428,8 @@ class LmsService:
             recommendations.append("Отличный результат. Можно переходить к случайным заданиям "
                                    "для проверки устойчивости навыков.")
 
-        competency_delta = self._debrief_competency_delta(session_id, username, score)
+        competency_delta = self._debrief_competency_delta(
+            session_id, username, score, apply=mutate)
 
         # Замечания автооценки: почему не набраны максимальные баллы (не
         # достигнута цель, нарушены ожидаемые действия и т.п.). Для новых
@@ -447,6 +452,7 @@ class LmsService:
             scenario_id=session.get("scenario_id", ""),
             scenario_name=self._scenario_name(session.get("scenario_id", "")),
             operator_id=session.get("operator_id", ""),
+            operator_full_name=self._full_name(session.get("operator_id", "")),
             performance_score=score,
             qualification=session.get("qualification", "") or self._qualification(score),
             duration_s=round(dur, 1),
@@ -460,21 +466,30 @@ class LmsService:
             competency_delta=competency_delta,
         )
 
-    def _debrief_competency_delta(self, session_id: str, username: str, score: float) -> List[Dict[str, Any]]:
+    def _debrief_competency_delta(self, session_id: str, username: str, score: float,
+                                  apply: bool = True) -> List[Dict[str, Any]]:
         session = self.sessions.get_session(session_id)
         if session is None:
             return []
         scenario_id = session.get("scenario_id", "")
         tasks = [t for t in self.store.list_tasks() if t["scenario_id"] == scenario_id]
         codes = tasks[0]["required_competencies"] if tasks else []
-        user_id = self._user_id(username)
+        # Дельта считается для оператора, выполнившего сессию (при просмотре
+        # отчёта инструктором username != operator_id сессии).
+        operator_id = session.get("operator_id") or username
+        user_id = self._user_id(operator_id)
         if user_id is None or not codes:
             return []
         out: List[Dict[str, Any]] = []
         for code in codes:
             old = self.store.get_user_competencies(user_id)
             old_level = next((float(c["level_percent"]) for c in old if c["code"] == code), 0.0)
-            new_level = self.store.blend_user_competency(user_id, code, score)
+            if apply:
+                new_level = self.store.blend_user_competency(user_id, code, score)
+            else:
+                # Просмотр отчёта инструктором не должен менять уровни
+                # компетенций — показываем гипотетическую дельту.
+                new_level = old_level * 0.3 + score * 0.7
             title = self.store.get_competency(code)
             out.append({
                 "code": code,
@@ -636,6 +651,8 @@ class LmsService:
 
         dynamics: Dict[str, Dict[str, Any]] = {}
         for s in completed:
+            if not s.get("wall_start"):
+                continue
             day = datetime.fromtimestamp(float(s["wall_start"])).strftime("%Y-%m-%d")
             d = dynamics.setdefault(day, {"sum": 0.0, "n": 0})
             d["sum"] += float(s["performance_score"])
@@ -660,6 +677,39 @@ class LmsService:
         )
 
     # ------------------------------------------------------------------
+    # Reports (instructor): отчёты о пройденных практиках операторов
+    # ------------------------------------------------------------------
+
+    def reports(self, limit: int = 200) -> List[ReportRow]:
+        task_by_scenario: Dict[str, str] = {
+            t["scenario_id"]: t["title"] for t in self.store.list_tasks()
+        }
+        out: List[ReportRow] = []
+        for s in self.sessions.list_sessions(limit=limit):
+            if s.get("performance_score") is None:
+                continue
+            dur = None
+            if s.get("sim_start") is not None and s.get("sim_end") is not None:
+                dur = max(0.0, float(s["sim_end"]) - float(s["sim_start"]))
+            operator_id = s.get("operator_id") or ""
+            out.append(ReportRow(
+                session_id=s["id"], scenario_id=s.get("scenario_id") or "",
+                scenario_name=self._scenario_name(s.get("scenario_id") or ""),
+                task_title=task_by_scenario.get(s.get("scenario_id") or "", ""),
+                operator_id=operator_id,
+                full_name=self._full_name(operator_id),
+                status=s.get("status") or "",
+                performance_score=float(s["performance_score"]),
+                qualification=s.get("qualification") or "",
+                sim_start=float(s.get("sim_start", 0.0) or 0.0),
+                sim_end=s.get("sim_end"),
+                wall_start=float(s.get("wall_start", 0.0) or 0.0),
+                wall_end=s.get("wall_end"),
+                duration_s=dur,
+            ))
+        return out
+
+    # ------------------------------------------------------------------
     # Monitoring (instructor)
     # ------------------------------------------------------------------
 
@@ -677,7 +727,7 @@ class LmsService:
                 full_name=self._full_name(s.get("operator_id", "")),
                 session_id=s["id"], scenario_id=s.get("scenario_id", ""),
                 scenario_name=self._scenario_name(s.get("scenario_id", "")),
-                status=s.get("status", ""), sim_time=float(s.get("sim_start", 0.0)),
+                status=s.get("status", ""), sim_time=float(s.get("sim_start") or 0.0),
                 performance_score=s.get("performance_score"),
                 alarms=[dict(a) for a in alarms[-20:]],
                 actions_count=len(actions), errors_count=len(errors),

@@ -276,9 +276,10 @@ class ContentService:
     # Scenarios
     # ------------------------------------------------------------------
 
-    def save_scenario(self, module_id: int, w: ScenarioWrite) -> Dict[str, Any]:
+    def save_scenario(self, module_id: int, w: ScenarioWrite,
+                      author_id: Optional[int] = None) -> Dict[str, Any]:
         self._module_ok(module_id)
-        sid = self.store.upsert_scenario(module_id, w)
+        sid = self.store.upsert_scenario(module_id, w, author_id=author_id)
         return self.store.get_scenario(sid)
 
     def delete_scenario(self, scenario_id: int) -> None:
