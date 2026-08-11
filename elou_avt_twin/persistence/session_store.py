@@ -640,7 +640,7 @@ class SessionStore:
                     "value, deadline_t, description, consequence, weight) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         scenario_id,
-                        ra.get("equipment") or ra.get("equipment_id") or ra.get("object_id", ""),
+                        ra.get("equipment", ra.get("equipment_id", "")),
                         ra.get("action", ra.get("action_type", "")),
                         _json(ra.get("value")),
                         ra.get("t", ra.get("deadline_t")),

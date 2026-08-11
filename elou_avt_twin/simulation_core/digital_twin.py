@@ -146,12 +146,14 @@ class DigitalTwin:
             if not equipment_id or not action_type:
                 continue
             deadline = item.get("deadline_t", item.get("t"))
+            if deadline is None:
+                continue
             self._engine.register_expected_action(ExpectedAction(
                 equipment_id=str(equipment_id),
                 action_type=str(action_type),
                 attribute=str(item.get("attribute", "")),
                 value=None if item.get("value") in (None, "") else item.get("value"),
-                deadline=float(deadline) if deadline is not None else None,
+                deadline=float(deadline),
                 description=str(item.get("description", "")),
                 consequence=str(
                     item.get("consequence")

@@ -701,6 +701,9 @@ def practice_feedback(result: Dict[str, Any]) -> tuple[List[str], List[str]]:
     for v in result.get("violations", []):
         msg = v.get("rule_message") or f"Запрещённое действие {v.get('action_type')} на {v.get('object_id')}"
         bad.append(msg)
+    for error in result.get("tracked_errors", []):
+        if error.get("cause"):
+            bad.append(str(error["cause"]))
     penalty = _num(result.get("error_penalty"))
     if penalty > 0:
         bad.append(
