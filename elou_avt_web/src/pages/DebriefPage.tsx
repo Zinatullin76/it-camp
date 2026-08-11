@@ -129,6 +129,11 @@ export default function DebriefPage() {
             ) : (
               <ul className="err-list">
                 {d.errors.map((e, i) => (
+                  e.rule_error_type === 'PRACTICE_FEEDBACK' ? (
+                    <li key={i} className="err-item remark-item">
+                      <div className="err-title remark-title">{e.cause || e.rule_error_type}</div>
+                    </li>
+                  ) : (
                   <li key={i} className="err-item">
                     <div className="err-title">{ERROR_LABELS[e.rule_error_type] ?? e.rule_error_type}</div>
                     <div className="err-meta">
@@ -138,6 +143,7 @@ export default function DebriefPage() {
                     {e.consequence && <div className="err-meta">Последствие: {e.consequence}</div>}
                     {e.expected_action && <div className="err-meta">Ожидалось: {e.expected_action}</div>}
                   </li>
+                  )
                 ))}
               </ul>
             )}

@@ -522,13 +522,14 @@ class SessionStore:
         error: ErrorEvent,
         action_id: Optional[int] = None,
         context_snapshot_id: Optional[int] = None,
+        ai_status: str = "pending",
     ) -> int:
         """Record a rule-detected operator error. Returns row id."""
         with self._lock, self._conn:
             cur = self._conn.execute(
                 "INSERT INTO error_events (session_id, sim_time, action_id, rule_error_type, "
-                "severity, expected_action, cause, consequence, context_snapshot_id) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "severity, expected_action, cause, consequence, context_snapshot_id, ai_status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     session_id,
                     error.timestamp,
@@ -539,6 +540,7 @@ class SessionStore:
                     error.cause,
                     error.consequence,
                     context_snapshot_id,
+                    ai_status,
                 ),
             )
             return int(cur.lastrowid)

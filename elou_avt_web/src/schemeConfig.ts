@@ -102,8 +102,8 @@ export const DEFAULT_PARAMS: Record<string, Record<string, unknown>> = {
 
 // Node card size per type (width x height) — compact, matches the symbol.
 export const NODE_SIZES: Record<string, { w: number; h: number }> = {
-  source: { w: 132, h: 70 },
-  sink: { w: 132, h: 70 },
+  source: { w: 72, h: 40 },
+  sink: { w: 72, h: 40 },
   pump: { w: 104, h: 64 },
   valve: { w: 40, h: 56 },
   angle_valve: { w: 84, h: 76 },

@@ -407,8 +407,9 @@ class LmsService:
             dur = max(0.0, float(session["sim_end"]) - float(session["sim_start"]))
 
         recommendations: List[str] = []
-        if error_views:
-            for e in error_views[:3]:
+        rule_errors = [e for e in error_views if e.rule_error_type != "PRACTICE_FEEDBACK"]
+        if rule_errors:
+            for e in rule_errors[:3]:
                 if e.cause:
                     recommendations.append(f"Ошибка «{e.rule_error_type}»: {e.cause}. "
                                            f"Ожидалось: {e.expected_action or '—'}.")
@@ -426,12 +427,19 @@ class LmsService:
         competency_delta = self._debrief_competency_delta(session_id, username, score)
 
         # Замечания автооценки: почему не набраны максимальные баллы (не
-        # достигнута цель, нарушены ожидаемые действия и т.п.).
+        # достигнута цель, нарушены ожидаемые действия и т.п.). Для новых
+        # практик они уже сохранены в error_events (PRACTICE_FEEDBACK),
+        # поэтому дубли не показываем — старые сессии догружаются из оценки.
         remarks: List[str] = []
         if self.content is not None:
             assessment = self.content.get_assessment_by_session(session_id)
             if assessment:
-                remarks = list(assessment.get("feedback_bad") or [])
+                in_errors = {
+                    e.get("cause")
+                    for e in errors
+                    if e.get("rule_error_type") == "PRACTICE_FEEDBACK" and e.get("cause")
+                }
+                remarks = [m for m in (assessment.get("feedback_bad") or []) if m not in in_errors]
 
         return DebriefView(
             session_id=session_id,

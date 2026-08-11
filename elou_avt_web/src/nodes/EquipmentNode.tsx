@@ -55,8 +55,8 @@ const HANDLE_STYLE = { width: 7, height: 7, background: 'var(--bg)', border: '1.
  * ReactFlow node type -> mnemo symbol drawn exactly like avt4.html.
  */
 const SYMBOL: Record<string, Partial<MnemoItem>> = {
-  source: { t: 'box', w: 132, h: 38 },
-  sink: { t: 'box', w: 132, h: 38 },
+  source: { t: 'box', w: 72, h: 24 },
+  sink: { t: 'box', w: 72, h: 24 },
   pump: { t: 'pump' },
   valve: { t: 'valve', vt: 'cv' },
   angle_valve: { t: 'valve', vt: 'angle' },

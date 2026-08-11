@@ -7,7 +7,7 @@ import type { TagCfg } from '../nodes/EquipmentNode';
 import { STREAM_PARAMS, phaseMeta, fmtValue } from '../schemeConfig';
 
 /**
- * Поток (ребро мнемосхемы): ортогональная линия с углами 90°.
+ * Поток (ребро мнемосхемы): ортогональная линия со сглаженными углами.
  * В режиме редактирования линию можно перетаскивать мышью в любом
  * направлении — сдвиг по двум осям (offsetX/offsetY) позволяет развести
  * параллельные линии и передвинуть их вдоль потока.
@@ -38,9 +38,41 @@ const LEAD = 20;
 const TAG_W = 92;
 const TAG_H = 54;
 const TAG_STACK = 56;
+const CORNER_R = 12;
+
+/** Строит путь со сглаженными углами: каждый поворот 90° превращается в
+ *  плавную дугу (кубическая кривая Безье), геометрия трассы не меняется. */
+function smoothPath(pts: Point[]): string {
+  if (pts.length < 3) {
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x} ${p.y}`).join('');
+  }
+  let d = `M${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const c = pts[i + 1];
+    const l1 = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    const l2 = Math.abs(c.x - b.x) + Math.abs(c.y - b.y);
+    if (l1 === 0 || l2 === 0) {
+      d += `L${b.x} ${b.y}`;
+      continue;
+    }
+    const r = Math.min(CORNER_R, l1 / 2, l2 / 2);
+    const p1 = { x: b.x - ((b.x - a.x) / l1) * r, y: b.y - ((b.y - a.y) / l1) * r };
+    const p2 = { x: b.x + ((c.x - b.x) / l2) * r, y: b.y + ((c.y - b.y) / l2) * r };
+    const k = r * 0.5523;
+    const c1 = { x: b.x - ((b.x - a.x) / l1) * k, y: b.y - ((b.y - a.y) / l1) * k };
+    const c2 = { x: b.x + ((c.x - b.x) / l2) * k, y: b.y + ((c.y - b.y) / l2) * k };
+    d += `L${p1.x} ${p1.y}`;
+    d += `C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
+  }
+  const last = pts[pts.length - 1];
+  d += `L${last.x} ${last.y}`;
+  return d;
+}
 
 /**
- * Собственная ортогональная трасса с углами 90°.
+ * Собственная ортогональная трасса с углами 90° (углы сглаживаются).
  * `offsetX`/`offsetY` сдвигают средний участок линии:
  * перпендикулярно потоку — средний сегмент, вдоль потока — изгибы.
  * Возвращает также точку-якорь для квадратиков свойств.
@@ -83,9 +115,10 @@ function orthogonalPath(
     ? { x: (corner1.x + corner2.x) / 2, y: corner1.y }
     : { x: corner1.x, y: (corner1.y + corner2.y) / 2 };
 
-  let path = `M${s.x} ${s.y}`;
-  for (const pt of [soPts, corner1, corner2, toPts]) path += `L${pt.x} ${pt.y}`;
-  path += `L${t.x} ${t.y}`;
+  const pts: Point[] = [s, soPts, corner1, corner2, toPts, t].filter(
+    (p, i, arr) => i === 0 || p.x !== arr[i - 1].x || p.y !== arr[i - 1].y,
+  );
+  const path = smoothPath(pts);
   return { path, anchor, horizontal: horizontalFlow };
 }
 

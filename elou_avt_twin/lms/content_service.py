@@ -15,6 +15,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from auth.store import AuthStore
+from models.base import ErrorEvent, Severity
 
 from . import assessment as assess
 from . import runtime
@@ -592,6 +593,25 @@ class ContentService:
             good, bad = assess.practice_feedback(result)
             result["feedback_good"] = good
             result["feedback_bad"] = bad
+            # Аргументация ошибок автооценки сохраняется в error_events сессии
+            # (тип PRACTICE_FEEDBACK), чтобы попадать в разбор выполнения вместе
+            # с остальными событиями. В очередь AI-классификации не идут.
+            if bad and session_store is not None:
+                sim_time = float(session.get("sim_end") or runtime.get_twin()._simulation_time or 0.0)
+                for msg in bad:
+                    session_store.append_error(
+                        session_id,
+                        ErrorEvent(
+                            error_type="PRACTICE_FEEDBACK",
+                            severity=Severity.MEDIUM,
+                            timestamp=sim_time,
+                            operator_action="",
+                            expected_action="",
+                            cause=msg,
+                            consequence="",
+                        ),
+                        ai_status="classified",
+                    )
 
         # Журнал действий оператора («Обуч.txt» §12).
         user_id = self._user_id(username) or 0
