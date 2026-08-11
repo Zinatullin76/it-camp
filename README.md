@@ -28,20 +28,3 @@ cd ..
 1. Backend будет доступен на `http://127.0.0.1:8000/docs`.
 2. Web-интерфейс откроется на `http://localhost:5173`.
 3. Для демонстрации аварии используй инжекцию отказа через UI или `POST /failure/{equipment_id}`.
-
-## API
-- `GET /health`
-- `GET /state`
-- `GET /alarms`
-- `GET /events`
-- `GET /score`
-- `POST /input`
-- `POST /action`
-- `POST /scenario/start`
-- `POST /scenario/reset`
-- `POST /scenario/step`
-- `POST /failure/{equipment_id}`
-- `WS /ws/simulation`
-
-## Важно
-Физическое ядро является MVP-моделью. Для промышленного применения необходима дальнейшая валидация термодинамики и MESH-решателя.
