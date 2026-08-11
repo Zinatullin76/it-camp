@@ -13,7 +13,8 @@ import { notifyToast } from './ui';
 
 export const CRITERION_KEYS: { key: string; title: string }[] = [
   { key: 'sequence', title: 'Правильная последовательность' },
-  { key: 'parameters', title: 'Контроль параметров' },
+  { key: 'goal', title: 'Выполнение цели' },
+  { key: 'expected', title: 'Соблюдение ожидаемых действий' },
   { key: 'time', title: 'Время' },
   { key: 'errors', title: 'Ошибочные действия' },
   { key: 'safety', title: 'Безопасность' },

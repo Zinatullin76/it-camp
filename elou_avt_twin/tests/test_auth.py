@@ -11,6 +11,8 @@ from auth import (
     AuthStore,
     PERMISSIONS,
     ROLE_PERMISSIONS,
+    RoleCreate,
+    RoleUpdate,
     UserCreate,
 )
 from auth.security import create_token, hash_password, verify_password, verify_token
@@ -81,11 +83,12 @@ def test_token_expired():
 def test_seed_accounts_and_permission_catalog(svc):
     assert svc.authenticate("admin", "admin") is not None
     assert svc.authenticate("operator", "operator") is not None
+    assert svc.authenticate("field_operator", "field_operator") is not None
     assert svc.authenticate("unknown", "x") is None
     assert svc.authenticate("operator", "wrong") is None
-    assert len(PERMISSIONS) == 39
+    assert len(PERMISSIONS) == 40
     assert set(ROLE_PERMISSIONS) == {
-        "administrator", "instructor", "operator",
+        "administrator", "instructor", "operator", "field_operator",
     }
 
 
@@ -98,8 +101,32 @@ def test_operator_permission_scope(svc):
     principal = svc.principal_for("operator")
     assert principal.has_permission("send_commands")
     assert principal.has_permission("run_simulation")
+    assert principal.has_permission("view_scheme")
     assert not principal.has_permission("manage_users")
     assert not principal.has_permission("manage_twin")
+    assert not principal.has_permission("view_field_operator_screen")
+
+
+def test_field_operator_permission_scope(svc):
+    principal = svc.principal_for("field_operator")
+    assert principal.has_permission("view_field_operator_screen")
+    assert principal.has_permission("view_profile")
+    assert principal.has_permission("view_dashboard")
+    # Полный кабинет консольного оператора…
+    assert principal.has_permission("view_courses")
+    assert principal.has_permission("view_competencies")
+    assert principal.has_permission("view_history")
+    assert principal.has_permission("take_exam")
+    assert principal.has_permission("view_own_results")
+    assert principal.has_permission("start_training")
+    assert principal.has_permission("get_ai_recommendations")
+    # …но без SCADA (мнемосхема, HMI, управление симуляцией).
+    assert not principal.has_permission("view_scheme")
+    assert not principal.has_permission("send_commands")
+    assert not principal.has_permission("run_simulation")
+    assert not principal.has_permission("manage_users")
+    assert not principal.has_permission("manage_groups")
+    assert not principal.has_permission("view_training_sessions")
 
 
 def test_principal_from_token(svc):
@@ -150,6 +177,91 @@ def test_role_listing(svc):
     roles = {r.code: r for r in svc.list_roles()}
     assert "administrator" in roles
     assert set(roles["operator"].permissions) == set(ROLE_PERMISSIONS["operator"])
+
+
+# ---------------------------------------------------------------------------
+# service: role administration (CRUD)
+# ---------------------------------------------------------------------------
+
+def test_create_role_with_permissions(svc):
+    role = svc.create_role(RoleCreate(
+        code="shift_supervisor",
+        name="Начальник смены",
+        description="Наблюдение и статистика",
+        permission_codes=["view_statistics", "view_operator_actions", "unknown_perm"],
+    ))
+    assert role.code == "shift_supervisor"
+    assert role.name == "Начальник смены"
+    assert role.permissions == ["view_operator_actions", "view_statistics"]
+    # неизвестное право отфильтровано
+
+
+def test_create_duplicate_role_fails(svc):
+    with pytest.raises(ValueError):
+        svc.create_role(RoleCreate(code="operator", name="Дубль"))
+
+
+def test_create_role_invalid_code_fails(svc):
+    with pytest.raises(ValueError):
+        svc.create_role(RoleCreate(code="плохой код", name="x"))
+
+
+def test_update_role_name_and_description(svc):
+    svc.create_role(RoleCreate(code="auditor", name="Аудитор"))
+    updated = svc.update_role("auditor", RoleUpdate(name="Аудитор ИБ", description="Просмотр логов"))
+    assert updated.name == "Аудитор ИБ"
+    assert updated.description == "Просмотр логов"
+
+
+def test_update_missing_role_fails(svc):
+    with pytest.raises(KeyError):
+        svc.update_role("nope", RoleUpdate(name="x"))
+
+
+def test_set_role_permissions(svc):
+    svc.create_role(RoleCreate(code="viewer", name="Наблюдатель"))
+    role = svc.set_role_permissions("viewer", ["view_logs", "view_statistics"])
+    assert set(role.permissions) == {"view_logs", "view_statistics"}
+    role = svc.set_role_permissions("viewer", [])
+    assert role.permissions == []
+
+
+def test_custom_role_is_not_wiped_by_catalog(svc):
+    svc.create_role(RoleCreate(code="auditor", name="Аудитор", permission_codes=["view_logs"]))
+    svc.list_roles()  # list_roles() вызывает ensure_catalog()
+    roles = {r.code for r in svc.list_roles()}
+    assert "auditor" in roles
+
+
+def test_assign_custom_role_to_user(svc):
+    svc.create_role(RoleCreate(code="auditor", name="Аудитор", permission_codes=["view_logs"]))
+    user = svc.create_user(UserCreate(
+        username="revizor", password="pass", role_codes=["auditor"],
+    ))
+    assert user.roles == ["auditor"]
+    principal = svc.principal_for("revizor")
+    assert principal.has_permission("view_logs")
+    assert not principal.has_permission("manage_users")
+
+
+def test_delete_custom_role(svc):
+    svc.create_role(RoleCreate(code="temp_role", name="Временная"))
+    user = svc.create_user(UserCreate(username="temp_user", password="pass", role_codes=["temp_role"]))
+    svc.delete_role("temp_role")
+    roles = {r.code for r in svc.list_roles()}
+    assert "temp_role" not in roles
+    # каскад: роль слетела с пользователя
+    assert svc.principal_for("temp_user").roles == []
+
+
+def test_delete_missing_role_fails(svc):
+    with pytest.raises(KeyError):
+        svc.delete_role("nope")
+
+
+def test_delete_builtin_role_forbidden(svc):
+    with pytest.raises(ValueError):
+        svc.delete_role("administrator")
 
 
 # ---------------------------------------------------------------------------

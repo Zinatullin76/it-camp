@@ -14,7 +14,8 @@ Practice scoring compares the actual operator actions (event log) and the
 final process state against the task criteria:
 
     sequence   Правильная последовательность
-    parameters Контроль параметров (target state reached)
+    goal       Выполнение цели (target state reached)
+    expected   Соблюдение ожидаемых действий (final state matches directions)
     time       Время выполнения
     errors     Ошибочные действия
     safety     Безопасность (критические ошибки)
@@ -28,11 +29,55 @@ from typing import Any, Dict, List, Optional
 
 DEFAULT_CRITERIA = [
     {"key": "sequence", "title": "Правильная последовательность", "weight": 1.0},
-    {"key": "parameters", "title": "Контроль параметров", "weight": 1.0},
+    {"key": "goal", "title": "Выполнение цели", "weight": 1.5},
+    {"key": "expected", "title": "Соблюдение ожидаемых действий", "weight": 1.0},
     {"key": "time", "title": "Время", "weight": 0.8},
     {"key": "errors", "title": "Ошибочные действия", "weight": 1.0},
     {"key": "safety", "title": "Безопасность", "weight": 1.5},
 ]
+
+_ATTR_LABELS = {
+    "running": "Состояние",
+    "position": "Положение",
+    "fuel_flow": "Расход топлива",
+    "failed": "Состояние отказа",
+    "flow_kg_s": "Расход",
+    "temperature_c": "Температура",
+    "pressure_bar": "Давление",
+    "level_m": "Уровень",
+    "new_value": "Параметр",
+}
+
+_ATTR_UNITS = {
+    "position": "%",
+    "fuel_flow": " кг/с",
+    "flow_kg_s": " кг/с",
+    "temperature_c": " °C",
+    "pressure_bar": " бар",
+    "level_m": " м",
+    "new_value": "",
+}
+
+_DIRECTION_LABEL = {"INCREASE_PARAM": "увеличение", "DECREASE_PARAM": "уменьшение"}
+
+_RELATION_LABELS = {
+    "==": "равно", "=": "равно", "eq": "равно",
+    "!=": "не равно", "ne": "не равно",
+    ">": "больше", "gt": "больше",
+    "<": "меньше", "lt": "меньше",
+    ">=": "не менее", "ge": "не менее",
+    "<=": "не более", "le": "не более",
+}
+
+_ACTION_LABELS = {
+    "TURN_ON": "включить",
+    "TURN_OFF": "выключить",
+    "OPEN_VALVE": "открыть",
+    "CLOSE_VALVE": "закрыть",
+    "INCREASE_PARAM": "увеличить параметр",
+    "DECREASE_PARAM": "уменьшить параметр",
+    "SET_PARAM": "задать параметр",
+}
 
 ERROR_PENALTY_POINTS = {
     "LOW": 5.0,
@@ -270,11 +315,124 @@ def evaluate_condition(cond: Dict[str, Any], telemetry: Dict[str, Any]) -> bool:
     return False
 
 
-def target_state_score(target: List[Dict[str, Any]], telemetry: Dict[str, Any]) -> float:
+def _target_verdict(target: List[Dict[str, Any]], telemetry: Dict[str, Any]) -> tuple[float, List[Dict[str, Any]]]:
+    """Target-state score plus the list of unmet conditions (with actuals)."""
     if not target:
-        return 1.0
-    satisfied = sum(1 for c in target if evaluate_condition(c, telemetry))
-    return satisfied / len(target)
+        return 1.0, []
+    satisfied = 0
+    details: List[Dict[str, Any]] = []
+    for c in target:
+        if evaluate_condition(c, telemetry):
+            satisfied += 1
+        else:
+            actual = _lookup_state_value(telemetry, c.get("object_id", ""), c.get("attribute", ""))
+            details.append({**c, "actual": actual})
+    return satisfied / len(target), details
+
+
+def target_state_score(target: List[Dict[str, Any]], telemetry: Dict[str, Any]) -> float:
+    score, _ = _target_verdict(target, telemetry)
+    return score
+
+
+def target_state_details(target: List[Dict[str, Any]], telemetry: Dict[str, Any]) -> List[Dict[str, Any]]:
+    _, details = _target_verdict(target, telemetry)
+    return details
+
+
+def _lookup_state_value(source: Dict[str, Any], object_id: str, attribute: str) -> Any:
+    """Resolve a parameter value from a flat dict (``<object_id>_<attribute>``)
+    or from a node dict (``source[object_id].params[attribute]``)."""
+    if not source or not object_id:
+        return None
+    if not attribute:
+        attribute = "value"
+    flat_key = f"{object_id}_{attribute}"
+    if flat_key in source:
+        return source[flat_key]
+    node = source.get(object_id)
+    if isinstance(node, dict):
+        if attribute in node:
+            return node[attribute]
+        params = node.get("params")
+        if isinstance(params, dict) and attribute in params:
+            return params[attribute]
+    for alias in ("running", "position", "fuel_flow", "level_m", "flow_kg_s", "pressure_bar"):
+        key = f"{object_id}_{alias}"
+        if key in source:
+            return source[key]
+    return None
+
+
+def _expected_verdict(expected: List[Dict[str, Any]], telemetry: Dict[str, Any],
+                      initial_state: Optional[Dict[str, Any]] = None) -> tuple[float, List[Dict[str, Any]]]:
+    """Directional expected-actions score plus the list of unmet directions.
+
+    ``INCREASE_PARAM`` / ``DECREASE_PARAM`` encode the required direction of a
+    controlled parameter (e.g. the valve opening must grow). The final value
+    is compared against the initial one: if it moved the required way the
+    action counts as satisfied, otherwise the operator gets a penalty.
+    Actions without a direction, an object or a known initial/final value are
+    skipped and do not affect the score. With no verifiable actions the
+    criterion is considered fully satisfied.
+    """
+    if not expected:
+        return 1.0, []
+    initial_state = initial_state or {}
+    total = 0
+    satisfied = 0
+    details: List[Dict[str, Any]] = []
+    for e in expected:
+        atype = str(e.get("action_type", "")).upper()
+        if atype == "INCREASE_PARAM":
+            direction = 1
+        elif atype == "DECREASE_PARAM":
+            direction = -1
+        else:
+            continue
+        object_id = e.get("object_id", "")
+        attribute = e.get("attribute", "") or "value"
+        initial = _lookup_state_value(initial_state, object_id, attribute)
+        final = _lookup_state_value(telemetry, object_id, attribute)
+        if initial is None or final is None:
+            continue
+        # Начальное состояние клапанов хранится в долях (0..1), телеметрия — в %.
+        if attribute == "position" and f"{object_id}_position" in initial_state:
+            try:
+                if float(initial) <= 1.0:
+                    initial = float(initial) * 100.0
+            except (TypeError, ValueError):
+                pass
+        try:
+            iv, fv = float(initial), float(final)
+        except (TypeError, ValueError):
+            continue
+        total += 1
+        if (direction == 1 and fv > iv) or (direction == -1 and fv < iv):
+            satisfied += 1
+        else:
+            details.append({
+                "object_id": object_id,
+                "attribute": attribute,
+                "action_type": atype,
+                "initial": round(iv, 2),
+                "final": round(fv, 2),
+            })
+    if not total:
+        return 1.0, []
+    return satisfied / total, details
+
+
+def expected_state_score(expected: List[Dict[str, Any]], telemetry: Dict[str, Any],
+                         initial_state: Optional[Dict[str, Any]] = None) -> float:
+    score, _ = _expected_verdict(expected, telemetry, initial_state)
+    return score
+
+
+def expected_state_details(expected: List[Dict[str, Any]], telemetry: Dict[str, Any],
+                           initial_state: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    _, details = _expected_verdict(expected, telemetry, initial_state)
+    return details
 
 
 def violations_for(actions: List[Dict[str, Any]], restrictions: List[Dict[str, Any]],
@@ -378,11 +536,15 @@ def sequence_score(expected: List[Dict[str, Any]], actions: List[Dict[str, Any]]
 
 def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
                       telemetry: Dict[str, Any], duration_s: float,
-                      tracked_errors: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+                      tracked_errors: Optional[List[Dict[str, Any]]] = None,
+                      initial_state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     criteria_conf = task.get("criteria") or DEFAULT_CRITERIA
 
     seq = sequence_score(task.get("expected_actions", []), actions)
-    params = target_state_score(task.get("target_state", []), telemetry)
+    goal, goal_details = _target_verdict(task.get("target_state", []), telemetry)
+    expected, expected_details = _expected_verdict(
+        task.get("expected_actions", []), telemetry, initial_state
+    )
 
     duration_min = max(1, int(task.get("duration_min", 10)))
     limit = duration_min * 60.0
@@ -439,7 +601,9 @@ def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
 
     by_key = {
         "sequence": seq,
-        "parameters": params,
+        "goal": goal,
+        "parameters": goal,
+        "expected": expected,
         "time": time_s,
         "errors": errors,
         "safety": safety,
@@ -460,6 +624,10 @@ def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
                 "penalty": round(error_penalty, 1),
                 "breakdown": penalty_breakdown,
             })
+        elif key == "goal" and goal_details:
+            criterion["details"] = goal_details
+        elif key == "expected" and expected_details:
+            criterion["details"] = expected_details
         out[key] = criterion
         total_weight += weight
         weighted += val * weight
@@ -484,6 +652,38 @@ def practice_criteria(task: Dict[str, Any], actions: List[Dict[str, Any]],
     }
 
 
+def _fmt_value(value: Any, attribute: str) -> str:
+    if isinstance(value, bool):
+        return "включён" if value else "выключен"
+    if value is None:
+        return "неизвестно"
+    unit = _ATTR_UNITS.get(attribute, "")
+    try:
+        return f"{float(value):g}{unit}"
+    except (TypeError, ValueError):
+        return f"{value}{unit}"
+
+
+def _goal_failure_message(d: Dict[str, Any]) -> str:
+    obj = d.get("object_id", "")
+    attr = d.get("attribute", "")
+    label = _ATTR_LABELS.get(attr, attr or "параметр")
+    actual = _fmt_value(d.get("actual"), attr)
+    required = _fmt_value(d.get("value"), attr)
+    rel = _RELATION_LABELS.get(str(d.get("relation", "")), str(d.get("relation", "")))
+    return f"Цель не достигнута: {label} {obj} — сейчас {actual}, требуется {rel} {required}."
+
+
+def _expected_failure_message(d: Dict[str, Any]) -> str:
+    obj = d.get("object_id", "")
+    attr = d.get("attribute", "")
+    label = _ATTR_LABELS.get(attr, attr or "параметр")
+    need = _DIRECTION_LABEL.get(str(d.get("action_type", "")).upper(), "изменение")
+    unit = _ATTR_UNITS.get(attr, "")
+    return (f"Ожидаемое действие не выполнено: требуется {need} — {label} {obj} "
+            f"изменилось с {d.get('initial')}{unit} до {d.get('final')}{unit}.")
+
+
 def practice_feedback(result: Dict[str, Any]) -> tuple[List[str], List[str]]:
     good, bad = [], []
     criteria = result.get("criteria", {})
@@ -493,6 +693,11 @@ def practice_feedback(result: Dict[str, Any]) -> tuple[List[str], List[str]]:
             good.append(f"{val.get('title')} — {s:.0f}%")
         elif s < 60:
             bad.append(f"{val.get('title')} — только {s:.0f}%")
+        for d in val.get("details", []) or []:
+            if key == "goal":
+                bad.append(_goal_failure_message(d))
+            elif key == "expected":
+                bad.append(_expected_failure_message(d))
     for v in result.get("violations", []):
         msg = v.get("rule_message") or f"Запрещённое действие {v.get('action_type')} на {v.get('object_id')}"
         bad.append(msg)

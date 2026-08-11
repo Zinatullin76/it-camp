@@ -4,7 +4,8 @@ import { useAuth } from '../auth';
 import { useTheme } from '../lms/theme';
 
 const DEMO: { username: string; label: string }[] = [
-  { username: 'operator', label: 'Оператор' },
+  { username: 'operator', label: 'Консольный оператор' },
+  { username: 'field_operator', label: 'Полевой оператор' },
   { username: 'instructor', label: 'Инструктор' },
   { username: 'admin', label: 'Администратор' },
 ];

@@ -58,3 +58,83 @@ def test_every_tracked_error_reduces_score_and_is_explained():
     assert result["score"] < 100.0
     assert any("Нарушена последовательность" in message for message in bad)
     assert any("штраф" in message for message in bad)
+
+
+def test_goal_criterion_reflects_target_state_reached():
+    task = _task()
+    task["target_state"] = [
+        {"object_id": "pump_H20", "attribute": "running", "relation": "==", "value": True},
+        {"object_id": "pump_H1", "attribute": "running", "relation": "==", "value": False},
+    ]
+    telemetry = {"pump_H20": {"running": True}, "pump_H1": {"running": False}}
+
+    result = practice_criteria(task, [], telemetry, duration_s=10.0)
+    assert result["criteria"]["goal"]["score"] == 100.0
+
+    telemetry["pump_H20"]["running"] = False
+    result = practice_criteria(task, [], telemetry, duration_s=10.0)
+    assert result["criteria"]["goal"]["score"] == 50.0
+
+
+def test_expected_criterion_checks_final_vs_initial_direction():
+    task = _task()
+    task["expected_actions"] = [
+        {"seq": 1, "object_id": "valve_FV1", "attribute": "position", "action_type": "INCREASE_PARAM"},
+    ]
+    telemetry = {"valve_FV1": {"params": {"position": 70.0}}}
+    initial_state = {"valve_FV1_position": 0.2}
+
+    ok = practice_criteria(task, [], telemetry, duration_s=10.0, initial_state=initial_state)
+    assert ok["criteria"]["expected"]["score"] == 100.0
+
+    telemetry["valve_FV1"]["params"]["position"] = 10.0
+    bad = practice_criteria(task, [], telemetry, duration_s=10.0, initial_state=initial_state)
+    assert bad["criteria"]["expected"]["score"] == 0.0
+
+
+def test_expected_criterion_decrease_direction():
+    task = _task()
+    task["expected_actions"] = [
+        {"seq": 1, "object_id": "valve_FV1", "attribute": "position", "action_type": "DECREASE_PARAM"},
+    ]
+    telemetry = {"valve_FV1": {"params": {"position": 10.0}}}
+    initial_state = {"valve_FV1_position": 0.8}
+
+    ok = practice_criteria(task, [], telemetry, duration_s=10.0, initial_state=initial_state)
+    assert ok["criteria"]["expected"]["score"] == 100.0
+
+    telemetry["valve_FV1"]["params"]["position"] = 90.0
+    bad = practice_criteria(task, [], telemetry, duration_s=10.0, initial_state=initial_state)
+    assert bad["criteria"]["expected"]["score"] == 0.0
+
+
+def test_expected_criterion_is_skipped_when_not_verifiable():
+    task = _task()
+    result = practice_criteria(task, [], {}, duration_s=10.0)
+    assert result["criteria"]["expected"]["score"] == 100.0
+
+    task["expected_actions"] = [
+        {"seq": 1, "object_id": "valve_FV1", "attribute": "position", "action_type": "INCREASE_PARAM"},
+    ]
+    result = practice_criteria(task, [], {"valve_FV1": {"params": {"position": 50.0}}}, duration_s=10.0)
+    assert result["criteria"]["expected"]["score"] == 100.0
+
+
+def test_legacy_parameters_criterion_still_available():
+    task = _task()
+    task["target_state"] = [{"object_id": "pump_H20", "attribute": "running", "relation": "==", "value": True}]
+    task["criteria"] = [{"key": "parameters", "title": "Контроль параметров", "weight": 1.0}]
+    result = practice_criteria(task, [], {"pump_H20": {"running": True}}, duration_s=10.0)
+    assert result["criteria"]["parameters"]["score"] == 100.0
+
+
+def test_expected_failure_appears_in_feedback():
+    task = _task()
+    task["expected_actions"] = [
+        {"seq": 1, "object_id": "valve_FV1", "attribute": "position", "action_type": "INCREASE_PARAM"},
+    ]
+    telemetry = {"valve_FV1": {"params": {"position": 5.0}}}
+    result = practice_criteria(task, [], telemetry, duration_s=10.0,
+                               initial_state={"valve_FV1_position": 0.8})
+    _, bad = practice_feedback(result)
+    assert any("Соблюдение ожидаемых действий" in message for message in bad)

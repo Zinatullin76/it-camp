@@ -6,7 +6,8 @@ import { api, authStore, type AuthUser } from './api';
 export const ROLE_LABELS: Record<string, string> = {
   administrator: 'Администратор',
   instructor: 'Инструктор',
-  operator: 'Оператор',
+  operator: 'Консольный оператор',
+  field_operator: 'Полевой оператор',
 };
 
 interface AuthContextValue {

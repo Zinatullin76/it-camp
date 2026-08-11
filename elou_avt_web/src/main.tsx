@@ -34,6 +34,7 @@ import AdminTasksPage from './pages/admin/TasksPage';
 import AdminScenariosPage from './pages/admin/ScenariosPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import LogsPage from './pages/admin/LogsPage';
+import FieldOperatorScreen from './pages/admin/FieldOperatorScreen';
 
 // ---- Общие ----
 import PracticeRunner from './pages/PracticeRunner';
@@ -58,6 +59,17 @@ const OPERATOR_NAV: NavItem[] = [
   { to: '/profile', label: 'Профиль', ico: '◉' },
 ];
 
+const FIELD_OPERATOR_NAV: NavItem[] = [
+  { to: '/', label: 'Главная', ico: '⌂' },
+  { to: '/field', label: 'Экран полевого оператора', ico: '◱' },
+  { to: '/courses', label: 'Мои курсы', ico: '▤' },
+  { to: '/practice', label: 'Практика', ico: '▶' },
+  { to: '/exams', label: 'Экзамены', ico: '✎' },
+  { to: '/competencies', label: 'Мои компетенции', ico: '◍' },
+  { to: '/history', label: 'История', ico: '☷' },
+  { to: '/profile', label: 'Профиль', ico: '◉' },
+];
+
 const INSTRUCTOR_NAV: NavItem[] = [
   { to: '/instructor', label: 'Главная', ico: '⌂' },
   { to: '/instructor/groups', label: 'Группы', ico: '▦' },
@@ -74,11 +86,12 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/courses', label: 'Курсы', ico: '▤' },
   { to: '/admin/tasks', label: 'Задания', ico: '▣' },
   { to: '/admin/scenarios', label: 'Сценарии', ico: '▸' },
+  { to: '/admin/operator-screen', label: 'Экран полевого оператора', ico: '◱' },
   { to: '/admin/settings', label: 'Настройки', ico: '☰' },
   { to: '/admin/logs', label: 'Журнал системы', ico: '☷' },
 ];
 
-type Cabinet = 'admin' | 'instructor' | 'operator';
+type Cabinet = 'admin' | 'instructor' | 'operator' | 'field';
 
 function cabinetOf(permissions: string[]): Cabinet {
   if (permissions.includes('manage_users')) return 'admin';
@@ -89,13 +102,15 @@ function cabinetOf(permissions: string[]): Cabinet {
   ) {
     return 'instructor';
   }
+  if (permissions.includes('view_field_operator_screen')) return 'field';
   return 'operator';
 }
 
 const CABINET_TITLE: Record<Cabinet, string> = {
   admin: 'Кабинет администратора',
   instructor: 'Кабинет инструктора',
-  operator: 'Кабинет оператора',
+  operator: 'Кабинет консольного оператора',
+  field: 'Кабинет полевого оператора',
 };
 
 function ThemeToggle() {
@@ -115,7 +130,9 @@ function SidebarNav() {
       ? ADMIN_NAV
       : cabinet === 'instructor'
         ? INSTRUCTOR_NAV
-        : OPERATOR_NAV;
+        : cabinet === 'field'
+          ? FIELD_OPERATOR_NAV
+          : OPERATOR_NAV;
 
   const items = [...nav];
   if (user?.permissions.includes('view_scheme') && !items.some((n) => n.to === '/hmi')) {
@@ -230,8 +247,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
               <Route path="/admin/courses" element={<RequirePermission permissions={['manage_courses']}><AdminCoursesPage /></RequirePermission>} />
               <Route path="/admin/tasks" element={<RequirePermission permissions={['manage_practice_tasks']}><AdminTasksPage /></RequirePermission>} />
               <Route path="/admin/scenarios" element={<RequirePermission permissions={['manage_courses']}><AdminScenariosPage /></RequirePermission>} />
+              <Route path="/admin/operator-screen" element={<RequirePermission permissions={['manage_users']}><FieldOperatorScreen /></RequirePermission>} />
               <Route path="/admin/settings" element={<RequirePermission permissions={['manage_settings']}><SettingsPage /></RequirePermission>} />
               <Route path="/admin/logs" element={<RequirePermission permissions={['view_logs']}><LogsPage /></RequirePermission>} />
+
+              <Route path="/field" element={<RequirePermission permissions={['view_field_operator_screen']}><FieldOperatorScreen /></RequirePermission>} />
 
               <Route path="/hmi" element={<RequirePermission permissions={['view_scheme']}><HmiPage /></RequirePermission>} />
               <Route path="*" element={<HomeRedirect />} />

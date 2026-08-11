@@ -1869,6 +1869,23 @@ input[type='range'] {
   background: var(--bg);
 }
 
+/* ---- Экран полевого оператора (3D-модель установки) ---- */
+.field-operator-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.field-operator-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--bg);
+}
+
 /* ---- Page scaffold ---- */
 .page { padding: 18px 22px 48px; }
 .page-inner { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }

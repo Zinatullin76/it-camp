@@ -56,6 +56,11 @@ export interface RoleInfo {
   permissions: string[];
 }
 
+export interface PermissionInfo {
+  code: string;
+  description: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -111,6 +116,25 @@ export const api = {
     }),
   deactivateUser: (userId: number) =>
     json<{ ok: boolean }>(`/auth/users/${userId}/deactivate`, { method: 'POST' }),
+
+  listPermissions: () => json<PermissionInfo[]>('/auth/permissions'),
+  createRole: (role: { code: string; name: string; description: string; permission_codes: string[] }) =>
+    json<RoleInfo>('/auth/roles', {
+      method: 'POST',
+      body: JSON.stringify(role),
+    }),
+  updateRole: (code: string, patch: { name?: string; description?: string }) =>
+    json<RoleInfo>(`/auth/roles/${code}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    }),
+  setRolePermissions: (code: string, permissionCodes: string[]) =>
+    json<RoleInfo>(`/auth/roles/${code}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permission_codes: permissionCodes }),
+    }),
+  deleteRole: (code: string) =>
+    json<{ ok: boolean }>(`/auth/roles/${code}`, { method: 'DELETE' }),
 
   getState: () => json<ApiState>('/state'),
   getSimulationSpeed: () => json<{ speed: number }>('/simulation/speed'),

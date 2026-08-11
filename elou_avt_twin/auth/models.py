@@ -7,9 +7,9 @@ principal, API request/response models and admin-facing views.
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Principal(BaseModel):
@@ -71,3 +71,19 @@ class UserCreate(BaseModel):
 
 class RoleAssign(BaseModel):
     role_codes: List[str] = []
+
+
+class RoleCreate(BaseModel):
+    code: str = Field(..., min_length=1, max_length=64)
+    name: str = Field(..., min_length=1, max_length=128)
+    description: str = ""
+    permission_codes: List[str] = []
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class RolePermissions(BaseModel):
+    permission_codes: List[str] = []

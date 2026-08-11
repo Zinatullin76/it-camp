@@ -23,13 +23,23 @@ foreign_keys, RLock) so the two stores can share one database file.
 from __future__ import annotations
 
 import logging
+import re
 import sqlite3
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
-from .models import LoginResponse, PermissionView, Principal, RoleView, UserCreate, UserView
+from .models import (
+    LoginResponse,
+    PermissionView,
+    Principal,
+    RoleCreate,
+    RoleUpdate,
+    RoleView,
+    UserCreate,
+    UserView,
+)
 from .security import create_token, hash_password, verify_password, verify_token
 
 logger = logging.getLogger("elou_avt.auth")
@@ -69,6 +79,7 @@ PERMISSIONS: Dict[str, str] = {
     "get_ai_recommendations": "Получение рекомендаций ИИ",
     "view_own_results": "Просмотр своих результатов",
     "view_dashboard": "Просмотр главной кабинета оператора",
+    "view_field_operator_screen": "Просмотр 3D-экрана полевого оператора",
     "view_courses": "Просмотр курсов и модулей обучения",
     "view_competencies": "Просмотр карты компетенций",
     "view_history": "Просмотр истории тренировок",
@@ -87,15 +98,22 @@ ALL_PERMISSION_CODES: List[str] = sorted(PERMISSIONS)
 ROLE_LABELS: Dict[str, str] = {
     "administrator": "Администратор",
     "instructor": "Инструктор",
-    "operator": "Оператор",
+    "operator": "Консольный оператор",
+    "field_operator": "Полевой оператор",
 }
 
 ALL_ROLE_CODES: List[str] = list(ROLE_LABELS)
 
+# Роли, удалённые из модели в ходе рефакторинга кабинетов: чистятся при
+# каждом старте, чтобы не висели в базе. Пользовательские роли администратора
+# (созданные через /auth/roles) НЕ трогаются.
+LEGACY_ROLE_CODES: List[str] = ["methodologist", "process_engineer", "ai_analyst", "examiner"]
+
 ROLE_DESCRIPTIONS: Dict[str, str] = {
     "administrator": "Полный доступ: пользователи, роли, система, логи, справочники",
     "instructor": "Запуск тренировок, выбор сценариев, группы, наблюдение, экзамены, статистика",
-    "operator": "Прохождение тренировок, управление процессом, HMI, свои результаты, рекомендации ИИ",
+    "operator": "Консольный оператор: управление процессом с HMI (SCADA), тренажер, свои результаты, рекомендации ИИ",
+    "field_operator": "Полевой оператор: 3D-экран полевого оператора (компоновка установки и оборудования)",
 }
 
 ROLE_PERMISSIONS: Dict[str, List[str]] = {
@@ -118,6 +136,14 @@ ROLE_PERMISSIONS: Dict[str, List[str]] = {
         "view_dashboard", "view_courses", "view_competencies",
         "view_history", "view_profile",
     ],
+    # Полевой оператор: полный кабинет консольного оператора БЕЗ SCADA
+    # (мнемосхема/HMI: view_scheme, send_commands, run_simulation). Вместо
+    # SCADA — 3D-экран полевого оператора (компоновка установки).
+    "field_operator": [
+        "start_training", "take_exam", "view_own_results", "get_ai_recommendations",
+        "view_dashboard", "view_courses", "view_competencies",
+        "view_history", "view_profile", "view_field_operator_screen",
+    ],
 }
 
 # (username, password, full_name, [role_codes]) — seed accounts for the demo.
@@ -125,7 +151,8 @@ ROLE_PERMISSIONS: Dict[str, List[str]] = {
 DEFAULT_USERS = [
     ("admin", "admin", "Системный администратор", ["administrator"]),
     ("instructor", "instructor", "Инструктор", ["instructor"]),
-    ("operator", "operator", "Оператор", ["operator"]),
+    ("operator", "operator", "Консольный оператор", ["operator"]),
+    ("field_operator", "field_operator", "Полевой оператор", ["field_operator"]),
 ]
 
 _SCHEMA = """
@@ -200,12 +227,14 @@ class AuthStore:
                     "INSERT OR IGNORE INTO permissions (code, description) VALUES (?, ?)",
                     (code, desc),
                 )
-            # Устаревшие роли (методолог, технолог, аналитик ИИ, экзаменатор) удаляются —
-            # остаются только три кабинета. Связи role_permissions/user_roles слетают по CASCADE.
-            placeholders = ",".join("?" * len(ROLE_LABELS))
+            # Устаревшие роли (методолог, технолог, аналитик ИИ, экзаменатор)
+            # удаляются — остаются только кабинеты. Пользовательские роли,
+            # созданные администратором, не удаляются. Связи
+            # role_permissions/user_roles слетают по CASCADE.
             self._conn.execute(
-                f"DELETE FROM roles WHERE code NOT IN ({placeholders})",
-                list(ROLE_LABELS),
+                "DELETE FROM roles WHERE code IN (%s)"
+                % ",".join("?" * len(LEGACY_ROLE_CODES)),
+                LEGACY_ROLE_CODES,
             )
             # Вместе с ролями удаляем не используемые больше демо-учетки.
             self._conn.execute(
@@ -218,6 +247,13 @@ class AuthStore:
                     (code, name, ROLE_DESCRIPTIONS.get(code, "")),
                 )
             for role, codes in ROLE_PERMISSIONS.items():
+                # Каталог является источником истины для ВСТРОЕННЫХ ролей:
+                # права заменяются на каждом старте, чтобы изменения каталога
+                # (новые роли/права) применялись к существующим базам.
+                # Пользовательские роли сюда не входят и не трогаются.
+                self._conn.execute(
+                    "DELETE FROM role_permissions WHERE role_code = ?", (role,)
+                )
                 for perm in codes:
                     self._conn.execute(
                         "INSERT OR IGNORE INTO role_permissions (role_code, permission_code) VALUES (?, ?)",
@@ -226,20 +262,27 @@ class AuthStore:
             self._conn.commit()
 
     def ensure_default_users(self) -> None:
-        """Seed demo accounts once (only when the users table is empty)."""
+        """Seed demo accounts idempotently: add missing users, repair role bindings."""
         self.ensure_catalog()
         with self._lock, self._conn:
-            count = self._conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-            if count:
-                return
             for username, password, full_name, roles in DEFAULT_USERS:
-                now = time.time()
-                cur = self._conn.execute(
-                    "INSERT INTO users (username, password_hash, full_name, is_active, created_at) "
-                    "VALUES (?, ?, ?, 1, ?)",
-                    (username, hash_password(password), full_name, now),
-                )
-                user_id = cur.lastrowid
+                row = self._conn.execute(
+                    "SELECT id FROM users WHERE username = ?", (username,)
+                ).fetchone()
+                if row is None:
+                    now = time.time()
+                    cur = self._conn.execute(
+                        "INSERT INTO users (username, password_hash, full_name, is_active, created_at) "
+                        "VALUES (?, ?, ?, 1, ?)",
+                        (username, hash_password(password), full_name, now),
+                    )
+                    user_id = cur.lastrowid
+                else:
+                    user_id = row["id"]
+                    self._conn.execute(
+                        "UPDATE users SET full_name = ?, is_active = 1 WHERE id = ?",
+                        (full_name, user_id),
+                    )
                 for role in roles:
                     self._conn.execute(
                         "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
@@ -274,12 +317,7 @@ class AuthStore:
                 (data.username, hash_password(data.password), data.full_name, now),
             )
             user_id = cur.lastrowid
-            for role in data.role_codes:
-                if role in ROLE_LABELS:
-                    self._conn.execute(
-                        "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
-                        (user_id, role),
-                    )
+            self._bind_roles_locked(user_id, data.role_codes)
             self._conn.commit()
         return self.user_view(user_id)
 
@@ -294,14 +332,22 @@ class AuthStore:
     def set_user_roles(self, user_id: int, role_codes: List[str]) -> UserView:
         with self._lock, self._conn:
             self._conn.execute("DELETE FROM user_roles WHERE user_id = ?", (user_id,))
-            for role in role_codes:
-                if role in ROLE_LABELS:
-                    self._conn.execute(
-                        "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
-                        (user_id, role),
-                    )
+            self._bind_roles_locked(user_id, role_codes)
             self._conn.commit()
         return self.user_view(user_id)
+
+    def _bind_roles_locked(self, user_id: int, role_codes: List[str]) -> None:
+        """Insert role bindings for roles that actually exist (incl. custom)."""
+        known = {
+            r["code"]
+            for r in self._conn.execute("SELECT code FROM roles").fetchall()
+        }
+        for role in role_codes:
+            if role in known:
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO user_roles (user_id, role_code) VALUES (?, ?)",
+                    (user_id, role),
+                )
 
     def list_users(self) -> List[UserView]:
         with self._lock:
@@ -333,6 +379,104 @@ class AuthStore:
                 "SELECT code, description FROM permissions ORDER BY code"
             ).fetchall()
         return [PermissionView(code=r["code"], description=r["description"]) for r in rows]
+
+    # ------------------------------------------------------------------
+    # Roles (администрирование)
+    # ------------------------------------------------------------------
+
+    _ROLE_CODE_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
+
+    def _known_permission_codes(self) -> Set[str]:
+        return {
+            r["code"]
+            for r in self._conn.execute("SELECT code FROM permissions").fetchall()
+        }
+
+    def create_role(self, data: RoleCreate) -> RoleView:
+        code = data.code.strip()
+        if not self._ROLE_CODE_RE.fullmatch(code):
+            raise ValueError("Код роли: латиница, цифры и '_' (до 64 символов)")
+        with self._lock, self._conn:
+            if self._conn.execute(
+                "SELECT 1 FROM roles WHERE code = ?", (code,)
+            ).fetchone():
+                raise ValueError(f"Роль '{code}' уже существует")
+            self._conn.execute(
+                "INSERT INTO roles (code, name, description) VALUES (?, ?, ?)",
+                (code, data.name.strip(), data.description.strip()),
+            )
+            self._bind_permissions_locked(code, data.permission_codes)
+            self._conn.commit()
+        return self.role_view(code)
+
+    def update_role(self, code: str, data: RoleUpdate) -> RoleView:
+        with self._lock, self._conn:
+            row = self._conn.execute(
+                "SELECT code FROM roles WHERE code = ?", (code,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Роль '{code}' не найдена")
+            if data.name is not None:
+                self._conn.execute(
+                    "UPDATE roles SET name = ? WHERE code = ?",
+                    (data.name.strip(), code),
+                )
+            if data.description is not None:
+                self._conn.execute(
+                    "UPDATE roles SET description = ? WHERE code = ?",
+                    (data.description.strip(), code),
+                )
+            self._conn.commit()
+        return self.role_view(code)
+
+    def set_role_permissions(self, code: str, permission_codes: List[str]) -> RoleView:
+        with self._lock, self._conn:
+            row = self._conn.execute(
+                "SELECT code FROM roles WHERE code = ?", (code,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Роль '{code}' не найдена")
+            self._conn.execute(
+                "DELETE FROM role_permissions WHERE role_code = ?", (code,)
+            )
+            self._bind_permissions_locked(code, permission_codes)
+            self._conn.commit()
+        return self.role_view(code)
+
+    def delete_role(self, code: str) -> None:
+        if code in ROLE_LABELS:
+            raise ValueError(
+                f"Встроенную роль '{code}' нельзя удалить — она восстанавливается каталогом"
+            )
+        with self._lock, self._conn:
+            cur = self._conn.execute("DELETE FROM roles WHERE code = ?", (code,))
+            if cur.rowcount == 0:
+                raise KeyError(f"Роль '{code}' не найдена")
+            self._conn.commit()
+
+    def _bind_permissions_locked(self, role_code: str, permission_codes: List[str]) -> None:
+        known = self._known_permission_codes()
+        for perm in permission_codes:
+            if perm in known:
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO role_permissions (role_code, permission_code) VALUES (?, ?)",
+                    (role_code, perm),
+                )
+
+    def role_view(self, code: str) -> RoleView:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT code, name, description FROM roles WHERE code = ?", (code,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Роль '{code}' не найдена")
+            perms = [p["permission_code"] for p in self._conn.execute(
+                "SELECT permission_code FROM role_permissions WHERE role_code = ? ORDER BY permission_code",
+                (code,),
+            )]
+            return RoleView(
+                code=row["code"], name=row["name"], description=row["description"], permissions=perms,
+            )
 
     # ------------------------------------------------------------------
     # Queries used to build a Principal
@@ -451,3 +595,15 @@ class AuthService:
 
     def all_permissions(self) -> List[PermissionView]:
         return self._store.all_permissions()
+
+    def create_role(self, data: RoleCreate) -> RoleView:
+        return self._store.create_role(data)
+
+    def update_role(self, code: str, data: RoleUpdate) -> RoleView:
+        return self._store.update_role(code, data)
+
+    def set_role_permissions(self, code: str, permission_codes: List[str]) -> RoleView:
+        return self._store.set_role_permissions(code, permission_codes)
+
+    def delete_role(self, code: str) -> None:
+        self._store.delete_role(code)

@@ -39,8 +39,88 @@ from .scenario_service import to_engine_scenario
 from .store import LmsStore
 
 
+def _assess_context(task: Dict[str, Any], scenario: Optional[Dict[str, Any]],
+                    start_snapshot: Optional[Dict[str, Any]] = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    """Build the evaluation task + initial state for practice assessment.
+
+    The scenario is the authoritative source of the exercise definition:
+    expected actions, criteria and target states may live on the scenario,
+    while the task record keeps a stale snapshot of them.
+    """
+    eval_task = dict(task)
+    scn = scenario or {}
+    expected_actions = list(task.get("expected_actions") or [])
+    for exp in (scn.get("expected_actions") or []):
+        if exp not in expected_actions:
+            expected_actions.append(exp)
+    if expected_actions:
+        eval_task["expected_actions"] = expected_actions
+    task_targets = list(task.get("target_state") or [])
+    scenario_targets = list(scn.get("target_state") or [])
+    if scenario_targets:
+        eval_task["target_state"] = task_targets + scenario_targets
+    scenario_criteria = [c for c in (scn.get("success_criteria") or []) if c.get("key")]
+    if scenario_criteria:
+        eval_task["criteria"] = [
+            {
+                "key": c.get("key"),
+                "title": c.get("title") or _CRITERION_TITLES.get(c.get("key"), c.get("key")),
+                "weight": c.get("weight", 1.0),
+            }
+            for c in scenario_criteria
+        ]
+    elif not task.get("criteria"):
+        eval_task["criteria"] = [
+            {"key": c["key"], "title": c["title"], "weight": c["weight"]}
+            for c in assess.DEFAULT_CRITERIA
+        ]
+    # Начальное состояние используется критерием «Соблюдение ожидаемых
+    # действий»: конечное значение направленного параметра сравнивается со
+    # стартовым. Реальным стартом считается первый снапшот сессии; авторские
+    # initial_state сценария/задания перекрывают его.
+    initial_state: Dict[str, Any] = {}
+    if start_snapshot:
+        initial_state.update(_flat_snapshot_state(start_snapshot))
+    for is_dict in (task.get("initial_state") or {}, scn.get("initial_state") or {}):
+        if isinstance(is_dict, dict):
+            initial_state.update(is_dict)
+    return eval_task, initial_state
+
+
 def _now() -> float:
     return _time.time()
+
+
+_CRITERION_TITLES = {
+    "sequence": "Правильная последовательность",
+    "goal": "Выполнение цели",
+    "expected": "Соблюдение ожидаемых действий",
+    "parameters": "Контроль параметров",
+    "time": "Время",
+    "errors": "Ошибочные действия",
+    "safety": "Безопасность",
+}
+
+
+def _flat_snapshot_state(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert a start snapshot into the flat ``<id>_<attribute>`` dict the
+    assessment uses as the initial state of a practice."""
+    out: Dict[str, Any] = {}
+    for node_id, val in (snapshot.get("valve_positions") or {}).items():
+        out[f"{node_id}_position"] = val
+    for node_id, val in (snapshot.get("pump_states") or {}).items():
+        out[f"{node_id}_running"] = bool(val)
+    for node_id, val in (snapshot.get("levels") or {}).items():
+        out[f"{node_id}_level_m"] = val
+    for node_id, st in (snapshot.get("equipment_states") or {}).items():
+        if isinstance(st, dict):
+            if "running" in st:
+                out[f"{node_id}_running"] = bool(st["running"])
+            if "failed" in st:
+                out[f"{node_id}_failed"] = bool(st["failed"])
+            if "fuel_flow" in st:
+                out[f"{node_id}_fuel_flow"] = st["fuel_flow"]
+    return out
 
 
 class ContentService:
@@ -488,18 +568,25 @@ class ContentService:
                       "feedback_good": [], "feedback_bad": ["Задание не найдено для оценки"]}
             module_id = 0
         else:
-            # Сценарий и задание могут задавать независимые целевые состояния.
-            # Объединяем их, не изменяя данные, хранящиеся в LMS. Одновременно
-            # передаём ошибки ErrorTracker в оценщик, чтобы штрафы учитывались
-            # единообразно во всех режимах прохождения.
-            eval_task = dict(task)
-            task_targets = list(task.get("target_state") or [])
-            scenario_targets = list((scenario or {}).get("target_state") or [])
-            if scenario_targets:
-                eval_task["target_state"] = task_targets + scenario_targets
+            # Сценарий является авторитетным источником определения задания:
+            # ожидаемые действия, критерии и целевые состояния могут жить в
+            # сценарии, а запись задания хранит лишь старый срез. Собираем
+            # полный контекст, не изменяя данные в БД.
+            snapshots = session_store.get_snapshots(session_id) if session_store else []
+            start_snapshot = None
+            if snapshots:
+                # Первый «step»-снапшот отражает реальное стартовое состояние:
+                # в предшаговом снапшоте reason="start" положения клапанов ещё
+                # не инициализированы (нули), а оператор видит уже применённые
+                # значения оборудования.
+                start_snapshot = next(
+                    (s for s in snapshots if s.get("reason") == "step"), snapshots[0]
+                )
+            eval_task, initial_state = _assess_context(task, scenario, start_snapshot)
 
             result = assess.practice_criteria(
-                eval_task, actions, telemetry, dur, tracked_errors
+                eval_task, actions, telemetry, dur, tracked_errors,
+                initial_state=initial_state,
             )
             module_id = int(task["module_id"])
             good, bad = assess.practice_feedback(result)

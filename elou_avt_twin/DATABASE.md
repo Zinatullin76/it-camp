@@ -506,7 +506,7 @@ actions ──< state_snapshots.action_id
 
 ### Перечисления
 
-**Роли** — `roles.code`: `administrator`, `instructor`, `operator`
+**Роли** — `roles.code`: `administrator`, `instructor`, `operator`, `field_operator`
 
 **Статус курса** — `lms_courses.status`: `DRAFT`, `ACTIVE`, `ARCHIVED`
 

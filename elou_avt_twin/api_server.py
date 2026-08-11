@@ -20,7 +20,14 @@ from scenarios.scenario_registry import SCENARIO_REGISTRY
 from persistence.session_store import SessionStore
 from persistence.session_recorder import SessionRecorder
 from auth.deps import authenticate_websocket, get_auth_service, get_current_user, require_permission
-from auth.models import LoginRequest, RoleAssign, UserCreate
+from auth.models import (
+    LoginRequest,
+    RoleAssign,
+    RoleCreate,
+    RolePermissions,
+    RoleUpdate,
+    UserCreate,
+)
 from lms.api import router as lms_router
 from lms.content_api import router as lms_content_router
 from lms import runtime as lms_runtime
@@ -535,6 +542,37 @@ def auth_roles():
 @app.get("/auth/permissions", dependencies=[Depends(require_permission("manage_roles"))])
 def auth_permissions():
     return get_auth_service().all_permissions()
+
+@app.post("/auth/roles", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_create_role(req: RoleCreate):
+    try:
+        return get_auth_service().create_role(req)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+@app.put("/auth/roles/{code}", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_update_role(code: str, req: RoleUpdate):
+    try:
+        return get_auth_service().update_role(code, req)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.put("/auth/roles/{code}/permissions", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_set_role_permissions(code: str, req: RolePermissions):
+    try:
+        return get_auth_service().set_role_permissions(code, req.permission_codes)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.delete("/auth/roles/{code}", dependencies=[Depends(require_permission("manage_roles"))])
+def auth_delete_role(code: str):
+    try:
+        get_auth_service().delete_role(code)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"ok": True}
 
 @app.get("/auth/users", dependencies=[Depends(require_permission("manage_users"))])
 def auth_users():
