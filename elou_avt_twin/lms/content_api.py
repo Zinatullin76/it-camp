@@ -52,6 +52,8 @@ from auth.store import AuthStore
 
 from .content_models import (
     LessonWrite,
+    MlInstructorFeedbackWrite,
+    MlOperatorFeedbackWrite,
     PublishWrite,
     QuestionWrite,
     ScenarioWrite,
@@ -346,6 +348,16 @@ def assessment_detail(assessment_id: int,
     return rows[0]
 
 
+@router.put("/sessions/{session_id}/ml-feedback",
+            dependencies=[Depends(require_permission("view_own_results"))])
+def operator_ml_feedback(session_id: str, req: MlOperatorFeedbackWrite,
+                         current_user: Principal = Depends(get_current_user)):
+    return _call(lambda: get_service().operator_ml_feedback(
+        session_id, current_user.username, req.dominant_agreed,
+        req.secondary_agreed, req.self_assessment_label,
+    ))
+
+
 # ---------------------------------------------------------------------------
 # Инструктор: операторы, результаты, журнал действий
 # ---------------------------------------------------------------------------
@@ -369,6 +381,15 @@ def instructor_assessments(limit: int = Query(300, ge=1, le=1000),
 def instructor_assessment(assessment_id: int,
                           current_user: Principal = Depends(get_current_user)):
     return _call(lambda: get_service()._assessment_view(assessment_id))
+
+
+@router.put("/instructor/reports/{session_id}/ml-feedback",
+            dependencies=[Depends(require_permission("view_training_sessions"))])
+def instructor_ml_feedback(session_id: str, req: MlInstructorFeedbackWrite,
+                           current_user: Principal = Depends(get_current_user)):
+    return _call(lambda: get_service().instructor_ml_feedback(
+        session_id, req.instructor_label, current_user.username,
+    ))
 
 
 @router.get("/action-log", dependencies=[Depends(require_permission("view_history"))])

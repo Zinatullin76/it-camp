@@ -310,6 +310,27 @@ export interface LmsDebrief {
   remarks: string[];
   recommendations: string[];
   competency_delta: CompetencyDelta[];
+  ml_prediction: MlPrediction | null;
+}
+
+export interface MlCause {
+  label: string;
+  name: string;
+  probability: number;
+}
+
+export interface MlPrediction {
+  id: number;
+  session_id: string;
+  model_name: string;
+  causes: MlCause[];
+  top_causes: MlCause[];
+  dominant_agreed: boolean | null;
+  secondary_agreed: boolean | null;
+  self_assessment_label: string | null;
+  instructor_label: string | null;
+  operator_feedback_at: number | null;
+  instructor_feedback_at: number | null;
 }
 
 export interface LmsGroup {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
 import type { LmsDebrief } from '../types';
@@ -41,6 +42,12 @@ export default function DebriefPage({ mode = 'operator' }: { mode?: 'operator' |
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const isInstructor = mode === 'instructor';
+  const [dominantAgreed, setDominantAgreed] = useState<boolean | null>(null);
+  const [secondaryAgreed, setSecondaryAgreed] = useState<boolean | null>(null);
+  const [selfLabel, setSelfLabel] = useState('');
+  const [instructorLabel, setInstructorLabel] = useState('');
+  const [feedbackStatus, setFeedbackStatus] = useState('');
+  const [saving, setSaving] = useState(false);
   const { data, error, loading } = useAsync<LmsDebrief>(
     () =>
       sessionId
@@ -51,11 +58,66 @@ export default function DebriefPage({ mode = 'operator' }: { mode?: 'operator' |
     [sessionId, isInstructor],
   );
 
+  useEffect(() => {
+    const prediction = data?.ml_prediction;
+    if (!prediction) return;
+    setDominantAgreed(prediction.dominant_agreed);
+    setSecondaryAgreed(prediction.secondary_agreed);
+    setSelfLabel(prediction.self_assessment_label ?? '');
+    setInstructorLabel(prediction.instructor_label ?? '');
+  }, [data]);
+
   if (loading) return <Loader text="Формируем разбор выполнения…" />;
   if (error) return <Err text={error} />;
   if (!data) return <Empty />;
 
   const d = data;
+  const prediction = d.ml_prediction;
+  const top = prediction?.top_causes ?? [];
+  const needsSelfAssessment = dominantAgreed === false && secondaryAgreed === false;
+
+  async function saveOperatorFeedback() {
+    if (!sessionId || dominantAgreed == null || secondaryAgreed == null) return;
+    if (needsSelfAssessment && !selfLabel) {
+      setFeedbackStatus('Укажите причину или выберите вариант «Ни одна причина не подходит»');
+      return;
+    }
+    setSaving(true);
+    setFeedbackStatus('');
+    try {
+      await api.lmsMlFeedback(sessionId, {
+        dominant_agreed: dominantAgreed,
+        secondary_agreed: secondaryAgreed,
+        self_assessment_label: needsSelfAssessment ? selfLabel : null,
+      });
+      setFeedbackStatus('Ответ сохранён');
+    } catch (saveError) {
+      setFeedbackStatus(saveError instanceof Error ? saveError.message : 'Не удалось сохранить ответ');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveInstructorFeedback() {
+    if (!sessionId || !instructorLabel) return;
+    setSaving(true);
+    setFeedbackStatus('');
+    try {
+      await api.lmsInstructorMlFeedback(sessionId, instructorLabel);
+      setFeedbackStatus('Оценка инструктора сохранена');
+    } catch (saveError) {
+      setFeedbackStatus(saveError instanceof Error ? saveError.message : 'Не удалось сохранить оценку');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const agreement = (value: boolean | null, setValue: (next: boolean) => void) => (
+    <div className="row" style={{ gap: 8 }}>
+      <button type="button" className={`btn${value === true ? ' btn-start' : ''}`} onClick={() => setValue(true)}>Да</button>
+      <button type="button" className={`btn${value === false ? ' btn-danger' : ''}`} onClick={() => setValue(false)}>Нет</button>
+    </div>
+  );
 
   return (
     <Page
@@ -163,6 +225,52 @@ export default function DebriefPage({ mode = 'operator' }: { mode?: 'operator' |
         </div>
 
         <div className="hero-side">
+          {prediction && top.length >= 2 && (
+            <Card title="Возможные причины неудачного прохождения" subtitle="Гипотезы модели требуют подтверждения человеком">
+              <div className="col" style={{ gap: 10 }}>
+                <div><div className="muted">Доминирующая гипотеза</div><div className="bold">{top[0].name}</div><div className="muted num">Уверенность: {(top[0].probability * 100).toFixed(0)}%</div></div>
+                {!isInstructor && <><div className="bold" style={{ fontSize: 12 }}>Согласны ли вы с причиной?</div>{agreement(dominantAgreed, setDominantAgreed)}</>}
+                <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--border)' }} />
+                <div><div className="muted">Следующая вероятная причина</div><div className="bold">{top[1].name}</div><div className="muted num">Уверенность: {(top[1].probability * 100).toFixed(0)}%</div></div>
+                {!isInstructor && <><div className="bold" style={{ fontSize: 12 }}>Согласны ли вы с причиной?</div>{agreement(secondaryAgreed, setSecondaryAgreed)}</>}
+
+                {!isInstructor && needsSelfAssessment && (
+                  <label className="col" style={{ gap: 6 }}>
+                    <span className="bold" style={{ fontSize: 12 }}>Пожалуйста, укажите ваше мнение, почему сценарий не был сдан</span>
+                    <select className="scenario-select" value={selfLabel} onChange={(event) => setSelfLabel(event.target.value)}>
+                      <option value="">Выберите причину</option>
+                      {prediction.causes.map((cause) => <option key={cause.label} value={cause.label}>{cause.name}</option>)}
+                      <option value="none">Ни одна причина не подходит</option>
+                    </select>
+                  </label>
+                )}
+
+                {isInstructor && (
+                  <>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      Самооценка оператора: {prediction.self_assessment_label
+                        ? prediction.causes.find((cause) => cause.label === prediction.self_assessment_label)?.name ?? 'Ни одна причина не подходит'
+                        : 'не указана'}
+                    </div>
+                    <label className="col" style={{ gap: 6 }}>
+                      <span className="bold" style={{ fontSize: 12 }}>Оценка инструктора</span>
+                      <select className="scenario-select" value={instructorLabel} onChange={(event) => setInstructorLabel(event.target.value)}>
+                        <option value="">Выберите причину</option>
+                        {prediction.causes.map((cause) => <option key={cause.label} value={cause.label}>{cause.name}</option>)}
+                      </select>
+                    </label>
+                  </>
+                )}
+
+                {feedbackStatus && <div className="muted" style={{ fontSize: 12 }}>{feedbackStatus}</div>}
+                {isInstructor ? (
+                  <button className="btn btn-start" disabled={saving || !instructorLabel} onClick={() => void saveInstructorFeedback()}>{saving ? 'Сохранение…' : 'Сохранить оценку'}</button>
+                ) : (
+                  <button className="btn btn-start" disabled={saving || dominantAgreed == null || secondaryAgreed == null} onClick={() => void saveOperatorFeedback()}>{saving ? 'Сохранение…' : 'Сохранить мнение'}</button>
+                )}
+              </div>
+            </Card>
+          )}
           <Card title="Рекомендации">
             {d.recommendations.length === 0 ? (
               <Empty text="Рекомендаций нет" />

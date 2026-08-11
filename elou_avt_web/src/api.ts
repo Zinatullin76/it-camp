@@ -250,6 +250,13 @@ export const api = {
   lmsCompetencies: () => json<import('./types').LmsCompetency[]>('/lms/competencies'),
   lmsHistory: (limit = 200) => json<LmsHistoryRow[]>(`/lms/history?limit=${limit}`),
   lmsDebrief: (sessionId: string) => json<LmsDebrief>(`/lms/sessions/${sessionId}/debrief`),
+  lmsMlFeedback: (sessionId: string, feedback: {
+    dominant_agreed: boolean;
+    secondary_agreed: boolean;
+    self_assessment_label: string | null;
+  }) => json<import('./types').MlPrediction>(`/lms/sessions/${sessionId}/ml-feedback`, {
+    method: 'PUT', body: JSON.stringify(feedback),
+  }),
   lmsPracticeTasks: (includeExam = true) =>
     json<LmsPracticeTask[]>(`/lms/practice-tasks?include_exam=${includeExam}`),
   lmsPracticeTask: (id: number) => json<LmsPracticeTask>(`/lms/practice-tasks/${id}`),
@@ -278,6 +285,10 @@ export const api = {
   lmsMonitoring: () => json<LmsMonitorOperator[]>('/lms/monitoring'),
   lmsReports: (limit = 200) => json<LmsReportRow[]>(`/lms/reports?limit=${limit}`),
   lmsReport: (sessionId: string) => json<LmsDebrief>(`/lms/reports/${sessionId}`),
+  lmsInstructorMlFeedback: (sessionId: string, instructorLabel: string) =>
+    json<import('./types').MlPrediction>(`/lms/instructor/reports/${sessionId}/ml-feedback`, {
+      method: 'PUT', body: JSON.stringify({ instructor_label: instructorLabel }),
+    }),
 
   // ---- LMS: администратор ----
   lmsSettings: () => json<Record<string, string>>('/lms/settings'),

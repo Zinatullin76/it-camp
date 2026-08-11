@@ -436,6 +436,7 @@ class LmsService:
         # практик они уже сохранены в error_events (PRACTICE_FEEDBACK),
         # поэтому дубли не показываем — старые сессии догружаются из оценки.
         remarks: List[str] = []
+        ml_prediction = None
         if self.content is not None:
             assessment = self.content.get_assessment_by_session(session_id)
             if assessment:
@@ -445,6 +446,16 @@ class LmsService:
                     if e.get("rule_error_type") == "PRACTICE_FEEDBACK" and e.get("cause")
                 }
                 remarks = [m for m in (assessment.get("feedback_bad") or []) if m not in in_errors]
+            prediction = self.content.get_ml_prediction(session_id)
+            if prediction is not None:
+                from ml.session_cause_inference import CAUSE_NAMES
+                causes = sorted(
+                    ({"label": label, "name": CAUSE_NAMES.get(label, label),
+                      "probability": float(probability)}
+                     for label, probability in prediction.get("probabilities", {}).items()),
+                    key=lambda item: item["probability"], reverse=True,
+                )
+                ml_prediction = {**prediction, "causes": causes, "top_causes": causes[:2]}
 
         return DebriefView(
             session_id=session_id,
@@ -464,6 +475,7 @@ class LmsService:
             remarks=remarks,
             recommendations=recommendations,
             competency_delta=competency_delta,
+            ml_prediction=ml_prediction,
         )
 
     def _debrief_competency_delta(self, session_id: str, username: str, score: float,

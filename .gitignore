@@ -33,3 +33,6 @@ elou_avt_web/dist/
 dist/
 *.tsbuildinfo
 *.tsbuildinfo.json
+
+ERROR_CAUSE_DATASET_DESIGN.md
+collect_session_dataset.py

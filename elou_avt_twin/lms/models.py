@@ -294,6 +294,7 @@ class DebriefView(BaseModel):
     remarks: List[str] = Field(default_factory=list)
     recommendations: List[str] = Field(default_factory=list)
     competency_delta: List[Dict[str, Any]] = Field(default_factory=list)
+    ml_prediction: Optional[Dict[str, Any]] = None
 
 
 class GroupMemberProgress(BaseModel):

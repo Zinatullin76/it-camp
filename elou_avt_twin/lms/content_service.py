@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import time as _time
 import uuid
+import logging
 from typing import Any, Dict, List, Optional
 
 from auth.store import AuthStore
 from models.base import ErrorEvent, Severity
+from ml.session_cause_inference import CAUSE_NAMES, session_cause_classifier
 
 from . import assessment as assess
 from . import runtime
@@ -38,6 +40,9 @@ from .content_models import (
 from .content_store import LmsContentStore
 from .scenario_service import to_engine_scenario
 from .store import LmsStore
+
+
+logger = logging.getLogger("elou_avt.lms_content")
 
 
 def _assess_context(task: Dict[str, Any], scenario: Optional[Dict[str, Any]],
@@ -667,7 +672,62 @@ class ContentService:
             recorder.end(sim_end=runtime.get_twin()._simulation_time, score=score)
         self._ready_sessions.discard(session_id)
 
+        if not passed and session_store is not None:
+            try:
+                prediction = session_cause_classifier.predict(session_store._path, session_id)
+                if prediction is not None:
+                    self.store.save_ml_prediction(session_id, aid, prediction)
+            except Exception:
+                logger.exception("Не удалось классифицировать причины для сессии %s", session_id)
+
         return self._assessment_view(aid)
+
+    @staticmethod
+    def ml_prediction_view(prediction: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if prediction is None:
+            return None
+        causes = sorted(
+            ({"label": label, "name": CAUSE_NAMES.get(label, label),
+              "probability": float(probability)}
+             for label, probability in prediction.get("probabilities", {}).items()),
+            key=lambda item: item["probability"], reverse=True,
+        )
+        return {**prediction, "causes": causes, "top_causes": causes[:2]}
+
+    def operator_ml_feedback(self, session_id: str, username: str,
+                             dominant_agreed: bool, secondary_agreed: bool,
+                             self_assessment_label: Optional[str]) -> Dict[str, Any]:
+        user_id = self._user_id(username)
+        assessment = self.store.get_assessment_by_session(session_id)
+        if assessment is None or assessment.get("user_id") != user_id:
+            raise PermissionError("Нельзя изменить обратную связь другой сессии")
+        prediction = self.store.get_ml_prediction(session_id)
+        if prediction is None:
+            raise KeyError(f"ML-прогноз для сессии '{session_id}' не найден")
+        if not dominant_agreed and not secondary_agreed:
+            if self_assessment_label not in {*CAUSE_NAMES, "none"}:
+                raise ValueError("Укажите причину или вариант 'ни одна причина не подходит'")
+        else:
+            top_labels = prediction.get("top_labels", [])
+            if dominant_agreed and top_labels:
+                self_assessment_label = str(top_labels[0])
+            elif secondary_agreed and len(top_labels) > 1:
+                self_assessment_label = str(top_labels[1])
+        self.store.save_operator_ml_feedback(
+            session_id, dominant_agreed, secondary_agreed, self_assessment_label,
+        )
+        return self.ml_prediction_view(self.store.get_ml_prediction(session_id)) or {}
+
+    def instructor_ml_feedback(self, session_id: str, label: str,
+                               instructor_username: str) -> Dict[str, Any]:
+        if label not in CAUSE_NAMES:
+            raise ValueError("Неизвестный тип причины")
+        if self.store.get_ml_prediction(session_id) is None:
+            raise KeyError(f"ML-прогноз для сессии '{session_id}' не найден")
+        self.store.save_instructor_ml_feedback(
+            session_id, label, self._user_id(instructor_username) or 0,
+        )
+        return self.ml_prediction_view(self.store.get_ml_prediction(session_id)) or {}
 
     def _apply_competencies(self, user_id: int, codes: List[str], score: float) -> None:
         for code in codes:

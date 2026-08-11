@@ -178,6 +178,26 @@ CREATE TABLE IF NOT EXISTS lms_scada_log (
     module_id   INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS ml_predictions (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id             TEXT NOT NULL UNIQUE,
+    assessment_id          INTEGER REFERENCES lms_assessments(id) ON DELETE SET NULL,
+    model_name             TEXT NOT NULL,
+    predicted_labels       TEXT NOT NULL DEFAULT '[]',
+    probabilities          TEXT NOT NULL DEFAULT '{}',
+    top_labels             TEXT NOT NULL DEFAULT '[]',
+    feature_payload        TEXT NOT NULL DEFAULT '{}',
+    dominant_agreed        INTEGER,
+    secondary_agreed       INTEGER,
+    self_assessment_label  TEXT,
+    instructor_label       TEXT,
+    instructor_id          INTEGER,
+    operator_feedback_at   REAL,
+    instructor_feedback_at REAL,
+    created_at             REAL NOT NULL,
+    updated_at             REAL NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_lessons_module  ON lms_lessons (module_id, seq);
 CREATE INDEX IF NOT EXISTS idx_questions_test  ON lms_questions (test_id, seq);
 CREATE INDEX IF NOT EXISTS idx_tasks_module    ON lms_training_tasks (module_id);
@@ -187,6 +207,7 @@ CREATE INDEX IF NOT EXISTS idx_assess_module   ON lms_assessments (module_id);
 CREATE INDEX IF NOT EXISTS idx_action_log_time ON lms_action_log (timestamp);
 CREATE INDEX IF NOT EXISTS idx_scada_log_time  ON lms_scada_log (timestamp);
 CREATE INDEX IF NOT EXISTS idx_scada_log_user  ON lms_scada_log (username, timestamp);
+CREATE INDEX IF NOT EXISTS idx_ml_predictions_assessment ON ml_predictions (assessment_id);
 """
 
 
@@ -818,6 +839,70 @@ class LmsContentStore:
                 (user_id, module_id, kind),
             ).fetchone()
         return self._decode_assessment(dict(row)) if row else None
+
+    def save_ml_prediction(self, session_id: str, assessment_id: int,
+                           prediction: Dict[str, Any]) -> None:
+        causes = prediction.get("causes", [])
+        now = time.time()
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO ml_predictions (session_id, assessment_id, model_name, "
+                "predicted_labels, probabilities, top_labels, feature_payload, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(session_id) DO UPDATE SET assessment_id=excluded.assessment_id, "
+                "model_name=excluded.model_name, predicted_labels=excluded.predicted_labels, "
+                "probabilities=excluded.probabilities, top_labels=excluded.top_labels, "
+                "feature_payload=excluded.feature_payload, updated_at=excluded.updated_at",
+                (session_id, assessment_id, prediction.get("model_name", ""),
+                 _json(prediction.get("predicted_labels", [])),
+                 _json({item["label"]: item["probability"] for item in causes}),
+                 _json([item["label"] for item in prediction.get("top_causes", [])]),
+                 _json(prediction.get("features", {})), now, now),
+            )
+
+    def get_ml_prediction(self, session_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM ml_predictions WHERE session_id = ?", (session_id,)
+            ).fetchone()
+        return self._decode_ml_prediction(dict(row)) if row else None
+
+    def save_operator_ml_feedback(self, session_id: str, dominant_agreed: bool,
+                                  secondary_agreed: bool,
+                                  self_assessment_label: Optional[str]) -> None:
+        now = time.time()
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "UPDATE ml_predictions SET dominant_agreed=?, secondary_agreed=?, "
+                "self_assessment_label=?, operator_feedback_at=?, updated_at=? WHERE session_id=?",
+                (int(dominant_agreed), int(secondary_agreed), self_assessment_label,
+                 now, now, session_id),
+            )
+            if cur.rowcount == 0:
+                raise KeyError(f"ML-прогноз для сессии '{session_id}' не найден")
+
+    def save_instructor_ml_feedback(self, session_id: str, label: str,
+                                    instructor_id: int) -> None:
+        now = time.time()
+        with self._lock, self._conn:
+            cur = self._conn.execute(
+                "UPDATE ml_predictions SET instructor_label=?, instructor_id=?, "
+                "instructor_feedback_at=?, updated_at=? WHERE session_id=?",
+                (label, instructor_id, now, now, session_id),
+            )
+            if cur.rowcount == 0:
+                raise KeyError(f"ML-прогноз для сессии '{session_id}' не найден")
+
+    @staticmethod
+    def _decode_ml_prediction(d: Dict[str, Any]) -> Dict[str, Any]:
+        d["predicted_labels"] = _unjson(d.get("predicted_labels"), [])
+        d["probabilities"] = _unjson(d.get("probabilities"), {})
+        d["top_labels"] = _unjson(d.get("top_labels"), [])
+        d["feature_payload"] = _unjson(d.get("feature_payload"), {})
+        for field in ("dominant_agreed", "secondary_agreed"):
+            if d.get(field) is not None:
+                d[field] = bool(d[field])
+        return d
 
     @staticmethod
     def _decode_assessment(d: Dict[str, Any]) -> Dict[str, Any]:

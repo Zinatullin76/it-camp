@@ -334,6 +334,16 @@ class ScadaLogWrite(BaseModel):
     module_id: Optional[int] = None
 
 
+class MlOperatorFeedbackWrite(BaseModel):
+    dominant_agreed: bool
+    secondary_agreed: bool
+    self_assessment_label: Optional[str] = None
+
+
+class MlInstructorFeedbackWrite(BaseModel):
+    instructor_label: str
+
+
 class TaskStart(BaseModel):
     pass
 
